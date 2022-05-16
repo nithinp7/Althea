@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(Include Src)
 
-function(cesium_glob_files out_var_name regexes)
+function(glob_files out_var_name regexes)
     set(files "")
     foreach(arg ${ARGV})
         list(APPEND regexes_only "${arg}")
@@ -21,7 +21,7 @@ function(cesium_glob_files out_var_name regexes)
     set(${ARGV0} "${files}" PARENT_SCOPE)
 endfunction()
 
-cesium_glob_files(SRC_FILES_LIST Src/*.cpp)
+glob_files(SRC_FILES_LIST Src/*.cpp)
 
 add_executable(VulkanPractice ${SRC_FILES_LIST})
 
@@ -30,14 +30,13 @@ add_subdirectory ("Extern/glm")
 add_subdirectory ("Extern/glfw")
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
-#find_package(glfw3 3.3 REQUIRED FATAL_ERROR) # error
-#find_package(GLFW REQUIRED FATAL_ERROR)
 
 target_include_directories (${PROJECT_NAME}
     PUBLIC ${GLFW_INCLUDE_DIRS}
-    PUBLIC ${VULKAN_INCLUDE_DIRS}
+    PUBLIC ${Vulkan_INCLUDE_DIRS}
+    PUBLIC extern/glm/glm
 )
 
 target_link_libraries (${PROJECT_NAME} glfw)
-target_link_libraries (${PROJECT_NAME} ${VULKAN_LIBRARIES})
+target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
 

@@ -6,16 +6,18 @@
 #include <string>
 #include <vector>
 
-#include <vulkan.h>
+#include <vulkan/vulkan.h>
 #include <cstdint>
 
 class ShaderManager {
 public:
   ShaderManager(const ConfigParser& configParser);
+  const std::vector<char>& getShaderCode(uint32_t shaderId) const;
 
 private:
   void _compileShader(const std::string& shaderPath, const std::string& compiledShaderPath);
   void _loadShader(const std::string& compiledShaderPath);
+
   std::vector<std::vector<char>> _shaderBytecodes;
 };
 

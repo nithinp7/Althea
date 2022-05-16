@@ -22,7 +22,7 @@ namespace {
       if (splitIndex != std::string::npos) {
         shaderToCompile.push_back({
           line.substr(0, splitIndex),
-          line.substr(splitIndex + 1, line.length()});
+          line.substr(splitIndex + 1, line.length())});
       }
       else {
         shaderToCompile.push_back({
@@ -40,7 +40,11 @@ ShaderManager::ShaderManager(const ConfigParser& configParser) {
   
 }
 
-ShaderManager::_loadShader(const std::string& compiledShaderPath) {
+void ShaderManager::_compileShader(const std::string& shaderPath, const std::string& compiledShaderPath) {
+  
+}
+
+void ShaderManager::_loadShader(const std::string& compiledShaderPath) {
   this->_shaderBytecodes.push_back(Utilities::readFile(compiledShaderPath));
 }
 
