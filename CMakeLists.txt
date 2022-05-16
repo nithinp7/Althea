@@ -26,12 +26,12 @@ cesium_glob_files(SRC_FILES_LIST Src/*.cpp)
 add_executable(VulkanPractice ${SRC_FILES_LIST})
 
 # Include sub-projects.
-# add_subdirectory ("ThirdParty/glfw")
-# add_subdirectory ("ThirdParty/Vulkan")
+add_subdirectory ("Extern/glm")
+add_subdirectory ("Extern/glfw")
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
-find_package(glfw3 3.3 REQUIRED FATAL_ERROR) # error
-find_package(GLFW REQUIRED FATAL_ERROR)
+#find_package(glfw3 3.3 REQUIRED FATAL_ERROR) # error
+#find_package(GLFW REQUIRED FATAL_ERROR)
 
 target_include_directories (${PROJECT_NAME}
     PUBLIC ${GLFW_INCLUDE_DIRS}

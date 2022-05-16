@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <vulkan/vulkan.h>
+#include <vulkan.h>
 #include <cstdint>
 
 class ShaderManager {
