@@ -22,6 +22,7 @@ function(glob_files out_var_name regexes)
 endfunction()
 
 glob_files(SRC_FILES_LIST Src/*.cpp)
+glob_files(SHADER_FILES Shaders/*[.vert|.tesc|.tese|.geom|.frag|.comp])
 
 add_executable(VulkanPractice ${SRC_FILES_LIST})
 
@@ -30,6 +31,30 @@ add_subdirectory ("Extern/glm")
 add_subdirectory ("Extern/glfw")
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
+
+message(${Vulkan_GLSLC_EXECUTABLE})
+
+# execute_process()
+add_compile_definitions(Vulkan_GLSLC_EXECUTABLE="${Vulkan_GLSLC_EXECUTABLE}")
+add_compile_definitions(HAS_GLSLC_EXECUTABLE)
+
+make_directory(${PROJECT_BINARY_DIR}/Shaders/)
+foreach(SHADER_FILE ${SHADER_FILES})
+  get_filename_component(FILE_NAME ${SHADER_FILE} NAME)
+  set(output_file "${PROJECT_BINARY_DIR}/Shaders/${FILE_NAME}.spv")
+  message(${output_file})
+  message(${SHADER_FILE})
+  add_custom_command(
+    OUTPUT ${output_file}
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER_FILE} -o ${output_file}
+    DEPENDS ${SHADER_FILE}
+    COMMENT "Rebuilding ${output_file}")
+  message(STATUS "Generating build commands for ${output_file}")
+  list(APPEND SPIRV_BINARY_FILES ${output_file})
+endforeach()
+
+add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
+add_dependencies(${PROJECT_NAME} Shaders)
 
 target_include_directories (${PROJECT_NAME}
     PUBLIC ${GLFW_INCLUDE_DIRS}

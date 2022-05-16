@@ -5,30 +5,15 @@
 #include <stdexcept>
 
 namespace {
-  struct ShaderToCompile {
-    std::string shaderPath = "";
-    std::string compiledPath = "";
-  };
-
   class ShadersListConfig : public ConfigCategory {
   public:
-    std::vector<ShaderToCompile> shaderToCompile;
+    std::vector<std::string> shaders;
 
     ShadersListConfig()
       : ConfigCategory("SHADERS_LIST") {}
 
     void parseLine(const std::string& line) override {
-      size_t splitIndex = line.find(" ");
-      if (splitIndex != std::string::npos) {
-        shaderToCompile.push_back({
-          line.substr(0, splitIndex),
-          line.substr(splitIndex + 1, line.length())});
-      }
-      else {
-        shaderToCompile.push_back({
-          "",
-          line });
-      }
+      shaders.push_back(line);
     }
   };
 };
@@ -36,12 +21,11 @@ namespace {
 ShaderManager::ShaderManager(const ConfigParser& configParser) {
   ShadersListConfig shadersList;
 
+  // TODO: don't recompile every time?
   configParser.parseCategory(shadersList);
-  
-}
-
-void ShaderManager::_compileShader(const std::string& shaderPath, const std::string& compiledShaderPath) {
-  
+  for (const std::string& shader : shadersList.shaders) {
+    this->_loadShader(shader);
+  }
 }
 
 void ShaderManager::_loadShader(const std::string& compiledShaderPath) {
@@ -53,6 +37,9 @@ const std::vector<char>& ShaderManager::getShaderCode(
   if (shaderId < this->_shaderBytecodes.size()) {
     return this->_shaderBytecodes[shaderId];
   }
+
+  static std::vector<char> EMPTY_SHADER_CODE;
+  return EMPTY_SHADER_CODE;
 }
 
 static VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code) {
