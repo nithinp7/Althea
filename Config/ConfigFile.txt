@@ -1,0 +1,7 @@
+
+SHADER_LIST
+Shaders/SimpleTriangle.vert Shaders/Compiled/SimpleTriangle.vert.spv
+Shaders/SimpleTriangle.frag Shaders/Compiled/SimpleTriangle.frag.spv
+
+SHADER_PIPELINES
+SimpleTrianglePipeline 0 1
