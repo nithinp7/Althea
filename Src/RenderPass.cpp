@@ -3,46 +3,13 @@
 #include "Utilities.h"
 
 #include <stdexcept>
+#include <unordered_map>
 
-namespace {
-  class ShadersListConfig : public ConfigCategory {
-  public:
-    std::vector<std::string> shaders;
+VkShaderModule ShaderManager::createShaderModule(
+    const VkDevice& device, 
+    const std::string& shaderName) {
+  const std::vector<char>& code = this->_getShaderCode(shaderName);
 
-    ShadersListConfig()
-      : ConfigCategory("SHADERS_LIST") {}
-
-    void parseLine(const std::string& line) override {
-      shaders.push_back(line);
-    }
-  };
-};
-
-ShaderManager::ShaderManager(const ConfigParser& configParser) {
-  ShadersListConfig shadersList;
-
-  // TODO: don't recompile every time?
-  configParser.parseCategory(shadersList);
-  for (const std::string& shader : shadersList.shaders) {
-    this->_loadShader(shader);
-  }
-}
-
-void ShaderManager::_loadShader(const std::string& compiledShaderPath) {
-  this->_shaderBytecodes.push_back(Utilities::readFile(compiledShaderPath));
-}
-
-const std::vector<char>& ShaderManager::getShaderCode(
-    uint32_t shaderId) const {
-  if (shaderId < this->_shaderBytecodes.size()) {
-    return this->_shaderBytecodes[shaderId];
-  }
-
-  static std::vector<char> EMPTY_SHADER_CODE;
-  return EMPTY_SHADER_CODE;
-}
-
-static VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = code.size();
@@ -56,9 +23,89 @@ static VkShaderModule createShaderModule(const VkDevice& device, const std::vect
   return shaderModule;
 }
 
-RenderPass::RenderPass(const VkDevice& device, const VkExtent2D& extent, const RenderPassCreateInfo& createInfo)
+const std::vector<char>& ShaderManager::_getShaderCode(
+    const std::string& shaderName) {
+  auto shaderIt = this->_shaders.find(shaderName);
+  if (shaderIt != this->_shaders.end()) {
+    return shaderIt->second;
+  }
+
+  auto newShader = 
+      this->_shaders.emplace(
+        shaderName,
+        Utilities::readFile("../Shaders/" + shaderName + ".spv"));
+  return newShader.first->second;
+}
+
+namespace {
+class RenderPassConfig : public ConfigCategory {
+public:
+  std::unordered_map<std::string, RenderPassCreateInfo> createInfos;
+
+  RenderPassConfig()
+    : ConfigCategory("SHADER_PIPELINES") {}
+
+  void parseLine(const std::string& line) override {
+    size_t nextSpace = line.find(" ");
+    if (nextSpace == std::string::npos) {
+      return;
+    }
+
+    std::string tail(line);
+    std::string token = tail.substr(0, nextSpace);
+    tail = tail.substr(nextSpace + 1, tail.length());
+
+    // Tokens are delimited by whitespace
+    // The first token is the name of the pipeline.
+    auto existingInfoIt = createInfos.find(token);
+    if (existingInfoIt != createInfos.end()) {
+      // A pipeline by the same name was already defined
+      return;
+    }
+
+    RenderPassCreateInfo createInfo;
+
+    // The rest of the tokens are names of shaders in the pipeline.
+    nextSpace = tail.find(" ");
+    while (nextSpace != std::string::npos) {
+      token = tail.substr(0, nextSpace);
+      tail = tail.substr(nextSpace + 1, tail.length());
+
+      size_t extensionStart = token.rfind(".");
+      if (extensionStart == std::string::npos) {
+        continue;
+      }
+
+      std::string extension = token.substr(extensionStart, token.length());
+      if (extension == ".vert") {
+        createInfo.vertexShader = token;
+      }
+      else if (extension == ".tesc") {
+        createInfo.tessellationControlShader = token;
+      }
+      else if (extension == ".tese") {
+        createInfo.tessellationEvaluationShader = token;
+      }
+      else if (extension == ".geom") {
+        createInfo.geometryShader = token;
+      }
+      else if (extension == ".frag") {
+        createInfo.fragmentShader = token;
+      }
+    }
+
+    createInfos.emplace(token, std::move(createInfo));
+  }
+};
+} // namespace
+
+RenderPass::RenderPass(
+    const VkDevice& device,
+    const VkExtent2D& extent,
+    ShaderManager& shaderManager, 
+    const RenderPassCreateInfo& createInfo)
     : _success(false) {
-  if (!createInfo.vertexShaderPath) {
+  if (!createInfo.vertexShader) {
     return;
   }
 
@@ -82,30 +129,30 @@ RenderPass::RenderPass(const VkDevice& device, const VkExtent2D& extent, const R
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
   vertShaderStageInfo.module = 
-    createShaderModule(
-      device,
-      Utilities::readFile(createInfo.vertexShaderPath));
+      shaderManager.createShaderModule(
+        device,
+        *createInfo.vertexShader);
   vertShaderStageInfo.pName = "main";
 
-  if (createInfo.geometryShaderPath) {
+  if (createInfo.geometryShader) {
     VkPipelineShaderStageCreateInfo& geomShaderStageInfo = shaderStages.emplace_back();
     geomShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     geomShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
     geomShaderStageInfo.module =
-      createShaderModule(
+      shaderManager.createShaderModule(
         device,
-        Utilities::readFile(createInfo.geometryShaderPath));
+        *createInfo.geometryShader);
     geomShaderStageInfo.pName = "main";
   }
 
-  if (createInfo.fragmentShaderPath) {
+  if (createInfo.fragmentShader) {
     VkPipelineShaderStageCreateInfo& fragShaderStageInfo = shaderStages.emplace_back();
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.module =
-      createShaderModule(
+      shaderManager.createShaderModule(
         device,
-        Utilities::readFile(createInfo.fragmentShaderPath));
+        *createInfo.fragmentShader);
     fragShaderStageInfo.pName = "main";
   }
 

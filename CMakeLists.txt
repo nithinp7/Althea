@@ -32,18 +32,11 @@ add_subdirectory ("Extern/glfw")
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
 
-message(${Vulkan_GLSLC_EXECUTABLE})
-
-# execute_process()
-add_compile_definitions(Vulkan_GLSLC_EXECUTABLE="${Vulkan_GLSLC_EXECUTABLE}")
-add_compile_definitions(HAS_GLSLC_EXECUTABLE)
-
+# Compile GLSL into SPIRV files and put it in the output directory.
 make_directory(${PROJECT_BINARY_DIR}/Shaders/)
 foreach(SHADER_FILE ${SHADER_FILES})
   get_filename_component(FILE_NAME ${SHADER_FILE} NAME)
   set(output_file "${PROJECT_BINARY_DIR}/Shaders/${FILE_NAME}.spv")
-  message(${output_file})
-  message(${SHADER_FILE})
   add_custom_command(
     OUTPUT ${output_file}
     COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER_FILE} -o ${output_file}
@@ -53,8 +46,25 @@ foreach(SHADER_FILE ${SHADER_FILES})
   list(APPEND SPIRV_BINARY_FILES ${output_file})
 endforeach()
 
+# Setup shader dependencies so they automatically get regenerated as needed.
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
+
+# Copy config files into the output directory.
+make_directory(${PROJECT_BINARY_DIR}/ConfigFiles/)
+set(config_dir_src "${CMAKE_SOURCE_DIR}/Config")
+set(config_dir_dest "${PROJECT_BINARY_DIR}/Config")
+add_custom_command(
+  OUTPUT ${config_dir_dest}
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${config_dir_src} ${config_dir_dest}
+  DEPENDS ${config_dir_src})
+
+# Setup config files dependency so they automatically get copied to the output
+# directory when changed.
+add_custom_target(
+    ConfigFiles
+    DEPENDS ${config_dir_src})
+add_dependencies(${PROJECT_NAME} ConfigFiles)
 
 target_include_directories (${PROJECT_NAME}
     PUBLIC ${GLFW_INCLUDE_DIRS}

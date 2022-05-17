@@ -11,25 +11,22 @@
 
 class ShaderManager {
 public:
-  ShaderManager(const ConfigParser& configParser);
-  const std::vector<char>& getShaderCode(uint32_t shaderId) const;
+  VkShaderModule createShaderModule(
+      const VkDevice& device, 
+      const std::string& shaderName);
 
 private:
-  void _compileShader(const std::string& shaderPath, const std::string& compiledShaderPath);
-  void _loadShader(const std::string& compiledShaderPath);
+  std::unordered_map<std::string, std::vector<char>> _shaders;
 
-  std::vector<std::vector<char>> _shaderBytecodes;
+  const std::vector<char>& _getShaderCode(const std::string& shaderName);
 };
 
 struct RenderPassCreateInfo {
-  const VkDevice* pDevice;
-  const VkExtent2D* pExtent;
-
-  const char* vertexShaderPath = nullptr;
-  // TODO: what are control and eval stages of tessellation
-  //const char* tesselationShaderPath = nullptr;
-  const char* geometryShaderPath = nullptr;
-  const char* fragmentShaderPath = nullptr;
+  std::optional<std::string> vertexShader;
+  std::optional<std::string> tessellationControlShader;
+  std::optional<std::string> tessellationEvaluationShader;
+  std::optional<std::string> geometryShader;
+  std::optional<std::string> fragmentShader;
 };
 
 class RenderPass
@@ -38,6 +35,7 @@ public:
   RenderPass(
       const VkDevice& device,
       const VkExtent2D& extent,
+      ShaderManager& shaderManager,
       const RenderPassCreateInfo& createInfo);
 
   void destroy(const VkDevice& device);
@@ -49,3 +47,11 @@ private:
   bool _success;
 };
 
+class RenderPassManager 
+{
+public:
+  RenderPassManager(const ConfigParser& configParser);
+
+private:
+  std::unordered_map<std::string, RenderPass> _renderPasses;
+};

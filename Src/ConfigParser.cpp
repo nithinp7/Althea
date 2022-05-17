@@ -3,9 +3,10 @@
 #include <fstream>
 #include <utility>
 
-ConfigCategory::ConfigCategory(const std::string& name)
-  : _name(name) {}
-
+ConfigCategory::ConfigCategory(
+    const std::string& name) 
+  : _name(name)  {}
+  
 ConfigParser::ConfigParser(const std::string& configFilePath) {
   ConfigParseResult result;
 
@@ -17,8 +18,10 @@ ConfigParser::ConfigParser(const std::string& configFilePath) {
 }
 
 void ConfigParser::parseCategory(ConfigCategory& category) const {
-  for (auto lineIt = this->_lines.begin(); lineIt != this->_lines.end(); ++lineIt) {
-    if (category.getName() == *lineIt) {
+  for (auto lineIt = this->_lines.begin(); 
+       lineIt != this->_lines.end(); 
+       ++lineIt) {
+    if (category._name == *lineIt) {
       for (; lineIt != this->_lines.end() && *lineIt != ""; ++lineIt) {
         category.parseLine(*lineIt);
       }

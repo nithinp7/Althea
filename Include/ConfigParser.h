@@ -32,14 +32,13 @@ class ConfigCategory {
 public:
   ConfigCategory(const std::string& name);
 
-  virtual void parseLine(const std::string& line) = 0;
-
-  const constexpr std::string& getName() const {
-    return this->_name;
-  }
-
 private:
+  friend class ConfigParser;
+
   std::string _name;
+
+protected:
+  virtual void parseLine(const std::string& line) = 0;
 };
 
 class ConfigParser
@@ -51,4 +50,5 @@ public:
 private:
   std::vector<std::string> _lines;
 };
+
 

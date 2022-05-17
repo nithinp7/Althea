@@ -1,7 +1,3 @@
 
-SHADER_LIST
-Shaders/SimpleTriangle.vert
-Shaders/SimpleTriangle.frag
-
 SHADER_PIPELINES
-SimpleTrianglePipeline 0 1
+SimpleTrianglePipeline SimpleTriangle.vert SimpleTriangle.frag
