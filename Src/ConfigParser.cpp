@@ -22,6 +22,7 @@ void ConfigParser::parseCategory(ConfigCategory& category) const {
        lineIt != this->_lines.end(); 
        ++lineIt) {
     if (category._name == *lineIt) {
+      ++lineIt;
       for (; lineIt != this->_lines.end() && *lineIt != ""; ++lineIt) {
         category.parseLine(*lineIt);
       }

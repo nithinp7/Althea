@@ -1,5 +1,8 @@
 #pragma once
 
+#include "RenderPass.h"
+#include "ConfigParser.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -10,6 +13,8 @@
 
 class Application {
 public:
+  Application();
+
   void run();
 
 private:
@@ -32,6 +37,7 @@ private:
 
   GLFWwindow* window;
 
+  // TODO: refactor this into OO-heirarchy!!!
   VkInstance instance;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
@@ -43,6 +49,9 @@ private:
   std::vector<VkImage> swapChainImages;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
+
+  ConfigParser configParser;
+  RenderPassManager* pRenderPassManager;
 
   std::vector<VkImageView> swapChainImageViews;
 

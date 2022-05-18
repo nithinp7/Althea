@@ -7,6 +7,10 @@
 #include <algorithm>
 #include <set>
 
+// TODO: REFACTOR THIS MONOLITHIC CLASS !!!
+Application::Application() 
+  : configParser("../Config/ConfigFile.txt") {}
+
 void Application::run() {
   initWindow();
   initVulkan();
@@ -40,6 +44,11 @@ void Application::mainLoop() {
 }
 
 void Application::cleanup() {
+  if (pRenderPassManager) {
+    pRenderPassManager->destroy(device);
+    delete pRenderPassManager;
+  }
+
   for (VkImageView imageView : swapChainImageViews) {
     vkDestroyImageView(device, imageView, nullptr);
   }
@@ -449,5 +458,10 @@ void Application::createImageViews() {
 }
 
 void Application::createGraphicsPipeline() {
-
+  this->pRenderPassManager = 
+      new RenderPassManager(
+        device,
+        swapChainExtent,
+        swapChainImageFormat,
+        configParser);
 }

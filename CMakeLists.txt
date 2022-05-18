@@ -51,20 +51,26 @@ add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 
 # Copy config files into the output directory.
-make_directory(${PROJECT_BINARY_DIR}/ConfigFiles/)
-set(config_dir_src "${CMAKE_SOURCE_DIR}/Config")
-set(config_dir_dest "${PROJECT_BINARY_DIR}/Config")
-add_custom_command(
-  OUTPUT ${config_dir_dest}
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${config_dir_src} ${config_dir_dest}
-  DEPENDS ${config_dir_src})
+glob_files(CONFIG_FILES Config/*)
+
+make_directory(${PROJECT_BINARY_DIR}/Config/)
+foreach(CONFIG_FILE ${CONFIG_FILES})
+  get_filename_component(FILE_NAME ${CONFIG_FILE} NAME)
+  set(output_file "${PROJECT_BINARY_DIR}/Config/${FILE_NAME}")
+  add_custom_command(
+    OUTPUT ${output_file}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CONFIG_FILE} ${output_file}
+    DEPENDS ${CONFIG_FILE})
+  message(STATUS "Generating build commands for ${output_file}")
+  list(APPEND COPIED_CONFIG_FILES ${output_file})
+endforeach()
 
 # Setup config files dependency so they automatically get copied to the output
 # directory when changed.
 add_custom_target(
-    ConfigFiles
-    DEPENDS ${config_dir_src})
-add_dependencies(${PROJECT_NAME} ConfigFiles)
+    CopiedConfigFiles
+    DEPENDS ${COPIED_CONFIG_FILES})
+add_dependencies(${PROJECT_NAME} CopiedConfigFiles)
 
 target_include_directories (${PROJECT_NAME}
     PUBLIC ${GLFW_INCLUDE_DIRS}

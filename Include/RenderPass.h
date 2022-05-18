@@ -11,14 +11,18 @@
 
 class ShaderManager {
 public:
-  VkShaderModule createShaderModule(
+  const VkShaderModule& getShaderModule(
       const VkDevice& device, 
       const std::string& shaderName);
+  void destroy(const VkDevice& device);
 
 private:
-  std::unordered_map<std::string, std::vector<char>> _shaders;
+  struct ShaderModuleEntry {
+    std::vector<char> code;
+    VkShaderModule module;
+  };
 
-  const std::vector<char>& _getShaderCode(const std::string& shaderName);
+  std::unordered_map<std::string, ShaderModuleEntry> _shaders;
 };
 
 struct RenderPassCreateInfo {
@@ -35,6 +39,7 @@ public:
   RenderPass(
       const VkDevice& device,
       const VkExtent2D& extent,
+      const VkFormat& imageFormat,
       ShaderManager& shaderManager,
       const RenderPassCreateInfo& createInfo);
 
@@ -44,14 +49,24 @@ public:
     return this->_success;
   }
 private: 
+  // TODO: should the pipeline and render pass be broken into separate classes??
+  VkRenderPass _renderPass;
+  VkPipeline _pipeline;
+  VkPipelineLayout _pipelineLayout;
   bool _success;
 };
 
 class RenderPassManager 
 {
 public:
-  RenderPassManager(const ConfigParser& configParser);
+  RenderPassManager(
+      const VkDevice& device, 
+      const VkExtent2D& extent,
+      const VkFormat& imageFormat,
+      const ConfigParser& configParser);
 
+  void destroy(const VkDevice& device);
 private:
+  ShaderManager _shaderManager;
   std::unordered_map<std::string, RenderPass> _renderPasses;
 };
