@@ -48,6 +48,10 @@ public:
   bool wasSuccessful() const {
     return this->_success;
   }
+
+  const VkRenderPass& getVulkanRenderPass() const {
+    return this->_renderPass;
+  }
 private: 
   // TODO: should the pipeline and render pass be broken into separate classes??
   VkRenderPass _renderPass;
@@ -65,6 +69,7 @@ public:
       const VkFormat& imageFormat,
       const ConfigParser& configParser);
 
+  const RenderPass& find(const std::string& renderPassName) const;
   void destroy(const VkDevice& device);
 private:
   ShaderManager _shaderManager;

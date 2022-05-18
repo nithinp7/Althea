@@ -53,7 +53,9 @@ private:
   ConfigParser configParser;
   RenderPassManager* pRenderPassManager;
 
+  // TODO: group imageView and frameBuffer into a class
   std::vector<VkImageView> swapChainImageViews;
+  std::vector<VkFramebuffer> swapChainFramebuffers;
 
   void initWindow();
   void initVulkan();
@@ -89,4 +91,5 @@ private:
   void createSwapChain();
   void createImageViews();
   void createGraphicsPipeline();
+  void createFramebuffers();
 };

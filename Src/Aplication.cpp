@@ -35,6 +35,7 @@ void Application::initVulkan() {
   createSwapChain();
   createImageViews();
   createGraphicsPipeline();
+  createFramebuffers();
 }
 
 void Application::mainLoop() {
@@ -44,6 +45,10 @@ void Application::mainLoop() {
 }
 
 void Application::cleanup() {
+  for (VkFramebuffer& framebuffer : this->swapChainFramebuffers) {
+    vkDestroyFramebuffer(device, framebuffer, nullptr);
+  }
+
   if (pRenderPassManager) {
     pRenderPassManager->destroy(device);
     delete pRenderPassManager;
@@ -464,4 +469,32 @@ void Application::createGraphicsPipeline() {
         swapChainExtent,
         swapChainImageFormat,
         configParser);
+}
+
+void Application::createFramebuffers() {
+  this->swapChainFramebuffers.resize(swapChainImageViews.size());
+
+  const RenderPass& defaultRenderPass = 
+      this->pRenderPassManager->find("default");
+
+  for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
+    VkImageView attachments[] {
+        swapChainImageViews[i]
+    };
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = 
+        defaultRenderPass.getVulkanRenderPass();
+    // TODO: should really be pulled from the render pass
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = attachments;
+    framebufferInfo.width = swapChainExtent.width;
+    framebufferInfo.height = swapChainExtent.height;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &this->swapChainFramebuffers[i]) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create frame buffer!");
+    }
+  }
 }

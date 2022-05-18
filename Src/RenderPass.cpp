@@ -331,6 +331,10 @@ RenderPassManager::RenderPassManager(
   }
 }
 
+const RenderPass& RenderPassManager::find(const std::string& renderPassName) const {
+  return this->_renderPasses.find(renderPassName)->second;
+}
+
 void RenderPassManager::destroy(const VkDevice& device) {
   for (auto& renderPassPair : this->_renderPasses) {
     renderPassPair.second.destroy(device);
