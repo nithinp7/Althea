@@ -4,3 +4,6 @@
 [submodule "Extern/glm"]
 	path = Extern/glm
 	url = https://github.com/g-truc/glm
+[submodule "Extern/stb"]
+	path = Extern/stb
+	url = https://github.com/nothings/stb

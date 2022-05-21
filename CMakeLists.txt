@@ -73,9 +73,11 @@ add_custom_target(
 add_dependencies(${PROJECT_NAME} CopiedConfigFiles)
 
 target_include_directories (${PROJECT_NAME}
-    PUBLIC ${GLFW_INCLUDE_DIRS}
-    PUBLIC ${Vulkan_INCLUDE_DIRS}
-    PUBLIC extern/glm/glm
+    PUBLIC 
+      ${GLFW_INCLUDE_DIRS}
+      ${Vulkan_INCLUDE_DIRS}
+      extern/glm/glm
+      extern/stb
 )
 
 target_link_libraries (${PROJECT_NAME} glfw)
