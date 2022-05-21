@@ -1,0 +1,1 @@
+start ./build/Release/VulkanPractice.exe
