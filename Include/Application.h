@@ -16,10 +16,13 @@ public:
   Application();
 
   void run();
+  void notifyWindowResized();
 
 private:
   const uint32_t WIDTH = 1080;
   const uint32_t HEIGHT = 960;
+
+  const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
   const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -51,7 +54,15 @@ private:
   VkExtent2D swapChainExtent;
 
   VkCommandPool commandPool;
-  VkCommandBuffer commandBuffer;
+
+  std::vector<VkCommandBuffer> commandBuffers;
+  std::vector<VkSemaphore> imageAvailableSemaphores;
+  std::vector<VkSemaphore> renderFinishedSemaphores;
+  std::vector<VkFence> inFlightFences;
+  
+  bool framebufferResized = false;
+
+  uint32_t currentFrame = 0;
 
   ConfigParser configParser;
   RenderPassManager* pRenderPassManager;
@@ -60,10 +71,6 @@ private:
   // TODO: group imageView and frameBuffer into a class
   std::vector<VkImageView> swapChainImageViews;
   std::vector<VkFramebuffer> swapChainFramebuffers;
-
-  VkSemaphore imageAvailableSemaphore;
-  VkSemaphore renderFinishedSemaphore;
-  VkFence inFlightFence;
 
   void initWindow();
   void initVulkan();
@@ -98,11 +105,13 @@ private:
   VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
   void createSwapChain();
+  void cleanupSwapChain();
+  void recreateSwapChain();
   void createImageViews();
   void createGraphicsPipeline();
   void createFramebuffers();
   void createCommandPool();
-  void createCommandBuffer();
+  void createCommandBuffers();
   void createSyncObjects();
 
   void recordCommandBuffer(VkCommandBuffer commandBuffer_, uint32_t imageIndex);
