@@ -203,12 +203,22 @@ RenderPass::RenderPass(
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &colorAttachmentRef;
 
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = 1;
   renderPassInfo.pAttachments = &colorAttachment;
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
+  renderPassInfo.dependencyCount = 1;
+  renderPassInfo.pDependencies = &dependency;
 
   if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &this->_renderPass) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create render pass!");
@@ -241,6 +251,30 @@ RenderPass::RenderPass(
         &this->_pipeline)) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
+}
+
+void RenderPass::runRenderPass(
+    const VkCommandBuffer& commandBuffer,
+    const VkFramebuffer& frameBuffer, 
+    const VkExtent2D& extent) const {
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = this->_renderPass;
+  renderPassInfo.framebuffer = frameBuffer;
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = extent;
+
+  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  renderPassInfo.clearValueCount = 1;
+  renderPassInfo.pClearValues = &clearColor;
+
+  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
+  // TODO: generalize vertex count
+  vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+  vkCmdEndRenderPass(commandBuffer);
 }
 
 void RenderPass::destroy(const VkDevice& device) {

@@ -52,6 +52,12 @@ public:
   const VkRenderPass& getVulkanRenderPass() const {
     return this->_renderPass;
   }
+
+  void runRenderPass(
+      const VkCommandBuffer& commandBuffer,
+      const VkFramebuffer& frameBuffer, 
+      const VkExtent2D& extent) const;
+
 private: 
   // TODO: should the pipeline and render pass be broken into separate classes??
   VkRenderPass _renderPass;

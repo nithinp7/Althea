@@ -50,16 +50,25 @@ private:
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
+  VkCommandPool commandPool;
+  VkCommandBuffer commandBuffer;
+
   ConfigParser configParser;
   RenderPassManager* pRenderPassManager;
+  const RenderPass* pDefaultRenderPass;
 
   // TODO: group imageView and frameBuffer into a class
   std::vector<VkImageView> swapChainImageViews;
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
+  VkSemaphore imageAvailableSemaphore;
+  VkSemaphore renderFinishedSemaphore;
+  VkFence inFlightFence;
+
   void initWindow();
   void initVulkan();
   void mainLoop();
+  void drawFrame();
   void cleanup();
 
   // BOILER PLATE IMPLEMENTATIONS
@@ -79,17 +88,22 @@ private:
   bool checkValidationLayerSupport();
   void createInstance();
   void createSurface();
-  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-  bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-  bool isDeviceSuitable(VkPhysicalDevice device);
+  QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const;
+  bool checkDeviceExtensionSupport(const VkPhysicalDevice& device) const;
+  bool isDeviceSuitable(const VkPhysicalDevice& device) const;
   void pickPhysicalDevice();
   void createLogicalDevice();
-  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+  SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const;
+  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
+  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
   void createSwapChain();
   void createImageViews();
   void createGraphicsPipeline();
   void createFramebuffers();
+  void createCommandPool();
+  void createCommandBuffer();
+  void createSyncObjects();
+
+  void recordCommandBuffer(VkCommandBuffer commandBuffer_, uint32_t imageIndex);
 };
