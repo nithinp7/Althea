@@ -8,8 +8,6 @@ ConfigCategory::ConfigCategory(
   : _name(name)  {}
   
 ConfigParser::ConfigParser(const std::string& configFilePath) {
-  ConfigParseResult result;
-
   std::ifstream infile(configFilePath);
   std::string line;
   while (std::getline(infile, line)) {
