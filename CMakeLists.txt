@@ -50,27 +50,30 @@ endforeach()
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 
-# Copy config files into the output directory.
-glob_files(CONFIG_FILES Config/*)
+function(copy_files rel_path)
+  glob_files(FILES_TO_COPY ${rel_path}/*)
 
-make_directory(${PROJECT_BINARY_DIR}/Config/)
-foreach(CONFIG_FILE ${CONFIG_FILES})
-  get_filename_component(FILE_NAME ${CONFIG_FILE} NAME)
-  set(output_file "${PROJECT_BINARY_DIR}/Config/${FILE_NAME}")
-  add_custom_command(
-    OUTPUT ${output_file}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CONFIG_FILE} ${output_file}
-    DEPENDS ${CONFIG_FILE})
-  message(STATUS "Generating build commands for ${output_file}")
-  list(APPEND COPIED_CONFIG_FILES ${output_file})
-endforeach()
+  make_directory(${PROJECT_BINARY_DIR}/${rel_path}/)
+  foreach(FILE ${FILES_TO_COPY})
+    get_filename_component(FILE_NAME ${FILE} NAME)
+    set(output_file "${PROJECT_BINARY_DIR}/${rel_path}/${FILE_NAME}")
+    add_custom_command(
+      OUTPUT ${output_file}
+      COMMAND ${CMAKE_COMMAND} -E copy ${FILE} ${output_file}
+      DEPENDS ${FILE})
+    message(STATUS "Generating build commands for ${output_file}")
+    list(APPEND COPIED_FILES ${output_file})
+  endforeach()
+endfunction()
 
-# Setup config files dependency so they automatically get copied to the output
-# directory when changed.
+# Automatically copy config and content files
+copy_files(Config)
+copy_files(Content/Models)
+
 add_custom_target(
-    CopiedConfigFiles
-    DEPENDS ${COPIED_CONFIG_FILES})
-add_dependencies(${PROJECT_NAME} CopiedConfigFiles)
+  CopiedFiles
+  DEPENDS ${COPIED_FILES})
+add_dependencies(${PROJECT_NAME} CopiedFiles)
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
 
@@ -154,7 +157,7 @@ add_subdirectory(Extern/cesium-native)
 #install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Extern/cesium-native/extern/stb/stb_image_resize.h TYPE INCLUDE)
 
 # Don't build the cesium-native tests by default
-#set_target_properties(cesium-native-tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
+set_target_properties(cesium-native-tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
 
 list(
   APPEND CESIUM_TARGETS 
@@ -164,37 +167,13 @@ list(
   CesiumJsonReader
   CesiumUtility)
 
-list(
-  APPEND OTHER_TARGETS
-  draco
-  ktx_read
-  uriparser
-  async++
-  modp_b64)
-
-# foreach(LIB ${CESIUM_LIBS})
-#   list(APPEND CONFIGURED_LIBS ${LIB}$<IF:$<CONFIG:Debug>,d,>)
-# endforeach()
-#list(
-#  APPEND OTHER_LIBS)
-
-# TODO: .lib is only for windows, try to expand support to other platforms
-# other platforms also have prefixes
-# foreach(LIB ${CESIUM_LIBS})
-#   list(APPEND LIB_PATHS ${CMAKE_INSTALL_LIBDIR}/${LIB}$<IF:$<CONFIG:Debug>,d,>.lib)
-# endforeach()
-
-#foreach(LIB ${OTHER_LIBS})
-#  list(APPEND LIB_PATHS ${CMAKE_INSTALL_LIBDIR}/${LIB}.lib)
-#endforeach()
-
-#oreach(LIB_PATH ${LIB_PATHS})
-#  message(${LIB_PATH})
-#endforeach()
-
-#target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/include) 
-#target_link_libraries (${PROJECT_NAME} ${CONFIGURED_LIBS})
-
+# list(
+#   APPEND OTHER_TARGETS
+#   draco
+#   ktx_read
+#   uriparser
+#   async++
+#   modp_b64)
 
 foreach(TARGET ${CESIUM_TARGETS})
   get_target_property(TARGET_INCLUDE_DIR  ${TARGET} PUBLIC_HEADER)
