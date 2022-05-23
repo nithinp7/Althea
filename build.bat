@@ -1,1 +1,1 @@
-cmake -B build -S . && cmake --build build --config Debug && cmake --build build --config Release
+cmake -B build -S . -G "Visual Studio 16 2019" && cmake --build build --config Debug && cmake --build build --config Release

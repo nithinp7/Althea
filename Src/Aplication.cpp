@@ -7,11 +7,13 @@
 #include <algorithm>
 #include <set>
 
+#include "Model.h"
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application() 
   : configParser("../Config/ConfigFile.txt") {}
 
 void Application::run() {
+  Model model("../Content/Models/AntiqueCamera.glb");
   initWindow();
   initVulkan();
   mainLoop();

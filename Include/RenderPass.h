@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ConfigParser.h"
+#include "Model.h"
 
 #include <optional>
 #include <string>
