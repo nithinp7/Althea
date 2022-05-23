@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ConfigParser.h"
+
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
@@ -19,5 +21,11 @@ public:
 private:
   CesiumGltf::Model model;
   std::vector<Vertex> vertices;
+};
+
+class ModelManager {
+  std::vector<Model> models;
+public:
+  ModelManager(const ConfigParser& configParser);
 };
 
