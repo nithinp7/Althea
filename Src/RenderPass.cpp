@@ -1,6 +1,7 @@
 #include "RenderPass.h"
 
 #include "Utilities.h"
+#include "Primitive.h"
 
 #include <stdexcept>
 #include <unordered_map>
@@ -42,12 +43,21 @@ void ShaderManager::destroy(const VkDevice& device) {
 }
 
 RenderPass::RenderPass(
+    const std::string& name,
     const VkDevice& device,
+    const VkPhysicalDevice& physicalDevice,
     const VkExtent2D& extent,
     const VkFormat& imageFormat,
+    const ConfigParser& configParser,
     ShaderManager& shaderManager, 
     const RenderPassCreateInfo& createInfo)
-    : _success(false) {
+    : _success(false),
+      _modelManager(
+          device,
+          physicalDevice,
+          name,
+          configParser) {
+
   if (!createInfo.vertexShader) {
     return;
   }
@@ -72,12 +82,18 @@ RenderPass::RenderPass(
 
   // FIXED FUNCTION STAGES
   // TODO: currently hardcoded to _no_ vertex input, abstract vertex input
+  VkVertexInputBindingDescription bindingDescriptions = 
+      Vertex::getBindingDescription();
+  std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = 
+      Vertex::getAttributeDescriptions();
+  
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
-  vertexInputInfo.pVertexBindingDescriptions = nullptr;
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.pVertexBindingDescriptions = &bindingDescriptions;
+  vertexInputInfo.vertexAttributeDescriptionCount = 
+      static_cast<uint32_t>(attributeDescriptions.size());
+  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -272,7 +288,8 @@ void RenderPass::runRenderPass(
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
   // TODO: generalize vertex count
-  vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+  //vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+  this->_modelManager.render(commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
 }
@@ -347,6 +364,7 @@ public:
 
 RenderPassManager::RenderPassManager(
     const VkDevice& device,
+    const VkPhysicalDevice& physicalDevice,
     const VkExtent2D& extent,
     const VkFormat& imageFormat,
     const ConfigParser& configParser) {
@@ -357,9 +375,12 @@ RenderPassManager::RenderPassManager(
     this->_renderPasses.emplace(
         infoPair.first, 
         RenderPass(
+          infoPair.first,
           device,
+          physicalDevice,
           extent,
           imageFormat,
+          configParser,
           this->_shaderManager,
           infoPair.second));
   }

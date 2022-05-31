@@ -1,4 +1,4 @@
-#include "../Include/Utilities.h"
+#include "Utilities.h"
 
 #include <fstream>
 
@@ -20,4 +20,23 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
   file.close();
 
   return buffer;
+}
+
+/*static*/
+uint32_t Utilities::findMemoryType(
+    const VkPhysicalDevice& physicalDevice,
+    uint32_t typeFilter,
+    const VkMemoryPropertyFlags& properties) {
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+
+  throw std::runtime_error("failed to find suitable memory type!");
+
+  return 0;
 }

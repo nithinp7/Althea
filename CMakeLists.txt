@@ -63,6 +63,7 @@ function(copy_files rel_path)
       DEPENDS ${FILE})
     message(STATUS "Generating build commands for ${output_file}")
     list(APPEND COPIED_FILES ${output_file})
+    set(COPIED_FILES ${COPIED_FILES} PARENT_SCOPE)
   endforeach()
 endfunction()
 

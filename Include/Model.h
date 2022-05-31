@@ -1,31 +1,39 @@
 #pragma once
 
 #include "ConfigParser.h"
+#include "Primitive.h"
 
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
 
 #include <CesiumGltf/Model.h>
-
-struct Vertex {
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec2 uv;
-};
+#include <vulkan/vulkan.h>
+#include <array>
 
 class Model {
 public:
-  Model(const std::string& path);
-
+  Model(
+      const VkDevice& device, 
+      const VkPhysicalDevice& physicalDevice,
+      const std::string& path);
+  void render(const VkCommandBuffer& commandBuffer) const;
+  void destroy(const VkDevice& device);
 private:
-  CesiumGltf::Model model;
-  std::vector<Vertex> vertices;
+  CesiumGltf::Model _model;
+  std::vector<Primitive> _primitives;
 };
 
 class ModelManager {
-  std::vector<Model> models;
+private:
+  std::vector<Model> _models;
 public:
-  ModelManager(const ConfigParser& configParser);
+  ModelManager(
+      const VkDevice& device, 
+      const VkPhysicalDevice& physicalDevice, 
+      const std::string& graphicsPipelineName,
+      const ConfigParser& configParser);
+  void render(const VkCommandBuffer& commandBuffer) const;
+  void destroy(const VkDevice& device);
 };
 

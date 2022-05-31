@@ -1,3 +1,6 @@
 
 SHADER_PIPELINES
 default SimpleTriangle.vert SimpleTriangle.frag
+
+MODELS_LIST
+default AntiqueCamera.glb

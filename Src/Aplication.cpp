@@ -13,7 +13,6 @@ Application::Application()
   : configParser("../Config/ConfigFile.txt") {}
 
 void Application::run() {
-  Model model("../Content/Models/AntiqueCamera.glb");
   initWindow();
   initVulkan();
   mainLoop();
@@ -122,8 +121,8 @@ void Application::drawFrame() {
   result = vkQueuePresentKHR(presentQueue, &presentInfo);
   
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+    framebufferResized = false;
     recreateSwapChain();
-    return;
   } else if (result != VK_SUCCESS) {
     throw std::runtime_error("Failed to acquire swap chain image!");
   }
@@ -584,6 +583,7 @@ void Application::createGraphicsPipeline() {
   this->pRenderPassManager = 
       new RenderPassManager(
         device,
+        physicalDevice,
         swapChainExtent,
         swapChainImageFormat,
         configParser);
@@ -663,22 +663,22 @@ void Application::createSyncObjects() {
   }
 }
 
-void Application::recordCommandBuffer(VkCommandBuffer commandBuffer_, uint32_t imageIndex) {
+void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
   beginInfo.pInheritanceInfo = nullptr;
 
-  if (vkBeginCommandBuffer(commandBuffer_, &beginInfo) != VK_SUCCESS) {
+  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
     throw std::runtime_error("Failed to begin recording command buffer!");
   }
 
   pDefaultRenderPass->runRenderPass(
-      commandBuffer_, 
+      commandBuffer, 
       swapChainFramebuffers[imageIndex], 
       swapChainExtent);
   
-  if (vkEndCommandBuffer(commandBuffer_) != VK_SUCCESS) {
+  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");
   }
 }

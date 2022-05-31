@@ -34,13 +34,32 @@ struct RenderPassCreateInfo {
   std::optional<std::string> fragmentShader;
 };
 
+class Scene {
+private:
+  friend class RenderPass;
+
+  // Buffer binding caches
+  std::vector<VkBuffer> _vertexBuffers;
+  std::vector<VkDeviceSize> _vertexBufferOffsets;
+  std::vector<VkBuffer> _indexBuffers;
+
+public:
+  void addVertexBuffer(const VkBuffer& vertexBuffer);
+  void addVertexBufferOffset(VkDeviceSize offset);
+  void addIndexBuffer(const VkBuffer& indexBuffer);
+  void addIndexBufferOffset(VkDeviceSize offset);
+};
+
 class RenderPass
 {
 public: 
   RenderPass(
+      const std::string& name,
       const VkDevice& device,
+      const VkPhysicalDevice& physicalDevice,
       const VkExtent2D& extent,
       const VkFormat& imageFormat,
+      const ConfigParser& configParser,
       ShaderManager& shaderManager,
       const RenderPassCreateInfo& createInfo);
 
@@ -65,6 +84,8 @@ private:
   VkPipeline _pipeline;
   VkPipelineLayout _pipelineLayout;
   bool _success;
+
+  ModelManager _modelManager;
 };
 
 class RenderPassManager 
@@ -72,6 +93,7 @@ class RenderPassManager
 public:
   RenderPassManager(
       const VkDevice& device, 
+      const VkPhysicalDevice& physicalDevice,
       const VkExtent2D& extent,
       const VkFormat& imageFormat,
       const ConfigParser& configParser);
