@@ -1,4 +1,5 @@
 #include "Model.h"
+#include "Application.h"
 #include "FileAssetAccessor.h"
 #include "TaskProcessor.h"
 
@@ -12,8 +13,7 @@
 #include <vulkan/vulkan.h>
 
 Model::Model(
-    const VkDevice& device, 
-    const VkPhysicalDevice& physicalDevice, 
+    const Application& app, 
     const std::string& path) {
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
@@ -56,25 +56,32 @@ Model::Model(
   for (const CesiumGltf::MeshPrimitive& primitive : this->_model.meshes[0].primitives) {
     this->_primitives.push_back(
         Primitive(
-          device, 
-          physicalDevice, 
+          app, 
           this->_model, 
           primitive));
   }
 }
 
-void Model::render(const VkCommandBuffer& commandBuffer) const {
+void Model::updateUniforms(
+    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
   for (const Primitive& primitive : this->_primitives) {
-    primitive.render(commandBuffer);
-    if (1) {
-      return;
-    }
+    primitive.updateUniforms(view, projection, currentFrame);
   }
 }
 
-void Model::destroy(const VkDevice& device) {
+size_t Model::getPrimitivesCount() const {
+  return this->_primitives.size();
+}
+
+void Model::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
   for (Primitive& primitive : this->_primitives) {
-    primitive.destroy(device);
+    primitive.assignDescriptorSets(availableDescriptorSets);
+  }
+}
+
+void Model::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
+  for (const Primitive& primitive : this->_primitives) {
+    primitive.render(commandBuffer, currentFrame);
   }
 }
 
@@ -101,27 +108,40 @@ public:
 } // namespace
 
 ModelManager::ModelManager(
-    const VkDevice& device,  
-    const VkPhysicalDevice& physicalDevice,
-    const std::string& graphicsPipelineName,
-    const ConfigParser& configParser) {      
+    const Application& app,
+    const std::string& graphicsPipelineName) {      
   ModelsConfigCategory modelsList(graphicsPipelineName);
-  configParser.parseCategory(modelsList);
+  app.getConfigParser().parseCategory(modelsList);
 
   this->_models.reserve(modelsList.modelNames.size());
   for (const std::string& modelName : modelsList.modelNames) {
-    this->_models.push_back(Model(device, physicalDevice, modelName));
+    this->_models.push_back(Model(app, modelName));
   }
 }
 
-void ModelManager::render(const VkCommandBuffer& commandBuffer) const {
+void ModelManager::updateUniforms(
+    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
   for (const Model& model : this->_models) {
-    model.render(commandBuffer);
+    model.updateUniforms(view, projection, currentFrame);
   }
 }
 
-void ModelManager::destroy(const VkDevice& device) {
+size_t ModelManager::getPrimitivesCount() const {
+  size_t primitivesCount = 0;
+  for (const Model& model : this->_models) {
+    primitivesCount += model.getPrimitivesCount();
+  }
+  return primitivesCount;
+}
+
+void ModelManager::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
   for (Model& model : this->_models) {
-    model.destroy(device);
+    model.assignDescriptorSets(availableDescriptorSets);
+  }
+}
+
+void ModelManager::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
+  for (const Model& model : this->_models) {
+    model.render(commandBuffer, currentFrame);
   }
 }

@@ -1,10 +1,16 @@
 #include "Primitive.h"
 #include "Utilities.h"
+#include "Application.h"
+#include "ModelViewProjection.h"
 
 #include <CesiumGltf/MeshPrimitive.h>
 #include <CesiumGltf/Model.h>
 #include <CesiumGltf/Accessor.h>
 #include <CesiumGltf/AccessorView.h>
+
+#include <glm/gtc/matrix_transform.hpp>
+// TODO: do this in cmake
+#define GLM_FORCE_RADIANS
 
 /*static*/
 VkVertexInputBindingDescription Vertex::getBindingDescription() {
@@ -52,10 +58,13 @@ static void copyIndices(
 }
 
 Primitive::Primitive(
-    const VkDevice& device,
-    const VkPhysicalDevice& physicalDevice,
+    const Application& app,
     const CesiumGltf::Model& model,
-    const CesiumGltf::MeshPrimitive& primitive) {
+    const CesiumGltf::MeshPrimitive& primitive) 
+  : _device(app.getDevice()) {
+
+  const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
+
   auto posIt = primitive.attributes.find("POSITION");
   auto normIt = primitive.attributes.find("NORMAL");
   // TODO:
@@ -114,83 +123,90 @@ Primitive::Primitive(
     }
   }
 
-  VkBufferCreateInfo vertexBufferInfo{};
-  vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  vertexBufferInfo.size = sizeof(Vertex) * this->_vertices.size(); 
-  vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  vertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  const VkExtent2D& extent = app.getSwapChainExtent();
 
-  if (vkCreateBuffer(device, &vertexBufferInfo, nullptr, &this->_vertexBuffer) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create vertex buffer!");
-  }
+  app.createVertexBuffer(
+      (const void*)this->_vertices.data(), 
+      sizeof(Vertex) * this->_vertices.size(),
+      this->_vertexBuffer,
+      this->_vertexBufferMemory);
+  app.createIndexBuffer(
+      (const void*)this->_indices.data(),
+      sizeof(uint32_t) * this->_indices.size(),
+      this->_indexBuffer,
+      this->_indexBufferMemory);
+  app.createUniformBuffers(
+      sizeof(ModelViewProjection),
+      this->_uniformBuffers,
+      this->_uniformBuffersMemory);
 
-  VkBufferCreateInfo indexBufferInfo{};
-  indexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  indexBufferInfo.size = sizeof(uint32_t) * this->_indices.size();
-  indexBufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-  indexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  if (vkCreateBuffer(device, &indexBufferInfo, nullptr, &this->_indexBuffer) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create index buffer!");
-  }
-
-  VkMemoryRequirements vertexBufferMemRequirements;
-  vkGetBufferMemoryRequirements(device, this->_vertexBuffer, &vertexBufferMemRequirements);
-
-  VkMemoryAllocateInfo vertexBufferAllocInfo{};
-  vertexBufferAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  vertexBufferAllocInfo.allocationSize = vertexBufferMemRequirements.size;
-  vertexBufferAllocInfo.memoryTypeIndex = 
-      Utilities::findMemoryType(
-        physicalDevice, 
-        vertexBufferMemRequirements.memoryTypeBits, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
-
-  if (vkAllocateMemory(device, &vertexBufferAllocInfo, nullptr, &this->_vertexBufferMemory) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate vertex buffer memory!");
-  }
-
-  VkMemoryRequirements indexBufferMemRequirements;
-  vkGetBufferMemoryRequirements(device, this->_indexBuffer, &indexBufferMemRequirements);
-  
-  VkMemoryAllocateInfo indexBufferAllocInfo{};
-  indexBufferAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  indexBufferAllocInfo.allocationSize = indexBufferMemRequirements.size;
-  indexBufferAllocInfo.memoryTypeIndex = 
-      Utilities::findMemoryType(
-        physicalDevice,
-        indexBufferMemRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
-
-  if (vkAllocateMemory(device, &indexBufferAllocInfo, nullptr, &this->_indexBufferMemory) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate index buffer memory!");
-  }
-
-  vkBindBufferMemory(device, this->_vertexBuffer, this->_vertexBufferMemory, 0);
-  vkBindBufferMemory(device, this->_indexBuffer, this->_indexBufferMemory, 0);
-
-  void* vertexData;
-  vkMapMemory(device, this->_vertexBufferMemory, 0, vertexBufferInfo.size, 0, &vertexData);
-  std::memcpy(vertexData, this->_vertices.data(), (size_t) vertexBufferInfo.size);
-  vkUnmapMemory(device, this->_vertexBufferMemory);
-
-  void* indexData;
-  vkMapMemory(device, this->_indexBufferMemory, 0, indexBufferInfo.size, 0, &indexData);
-  std::memcpy(indexData, this->_indices.data(), (size_t) indexBufferInfo.size);
-  vkUnmapMemory(device, this->_indexBufferMemory);
+  this->_descriptorSets.resize(app.getMaxFramesInFlight());
 }
 
-void Primitive::render(const VkCommandBuffer& commandBuffer) const {
+void Primitive::updateUniforms(
+    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
+  ModelViewProjection mvp{};
+  mvp.model = glm::mat4(1.0f);
+  mvp.view = view;
+  mvp.projection = projection;
+
+  void* data;
+  vkMapMemory(this->_device, this->_uniformBuffersMemory[currentFrame], 0, sizeof(ModelViewProjection), 0, &data);
+  memcpy(data, &mvp, sizeof(ModelViewProjection));
+  vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
+}
+
+void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
+  for (size_t i = 0; i < this->_descriptorSets.size(); ++i) {
+    VkDescriptorSet& descriptorSet = this->_descriptorSets[i];
+    const VkBuffer& uniformBuffer = this->_uniformBuffers[i];
+
+    if (availableDescriptorSets.size() == 0) {
+      std::runtime_error("Ran out of descriptor sets when assigning to primitive!");
+    }
+
+    descriptorSet = availableDescriptorSets.back();
+    availableDescriptorSets.pop_back();
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(ModelViewProjection);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = descriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr;
+    descriptorWrite.pTexelBufferView = nullptr;
+
+    vkUpdateDescriptorSets(this->_device, 1, &descriptorWrite, 0, nullptr);
+  }
+}
+
+void Primitive::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
   VkDeviceSize offset = 0;
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
   vkCmdBindIndexBuffer(commandBuffer, this->_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
 }
 
-void Primitive::destroy(const VkDevice& device) {
-  vkDestroyBuffer(device, this->_vertexBuffer, nullptr);
-  vkDestroyBuffer(device, this->_indexBuffer, nullptr);
+Primitive::~Primitive() {
+  vkDestroyBuffer(this->_device, this->_vertexBuffer, nullptr);
+  vkDestroyBuffer(this->_device, this->_indexBuffer, nullptr);
 
-  vkFreeMemory(device, this->_vertexBufferMemory, nullptr);
-  vkFreeMemory(device, this->_indexBufferMemory, nullptr);  
+  vkFreeMemory(this->_device, this->_vertexBufferMemory, nullptr);
+  vkFreeMemory(this->_device, this->_indexBufferMemory, nullptr);  
+
+  for (VkBuffer& uniformBuffer : this->_uniformBuffers) {
+    vkDestroyBuffer(this->_device, uniformBuffer, nullptr);
+  }
+
+  for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
+    vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
+  }
 }

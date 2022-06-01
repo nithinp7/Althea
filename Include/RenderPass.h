@@ -10,12 +10,14 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 
+class Application;
+
 class ShaderManager {
 public:
-  const VkShaderModule& getShaderModule(
-      const VkDevice& device, 
-      const std::string& shaderName);
-  void destroy(const VkDevice& device);
+  ShaderManager(const VkDevice& device);
+  ~ShaderManager();
+
+  const VkShaderModule& getShaderModule(const std::string& shaderName);
 
 private:
   struct ShaderModuleEntry {
@@ -23,6 +25,7 @@ private:
     VkShaderModule module;
   };
 
+  VkDevice _device;
   std::unordered_map<std::string, ShaderModuleEntry> _shaders;
 };
 
@@ -34,56 +37,39 @@ struct RenderPassCreateInfo {
   std::optional<std::string> fragmentShader;
 };
 
-class Scene {
-private:
-  friend class RenderPass;
-
-  // Buffer binding caches
-  std::vector<VkBuffer> _vertexBuffers;
-  std::vector<VkDeviceSize> _vertexBufferOffsets;
-  std::vector<VkBuffer> _indexBuffers;
-
-public:
-  void addVertexBuffer(const VkBuffer& vertexBuffer);
-  void addVertexBufferOffset(VkDeviceSize offset);
-  void addIndexBuffer(const VkBuffer& indexBuffer);
-  void addIndexBufferOffset(VkDeviceSize offset);
-};
-
 class RenderPass
 {
 public: 
   RenderPass(
-      const std::string& name,
-      const VkDevice& device,
-      const VkPhysicalDevice& physicalDevice,
-      const VkExtent2D& extent,
-      const VkFormat& imageFormat,
-      const ConfigParser& configParser,
+      const Application& app, 
+      const std::string& name, 
       ShaderManager& shaderManager,
       const RenderPassCreateInfo& createInfo);
-
-  void destroy(const VkDevice& device);
-
-  bool wasSuccessful() const {
-    return this->_success;
-  }
+  ~RenderPass();
 
   const VkRenderPass& getVulkanRenderPass() const {
     return this->_renderPass;
   }
 
+  void updateUniforms(
+      const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
+
   void runRenderPass(
       const VkCommandBuffer& commandBuffer,
       const VkFramebuffer& frameBuffer, 
-      const VkExtent2D& extent) const;
+      const VkExtent2D& extent, 
+      uint32_t currentFrame) const;
 
 private: 
+  VkDevice _device;
+
   // TODO: should the pipeline and render pass be broken into separate classes??
   VkRenderPass _renderPass;
   VkPipeline _pipeline;
   VkPipelineLayout _pipelineLayout;
-  bool _success;
+
+  VkDescriptorSetLayout _descriptorSetLayout;
+  VkDescriptorPool _descriptorPool;
 
   ModelManager _modelManager;
 };
@@ -91,15 +77,8 @@ private:
 class RenderPassManager 
 {
 public:
-  RenderPassManager(
-      const VkDevice& device, 
-      const VkPhysicalDevice& physicalDevice,
-      const VkExtent2D& extent,
-      const VkFormat& imageFormat,
-      const ConfigParser& configParser);
-
+  RenderPassManager(const Application& app);
   const RenderPass& find(const std::string& renderPassName) const;
-  void destroy(const VkDevice& device);
 private:
   ShaderManager _shaderManager;
   std::unordered_map<std::string, RenderPass> _renderPasses;

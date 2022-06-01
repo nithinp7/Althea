@@ -1,5 +1,6 @@
 
 #include "Application.h"
+#include "RenderPass.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -7,7 +8,6 @@
 #include <algorithm>
 #include <set>
 
-#include "Model.h"
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application() 
   : configParser("../Config/ConfigFile.txt") {}
@@ -524,7 +524,6 @@ void Application::cleanupSwapChain() {
   }
 
   if (pRenderPassManager) {
-    pRenderPassManager->destroy(device);
     delete pRenderPassManager;
     pRenderPassManager = nullptr;
   }
@@ -581,12 +580,7 @@ void Application::createImageViews() {
 
 void Application::createGraphicsPipeline() {  
   this->pRenderPassManager = 
-      new RenderPassManager(
-        device,
-        physicalDevice,
-        swapChainExtent,
-        swapChainImageFormat,
-        configParser);
+      new RenderPassManager(*this);
   this->pDefaultRenderPass = 
       &this->pRenderPassManager->find("default");
 }
@@ -676,7 +670,8 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
   pDefaultRenderPass->runRenderPass(
       commandBuffer, 
       swapChainFramebuffers[imageIndex], 
-      swapChainExtent);
+      swapChainExtent,
+      imageIndex);
   
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");

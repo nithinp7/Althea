@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RenderPass.h"
 #include "ConfigParser.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -10,6 +9,9 @@
 #include <cstdint>
 #include <vector> 
 #include <optional>
+
+class RenderPassManager;
+class RenderPass;
 
 class Application {
 public:
@@ -115,4 +117,63 @@ private:
   void createSyncObjects();
 
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+public:
+  // Getters
+  const VkDevice& getDevice() const {
+    return device;
+  }
+
+  const VkPhysicalDevice& getPhysicalDevice() const {
+    return physicalDevice;
+  }
+
+  const VkCommandPool& getCommandPool() const {
+    return commandPool;
+  }
+
+  const VkExtent2D& getSwapChainExtent() const {
+    return swapChainExtent;
+  }
+
+  const VkFormat& getSwapChainImageFormat() const {
+    return swapChainImageFormat;
+  } 
+
+  const ConfigParser& getConfigParser() const {
+    return configParser;
+  }
+
+  uint32_t getMaxFramesInFlight() const {
+    return MAX_FRAMES_IN_FLIGHT;
+  }
+
+  // Utilities
+  uint32_t findMemoryType(
+      uint32_t typeFilter,
+      const VkMemoryPropertyFlags& properties) const;
+  void copyBuffer(
+      const VkBuffer& srcBuffer,
+      const VkBuffer& dstBuffer,
+      VkDeviceSize size) const;
+  void createBuffer(
+      VkDeviceSize size, 
+      VkBufferUsageFlags usage, 
+      VkMemoryPropertyFlags properties, 
+      VkBuffer& buffer, 
+      VkDeviceMemory& bufferMemory) const;
+  void createVertexBuffer(
+      const void* pSrc,
+      VkDeviceSize bufferSize,
+      VkBuffer& vertexBuffer,
+      VkDeviceMemory& vertexBufferMemory) const;
+  void createIndexBuffer(
+      const void* pSrc,
+      VkDeviceSize bufferSize,
+      VkBuffer& indexBuffer,
+      VkDeviceMemory& indexBufferMemory) const;
+  void createUniformBuffers(
+      VkDeviceSize bufferSize,
+      std::vector<VkBuffer>& uniformBuffers,
+      std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
 };

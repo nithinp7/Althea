@@ -8,6 +8,8 @@
 
 #include <cstdint>
 
+class Application;
+
 namespace CesiumGltf {
 struct Model;
 struct MeshPrimitive;
@@ -24,20 +26,27 @@ struct Vertex {
 
 class Primitive {
 private:
+  VkDevice _device;
   std::vector<Vertex> _vertices;
   std::vector<uint32_t> _indices;
 
   VkBuffer _vertexBuffer;
   VkBuffer _indexBuffer;
+  std::vector<VkBuffer> _uniformBuffers;
 
   VkDeviceMemory _vertexBufferMemory;
   VkDeviceMemory _indexBufferMemory;
+  std::vector<VkDeviceMemory> _uniformBuffersMemory;
+
+  std::vector<VkDescriptorSet> _descriptorSets;
 public:
   Primitive(
-      const VkDevice& device,
-      const VkPhysicalDevice& physicalDevice,
+      const Application& app,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive);
-  void render(const VkCommandBuffer& commandBuffer) const;
-  void destroy(const VkDevice& device);
+  ~Primitive();
+  void updateUniforms(
+      const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
+  void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
+  void render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const;
 };

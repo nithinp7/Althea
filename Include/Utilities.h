@@ -10,9 +10,5 @@ class Utilities
 {
 public:
   static std::vector<char> readFile(const std::string& filename);
-  static uint32_t findMemoryType(
-      const VkPhysicalDevice& physicalDevice,
-      uint32_t typeFilter,
-      const VkMemoryPropertyFlags& properties);
 };
 
