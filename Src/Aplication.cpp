@@ -8,6 +8,12 @@
 #include <algorithm>
 #include <set>
 
+// TODO: define this in cmake
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application() 
   : configParser("../Config/ConfigFile.txt") {}
@@ -46,9 +52,9 @@ void Application::initVulkan() {
   createLogicalDevice();
   createSwapChain();
   createImageViews();
+  createCommandPool();
   createGraphicsPipeline();
   createFramebuffers();
-  createCommandPool();
   createCommandBuffers();
   createSyncObjects();
 }
@@ -82,11 +88,33 @@ void Application::drawFrame() {
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("Failed to acquire swap chain image!");
   }
+  
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+  float angle = time * glm::radians(90.0f);
+  glm::vec3 eye(5.0f, 0.0f, 0.0f);
+  glm::vec3 lookTarget(0.0f, 5.0f, 0.0f);// = eye - 10.0f * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
+  glm::mat4 view = 
+      glm::lookAt(
+        eye, 
+        lookTarget, 
+        glm::vec3(0.0f, 0.0f, 1.0f));
+  glm::mat4 projection =
+      glm::perspective(
+        glm::radians(90.0f), 
+        swapChainExtent.width / (float) swapChainExtent.height, 
+        0.1f, 
+        100.0f);
+  projection[1][1] *= -1.0f;
+
+  pDefaultRenderPass->updateUniforms(view, projection, currentFrame);
 
   vkResetFences(device, 1, &inFlightFence);
 
   vkResetCommandBuffer(commandBuffer, 0);
-  recordCommandBuffer(commandBuffer, imageIndex);
+  recordCommandBuffer(commandBuffer, imageIndex, currentFrame);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -657,7 +685,7 @@ void Application::createSyncObjects() {
   }
 }
 
-void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -671,7 +699,7 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
       commandBuffer, 
       swapChainFramebuffers[imageIndex], 
       swapChainExtent,
-      imageIndex);
+      currentFrame);
   
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");

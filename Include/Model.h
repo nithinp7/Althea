@@ -22,7 +22,10 @@ public:
       const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const;
+  void render(
+      const VkCommandBuffer& commandBuffer, 
+      const VkPipelineLayout& pipelineLayout, 
+      uint32_t currentFrame) const;
 private:
   CesiumGltf::Model _model;
   std::vector<Primitive> _primitives;
@@ -39,6 +42,9 @@ public:
       const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const;
+  void render(
+      const VkCommandBuffer& commandBuffer, 
+      const VkPipelineLayout& pipelineLayout, 
+      uint32_t currentFrame) const;
 };
 

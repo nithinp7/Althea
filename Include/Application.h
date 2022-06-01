@@ -116,7 +116,7 @@ private:
   void createCommandBuffers();
   void createSyncObjects();
 
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame);
 
 public:
   // Getters

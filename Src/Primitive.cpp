@@ -162,7 +162,7 @@ void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDesc
     const VkBuffer& uniformBuffer = this->_uniformBuffers[i];
 
     if (availableDescriptorSets.size() == 0) {
-      std::runtime_error("Ran out of descriptor sets when assigning to primitive!");
+      throw std::runtime_error("Ran out of descriptor sets when assigning to primitive!");
     }
 
     descriptorSet = availableDescriptorSets.back();
@@ -188,10 +188,22 @@ void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDesc
   }
 }
 
-void Primitive::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
+void Primitive::render(
+    const VkCommandBuffer& commandBuffer, 
+    const VkPipelineLayout& pipelineLayout, 
+    uint32_t currentFrame) const {
   VkDeviceSize offset = 0;
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
   vkCmdBindIndexBuffer(commandBuffer, this->_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  vkCmdBindDescriptorSets(
+      commandBuffer, 
+      VK_PIPELINE_BIND_POINT_GRAPHICS, 
+      pipelineLayout, 
+      0, 
+      1, 
+      &this->_descriptorSets[currentFrame], 
+      0, 
+      nullptr);
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
 }
 

@@ -220,7 +220,7 @@ RenderPass::RenderPass(
     throw std::runtime_error("Failed to create descriptor pool!");
   }
 
-  std::vector<VkDescriptorSetLayout> layouts(maxFramesInFlight, this->_descriptorSetLayout);
+  std::vector<VkDescriptorSetLayout> layouts(poolSize.descriptorCount, this->_descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = this->_descriptorPool;
@@ -233,11 +233,9 @@ RenderPass::RenderPass(
     throw std::runtime_error("Failed to allocate descriptor sets!");
   }
 
-  this->_modelManager.assignDescriptorSets(descriptorSets);
-
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 0;
+  pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &this->_descriptorSetLayout;
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.pPushConstantRanges = nullptr;
@@ -313,6 +311,8 @@ RenderPass::RenderPass(
         &this->_pipeline)) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
+
+  this->_modelManager.assignDescriptorSets(descriptorSets);
 }
 
 void RenderPass::updateUniforms(
@@ -341,7 +341,7 @@ void RenderPass::runRenderPass(
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
   // TODO: generalize vertex count
   //vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-  this->_modelManager.render(commandBuffer, currentFrame);
+  this->_modelManager.render(commandBuffer, this->_pipelineLayout, currentFrame);
 
   vkCmdEndRenderPass(commandBuffer);
 }
@@ -422,13 +422,12 @@ RenderPassManager::RenderPassManager(const Application& app)
   app.getConfigParser().parseCategory(renderPassConfig);
 
   for (const auto& infoPair : renderPassConfig.createInfos) {
-    this->_renderPasses.emplace(
-        infoPair.first, 
-        RenderPass(
-          app,
-          infoPair.first,
-          this->_shaderManager,
-          infoPair.second));
+    this->_renderPasses.try_emplace(
+        infoPair.first,
+        app,
+        infoPair.first,
+        this->_shaderManager,
+        infoPair.second);
   }
 }
 

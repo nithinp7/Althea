@@ -48,5 +48,8 @@ public:
   void updateUniforms(
       const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const;
+  void render(
+      const VkCommandBuffer& commandBuffer, 
+      const VkPipelineLayout& pipelineLayout, 
+      uint32_t currentFrame) const;
 };

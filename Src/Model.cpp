@@ -54,11 +54,10 @@ Model::Model(
 
   // TODO: create primitives properly
   for (const CesiumGltf::MeshPrimitive& primitive : this->_model.meshes[0].primitives) {
-    this->_primitives.push_back(
-        Primitive(
-          app, 
-          this->_model, 
-          primitive));
+    this->_primitives.emplace_back(
+        app, 
+        this->_model, 
+        primitive);
   }
 }
 
@@ -79,9 +78,12 @@ void Model::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescript
   }
 }
 
-void Model::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
+void Model::render(
+    const VkCommandBuffer& commandBuffer, 
+    const VkPipelineLayout& pipelineLayout,
+    uint32_t currentFrame) const {
   for (const Primitive& primitive : this->_primitives) {
-    primitive.render(commandBuffer, currentFrame);
+    primitive.render(commandBuffer, pipelineLayout, currentFrame);
   }
 }
 
@@ -115,7 +117,7 @@ ModelManager::ModelManager(
 
   this->_models.reserve(modelsList.modelNames.size());
   for (const std::string& modelName : modelsList.modelNames) {
-    this->_models.push_back(Model(app, modelName));
+    this->_models.emplace_back(app, modelName);
   }
 }
 
@@ -140,8 +142,11 @@ void ModelManager::assignDescriptorSets(std::vector<VkDescriptorSet>& availableD
   }
 }
 
-void ModelManager::render(const VkCommandBuffer& commandBuffer, uint32_t currentFrame) const {
+void ModelManager::render(
+    const VkCommandBuffer& commandBuffer,
+    const VkPipelineLayout& pipelineLayout, 
+    uint32_t currentFrame) const {
   for (const Model& model : this->_models) {
-    model.render(commandBuffer, currentFrame);
+    model.render(commandBuffer, pipelineLayout, currentFrame);
   }
 }
