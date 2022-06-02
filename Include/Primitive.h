@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <glm/mat4x4.hpp>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -27,6 +28,9 @@ struct Vertex {
 class Primitive {
 private:
   VkDevice _device;
+
+  glm::mat4 _relativeTransform;
+
   std::vector<Vertex> _vertices;
   std::vector<uint32_t> _indices;
 
@@ -39,14 +43,21 @@ private:
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 
   std::vector<VkDescriptorSet> _descriptorSets;
+  bool _needsDestruction = true;
 public:
   Primitive(
       const Application& app,
       const CesiumGltf::Model& model,
-      const CesiumGltf::MeshPrimitive& primitive);
-  ~Primitive();
+      const CesiumGltf::MeshPrimitive& primitive,
+      const glm::mat4& nodeTransform);
+  Primitive(Primitive&& rhs) noexcept;
+  Primitive(const Primitive& rhs) = delete;
+  ~Primitive() noexcept;
   void updateUniforms(
-      const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
+      const glm::mat4& parentTransform, 
+      const glm::mat4& view, 
+      const glm::mat4& projection, 
+      uint32_t currentFrame) const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void render(
       const VkCommandBuffer& commandBuffer, 

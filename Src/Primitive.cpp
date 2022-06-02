@@ -60,8 +60,10 @@ static void copyIndices(
 Primitive::Primitive(
     const Application& app,
     const CesiumGltf::Model& model,
-    const CesiumGltf::MeshPrimitive& primitive) 
-  : _device(app.getDevice()) {
+    const CesiumGltf::MeshPrimitive& primitive,
+    const glm::mat4& nodeTransform) 
+  : _device(app.getDevice()),
+    _relativeTransform(nodeTransform) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
@@ -143,10 +145,29 @@ Primitive::Primitive(
   this->_descriptorSets.resize(app.getMaxFramesInFlight());
 }
 
+#include <iostream>
+Primitive::Primitive(Primitive&& rhs) noexcept
+  : _device(rhs._device),
+    _relativeTransform(rhs._relativeTransform),
+    _vertices(std::move(rhs._vertices)),
+    _indices(std::move(rhs._indices)),
+    _vertexBuffer(rhs._vertexBuffer),
+    _indexBuffer(rhs._indexBuffer),
+    _uniformBuffers(std::move(rhs._uniformBuffers)),
+    _vertexBufferMemory(rhs._vertexBufferMemory),
+    _indexBufferMemory(rhs._indexBufferMemory),
+    _uniformBuffersMemory(std::move(rhs._uniformBuffersMemory)),
+    _descriptorSets(std::move(rhs._descriptorSets)) {
+  rhs._needsDestruction = false;
+}
+
 void Primitive::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
+    const glm::mat4& parentTransform,
+    const glm::mat4& view, 
+    const glm::mat4& projection, 
+    uint32_t currentFrame) const {
   ModelViewProjection mvp{};
-  mvp.model = glm::mat4(1.0f);
+  mvp.model = parentTransform * this->_relativeTransform;
   mvp.view = view;
   mvp.projection = projection;
 
@@ -207,7 +228,11 @@ void Primitive::render(
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
 }
 
-Primitive::~Primitive() {
+Primitive::~Primitive() noexcept {
+  if (!this->_needsDestruction) {
+    return;
+  }
+
   vkDestroyBuffer(this->_device, this->_vertexBuffer, nullptr);
   vkDestroyBuffer(this->_device, this->_indexBuffer, nullptr);
 
