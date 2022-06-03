@@ -38,6 +38,11 @@ private:
       const CesiumGltf::Model& model, 
       const CesiumGltf::Node& node, 
       const glm::mat4& transform);
+
+  void _loadTexture(
+      const Application& app,
+      const CesiumGltf::Model& model,
+      const CesiumGltf::TextureInfo& texture);
 };
 
 class ModelManager {

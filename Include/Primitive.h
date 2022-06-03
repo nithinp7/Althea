@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Texture.h"
+
 #include <array>
 #include <vector>
 
@@ -9,11 +11,15 @@
 
 #include <cstdint>
 
+#include <unordered_map>
+
 class Application;
 
 namespace CesiumGltf {
 struct Model;
 struct MeshPrimitive;
+struct Texture;
+struct TextureInfo;
 } // namespace CesiumGltf
 
 struct Vertex {
@@ -23,6 +29,11 @@ struct Vertex {
 
   static VkVertexInputBindingDescription getBindingDescription();
   static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+};
+
+struct TextureCoordinateSet {
+  VkBuffer buffer;
+  VkDeviceMemory memory;
 };
 
 class Primitive {
@@ -63,4 +74,11 @@ public:
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
       uint32_t currentFrame) const;
+
+private:
+  void _loadTexture(
+      const CesiumGltf::Model& model,
+      const CesiumGltf::TextureInfo& texture,
+      std::unordered_map<const CesiumGltf::Texture*, Texture>& textureMap,
+      std::unordered_map<uint32_t, TextureCoordinateSet>& textureCoordinateAttributes); 
 };

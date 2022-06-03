@@ -148,7 +148,11 @@ public:
     return MAX_FRAMES_IN_FLIGHT;
   }
 
-  // Utilities
+  // Command Utilities
+  VkCommandBuffer beginSingleTimeCommands() const;
+  void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
+
+  // Buffer Utilities
   uint32_t findMemoryType(
       uint32_t typeFilter,
       const VkMemoryPropertyFlags& properties) const;
@@ -176,4 +180,16 @@ public:
       VkDeviceSize bufferSize,
       std::vector<VkBuffer>& uniformBuffers,
       std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
+
+  // Image Utilities
+  void createImage(
+      uint32_t width,
+      uint32_t height,
+      VkFormat format,
+      VkImageTiling tiling,
+      VkImageUsageFlags usage,
+      VkMemoryPropertyFlags properties,
+      VkImage& image,
+      VkDeviceMemory& imageMemory) const;
+  void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 };

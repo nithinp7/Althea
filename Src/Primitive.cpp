@@ -7,6 +7,8 @@
 #include <CesiumGltf/Model.h>
 #include <CesiumGltf/Accessor.h>
 #include <CesiumGltf/AccessorView.h>
+#include <CesiumGltf/Material.h>
+#include <CesiumGltf/TextureInfo.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 // TODO: do this in cmake
@@ -57,6 +59,10 @@ static void copyIndices(
   }
 }
 
+static void loadTexture(
+    const CesiumGltf::Model& model,
+    const CesiumGltf::TextureInfo& textureInfo)
+
 Primitive::Primitive(
     const Application& app,
     const CesiumGltf::Model& model,
@@ -69,19 +75,23 @@ Primitive::Primitive(
 
   auto posIt = primitive.attributes.find("POSITION");
   auto normIt = primitive.attributes.find("NORMAL");
-  // TODO:
-  //auto texCoordIt = primitive.attributes.find("TEXCOORD_0");
+  // TODO: arbitrary number of texcoord sets
+  auto texCoordIt = primitive.attributes.find("TEXCOORD_0");
 
   if (posIt == primitive.attributes.end() ||
-      normIt == primitive.attributes.end()) {
+      normIt == primitive.attributes.end() ||
+      texCoordIt == primitives.attributes.end()) {
     return;
   }
 
   CesiumGltf::AccessorView<glm::vec3> posView(model, posIt->second);
   CesiumGltf::AccessorView<glm::vec3> normView(model, normIt->second);
+  CesiumGltf::AccessorView<glm::vec2> uvView(model, texCoordIt->second);
   if (posView.status() != CesiumGltf::AccessorViewStatus::Valid ||
       normView.status() != CesiumGltf::AccessorViewStatus::Valid ||
-      posView.size() != normView.size()) {
+      uvView.status() != CesiumGltf::AccessorViewStatus::Valid ||
+      posView.size() != normView.size() ||
+      posView.size() != uvView.size()) {
     return;
   }
 
@@ -90,6 +100,7 @@ Primitive::Primitive(
     Vertex& vertex = this->_vertices[i];
     vertex.position = posView[i];
     vertex.normal = normView[i]; 
+    vertex.uv = uvView[i];
   }
 
   if (primitive.indices < 0 ||
@@ -125,6 +136,17 @@ Primitive::Primitive(
     }
   }
 
+  if (primitive.material >= 0 && primitive.material < model.materials.size()) {
+    const CesiumGltf::Material& material = model.materials[primitive.material];
+    if (material.pbrMetallicRoughness) {
+      const CesiumGltf::MaterialPBRMetallicRoughness& pbr = 
+          *material.pbrMetallicRoughness;
+      if (pbr.baseColorTexture) {
+        
+      }
+    }
+  }
+
   const VkExtent2D& extent = app.getSwapChainExtent();
 
   app.createVertexBuffer(
@@ -145,7 +167,6 @@ Primitive::Primitive(
   this->_descriptorSets.resize(app.getMaxFramesInFlight());
 }
 
-#include <iostream>
 Primitive::Primitive(Primitive&& rhs) noexcept
   : _device(rhs._device),
     _relativeTransform(rhs._relativeTransform),
@@ -246,4 +267,12 @@ Primitive::~Primitive() noexcept {
   for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
     vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
   }
+}
+
+void Primitive::_loadTexture(
+    const CesiumGltf::Model& model,
+    const CesiumGltf::TextureInfo& texture,
+    std::unordered_map<const CesiumGltf::Texture*, Texture>& textureMap,
+    std::unordered_map<uint32_t, TextureCoordinateSet>& textureCoordinateAttributes) {
+  
 }
