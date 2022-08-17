@@ -94,17 +94,18 @@ void Application::drawFrame() {
   auto currentTime = std::chrono::high_resolution_clock::now();
   float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
   float angle = time * glm::radians(90.0f);
-  glm::vec3 eye(5.0f, 0.0f, 0.0f);
-  glm::vec3 lookTarget(0.0f, 5.0f, 0.0f);// = eye - 10.0f * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
+  float distance = 20.0f;
+  glm::vec3 eye(0.0f, 0.0f, -distance);
+  glm::vec3 lookTarget(distance * glm::cos(angle), 0.0f, distance * glm::sin(angle));
   glm::mat4 view = 
       glm::lookAt(
         eye, 
         lookTarget, 
-        glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::vec3(0.0f, 1.0f, 0.0f));
   glm::mat4 projection =
       glm::perspective(
-        glm::radians(90.0f), 
-        swapChainExtent.width / (float) swapChainExtent.height, 
+        glm::radians(60.0f), 
+        (float) swapChainExtent.width / (float) swapChainExtent.height, 
         0.1f, 
         100.0f);
   projection[1][1] *= -1.0f;
@@ -363,7 +364,8 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
     extensionsSupported &&
     swapChainAdequete &&
     deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-    deviceFeatures.geometryShader;
+    deviceFeatures.geometryShader &&
+    deviceFeatures.samplerAnisotropy;
 }
 
 void Application::pickPhysicalDevice() {
@@ -386,6 +388,8 @@ void Application::pickPhysicalDevice() {
   if (physicalDevice == VK_NULL_HANDLE) {
     throw std::runtime_error("Failed to find a suitable GPU!");
   }
+
+  vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 }
 
 void Application::createLogicalDevice() {
@@ -404,6 +408,7 @@ void Application::createLogicalDevice() {
   }
 
   VkPhysicalDeviceFeatures deviceFeatures{};
+  deviceFeatures.samplerAnisotropy = VK_TRUE;
 
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -585,24 +590,8 @@ void Application::recreateSwapChain() {
 void Application::createImageViews() {
   swapChainImageViews.resize(swapChainImages.size());
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
-    VkImageViewCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = swapChainImages[i];
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    createInfo.format = swapChainImageFormat;
-    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-
-    if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to create image views!");
-    }
+    swapChainImageViews[i] = 
+        createImageView(swapChainImages[i], swapChainImageFormat);
   }
 }
 
@@ -685,7 +674,7 @@ void Application::createSyncObjects() {
   }
 }
 
-void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;

@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include <unordered_map>
+#include <memory>
 
 class Application;
 
@@ -54,6 +55,9 @@ private:
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 
   std::vector<VkDescriptorSet> _descriptorSets;
+
+  std::unique_ptr<Texture> _pBaseTexture;
+
   bool _needsDestruction = true;
 public:
   Primitive(

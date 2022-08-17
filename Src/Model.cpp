@@ -55,22 +55,24 @@ Model::Model(
   this->_model = std::move(*result.model);
   this->_model.generateMissingNormalsSmooth();
 
+  glm::mat4 transform(1.0f);
+
   if (this->_model.scene >= 0 && this->_model.scene < this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], glm::mat4(1.0f));
+        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform);
       }
     }
   } else if (this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[0];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], glm::mat4(1.0f));
+        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform);
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_loadNode(app, this->_model, this->_model.nodes[0], glm::mat4(1.0f));
+    this->_loadNode(app, this->_model, this->_model.nodes[0], transform);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
@@ -78,7 +80,7 @@ Model::Model(
             app, 
             this->_model, 
             primitive,
-            glm::mat4(1.0f));
+            transform);
       }
     }
   }

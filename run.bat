@@ -1,1 +1,2 @@
-start ./build/Release/VulkanPractice.exe
+cd build/Release/
+start ./VulkanPractice.exe

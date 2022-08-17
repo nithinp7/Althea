@@ -50,6 +50,8 @@ private:
   VkSurfaceKHR surface;
   VkQueue presentQueue;
 
+  VkPhysicalDeviceProperties physicalDeviceProperties{};
+
   VkSwapchainKHR swapChain;
   std::vector<VkImage> swapChainImages;
   VkFormat swapChainImageFormat;
@@ -116,7 +118,7 @@ private:
   void createCommandBuffers();
   void createSyncObjects();
 
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame);
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
 
 public:
   // Getters
@@ -126,6 +128,10 @@ public:
 
   const VkPhysicalDevice& getPhysicalDevice() const {
     return physicalDevice;
+  }
+
+  const VkPhysicalDeviceProperties& getPhysicalDeviceProperties() const {
+    return physicalDeviceProperties;
   }
 
   const VkCommandPool& getCommandPool() const {
@@ -182,6 +188,14 @@ public:
       std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
 
   // Image Utilities
+  void createTextureImage(
+      void* pSrc,
+      VkDeviceSize bufferSize,
+      uint32_t width,
+      uint32_t height,
+      VkFormat format,
+      VkImage& image,
+      VkDeviceMemory& imageMemory) const;
   void createImage(
       uint32_t width,
       uint32_t height,
@@ -191,5 +205,9 @@ public:
       VkMemoryPropertyFlags properties,
       VkImage& image,
       VkDeviceMemory& imageMemory) const;
+  VkImageView createImageView(
+      VkImage image,
+      VkFormat format) const;
   void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 };

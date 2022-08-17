@@ -182,17 +182,26 @@ RenderPass::RenderPass(
     fragShaderStageInfo.pName = "main";
   }
 
-  VkDescriptorSetLayoutBinding uboLayoutBinding{};
+  std::array<VkDescriptorSetLayoutBinding, 2> bindings;
+
+  VkDescriptorSetLayoutBinding& uboLayoutBinding = bindings[0];
   uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   uboLayoutBinding.pImmutableSamplers = nullptr;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutBinding& samplerLayoutBinding = bindings[1];
+  samplerLayoutBinding.binding = 1;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  samplerLayoutBinding.pImmutableSamplers = nullptr;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
   descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  descriptorSetLayoutInfo.bindingCount = 1;
-  descriptorSetLayoutInfo.pBindings = &uboLayoutBinding;
+  descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+  descriptorSetLayoutInfo.pBindings = bindings.data();
 
   if (vkCreateDescriptorSetLayout(
           this->_device, 
@@ -206,29 +215,33 @@ RenderPass::RenderPass(
   size_t primitivesCount = this->_modelManager.getPrimitivesCount();
   uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
 
-  VkDescriptorPoolSize poolSize{};
-  poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSize.descriptorCount = primitivesCount * maxFramesInFlight;
+  uint32_t descriptorCount = 
+      static_cast<uint32_t>(primitivesCount * maxFramesInFlight);
+  std::array<VkDescriptorPoolSize, 2> poolSizes{};
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[0].descriptorCount = descriptorCount;
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[1].descriptorCount = descriptorCount;
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes = &poolSize;
-  poolInfo.maxSets = poolSize.descriptorCount;
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = descriptorCount;
 
   if (vkCreateDescriptorPool(this->_device, &poolInfo, nullptr, &this->_descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create descriptor pool!");
   }
 
-  std::vector<VkDescriptorSetLayout> layouts(poolSize.descriptorCount, this->_descriptorSetLayout);
+  std::vector<VkDescriptorSetLayout> layouts(descriptorCount, this->_descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = this->_descriptorPool;
-  allocInfo.descriptorSetCount = poolSize.descriptorCount;
+  allocInfo.descriptorSetCount = descriptorCount;
   allocInfo.pSetLayouts = layouts.data();
 
   std::vector<VkDescriptorSet> descriptorSets;
-  descriptorSets.resize(poolSize.descriptorCount);
+  descriptorSets.resize(descriptorCount);
   if (vkAllocateDescriptorSets(this->_device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("Failed to allocate descriptor sets!");
   }
