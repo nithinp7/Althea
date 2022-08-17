@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(
-    VulkanPractice
+    Althea
     VERSION 0.1.0
     LANGUAGES CXX C)
 
@@ -30,7 +30,7 @@ endfunction()
 glob_files(SRC_FILES_LIST Src/*.cpp)
 glob_files(SHADER_FILES Shaders/*[.vert|.tesc|.tese|.geom|.frag|.comp])
 
-add_executable(VulkanPractice ${SRC_FILES_LIST})
+add_executable(Althea ${SRC_FILES_LIST})
 
 # Compile GLSL into SPIRV files and put it in the output directory.
 make_directory(${PROJECT_BINARY_DIR}/Shaders/)

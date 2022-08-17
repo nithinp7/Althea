@@ -1,2 +1,2 @@
 cd build/Release/
-start ./VulkanPractice.exe
+start ./Althea.exe
