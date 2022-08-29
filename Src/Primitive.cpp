@@ -11,8 +11,34 @@
 #include <CesiumGltf/TextureInfo.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <string>
+
 // TODO: do this in cmake
 #define GLM_FORCE_RADIANS
+
+static std::shared_ptr<Texture> createTexture(
+    const Application& app,
+    const CesiumGltf::Model& model,
+    const std::optional<CesiumGltf::TextureInfo>& texture,
+    std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>& textureMap,
+    int32_t& textureCoordinateIndexConstant,
+    size_t uvCount) {
+  if (texture && texture->index >= 0 && texture->index <= model.textures.size() && 
+      texture->texCoord < uvCount) {
+    textureCoordinateIndexConstant = texture->texCoord;
+
+    const CesiumGltf::Texture& gltfTexture = model.textures[texture->index];
+    auto textureIt = textureMap.find(&gltfTexture);
+    if (textureIt != textureMap.end()) {
+      return textureIt->second;
+    }
+
+    auto result = textureMap.emplace(&gltfTexture, std::make_shared<Texture>(app, model, model.textures[texture->index]));
+    return result.first->second;
+  }
+
+  return nullptr;
+}
 
 /*static*/
 VkVertexInputBindingDescription Vertex::getBindingDescription() {
@@ -24,8 +50,10 @@ VkVertexInputBindingDescription Vertex::getBindingDescription() {
 }
 
 /*static*/
-std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
-  std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions;
+std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+    Vertex::getAttributeDescriptions() {
+  std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+      attributeDescriptions;
   
   attributeDescriptions[0].binding = 0;
   attributeDescriptions[0].location = 0;
@@ -37,12 +65,64 @@ std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescription
   attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
   attributeDescriptions[1].offset = offsetof(Vertex, normal);
   
-  attributeDescriptions[2].binding = 0;
-  attributeDescriptions[2].location = 2;
-  attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-  attributeDescriptions[2].offset = offsetof(Vertex, uv);
+  for (size_t i = 0; i < MAX_UV_COORDS; ++i) {
+    attributeDescriptions[2 + i].binding = 0;
+    attributeDescriptions[2 + i].location = 2 + i;
+    attributeDescriptions[2 + i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[2 + i].offset = offsetof(Vertex, uvs[i]);
+  }
 
   return attributeDescriptions;
+}
+
+/*static*/
+std::array<VkDescriptorSetLayoutBinding, 4> Primitive::getBindings() {
+  std::array<VkDescriptorSetLayoutBinding, 4> bindings;
+
+  VkDescriptorSetLayoutBinding& uboLayoutBinding = bindings[0];
+  uboLayoutBinding.binding = 0;
+  uboLayoutBinding.descriptorCount = 1;
+  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding.pImmutableSamplers = nullptr;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutBinding& constantsLayoutBinding = bindings[1];
+  constantsLayoutBinding.binding = 1;
+  constantsLayoutBinding.descriptorCount = 1;
+  constantsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
+  constantsLayoutBinding.pImmutableSamplers = nullptr;
+  constantsLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutBinding& baseTextureLayoutBinding = bindings[2];
+  baseTextureLayoutBinding.binding = 2;
+  baseTextureLayoutBinding.descriptorCount = 1;
+  baseTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  baseTextureLayoutBinding.pImmutableSamplers = nullptr;
+  baseTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkDescriptorSetLayoutBinding& normalTextureLayoutBinding = bindings[3];
+  normalTextureLayoutBinding.binding = 3;
+  normalTextureLayoutBinding.descriptorCount = 1;
+  normalTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  normalTextureLayoutBinding.pImmutableSamplers = nullptr;
+  normalTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  return bindings;
+}
+
+/*static*/ 
+std::array<VkDescriptorPoolSize, 4> Primitive::getPoolSizes(uint32_t descriptorCount) {
+  std::array<VkDescriptorPoolSize, 4> poolSizes{};
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[0].descriptorCount = descriptorCount;
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
+  poolSizes[1].descriptorCount = descriptorCount;
+  poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[2].descriptorCount = descriptorCount;
+  poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[3].descriptorCount = descriptorCount;
+
+  return poolSizes;
 }
 
 template <typename TIndexType>
@@ -59,6 +139,8 @@ static void copyIndices(
   }
 }
 
+typedef std::unordered_map<std::string, int32_t>::const_iterator AttributeIterator;
+
 Primitive::Primitive(
     const Application& app,
     const CesiumGltf::Model& model,
@@ -69,34 +151,52 @@ Primitive::Primitive(
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
-  auto posIt = primitive.attributes.find("POSITION");
-  auto normIt = primitive.attributes.find("NORMAL");
-  // TODO: arbitrary number of texcoord sets
-  auto texCoordIt = primitive.attributes.find("TEXCOORD_0");
-
+  AttributeIterator posIt = primitive.attributes.find("POSITION");
+  AttributeIterator normIt = primitive.attributes.find("NORMAL");
+  
   if (posIt == primitive.attributes.end() ||
-      normIt == primitive.attributes.end() ||
-      texCoordIt == primitive.attributes.end()) {
+      normIt == primitive.attributes.end()) {
     return;
   }
 
   CesiumGltf::AccessorView<glm::vec3> posView(model, posIt->second);
   CesiumGltf::AccessorView<glm::vec3> normView(model, normIt->second);
-  CesiumGltf::AccessorView<glm::vec2> uvView(model, texCoordIt->second);
+  size_t vertexCount = posView.size();
   if (posView.status() != CesiumGltf::AccessorViewStatus::Valid ||
       normView.status() != CesiumGltf::AccessorViewStatus::Valid ||
-      uvView.status() != CesiumGltf::AccessorViewStatus::Valid ||
-      posView.size() != normView.size() ||
-      posView.size() != uvView.size()) {
+      normView.size() != vertexCount) {
     return;
   }
+  
+  size_t uvCount = 0;
+  std::array<AttributeIterator, MAX_UV_COORDS> uvIterators;
+  for (size_t i = 0; i < MAX_UV_COORDS; ++i) {
+    uvIterators[i] = 
+        primitive.attributes.find("TEXCOORD_" + std::to_string(i));
+    if (uvIterators[i] == primitive.attributes.end()) {
+      break;
+    }
 
-  this->_vertices.resize(static_cast<size_t>(posView.size()));
+    ++uvCount;
+  }
+
+  CesiumGltf::AccessorView<glm::vec2> uvViews[MAX_UV_COORDS];
+  for (size_t i = 0; i < uvCount; ++i) {
+    uvViews[i] = CesiumGltf::AccessorView<glm::vec2>(model, uvIterators[i]->second);
+    if (uvViews[i].status() != CesiumGltf::AccessorViewStatus::Valid ||
+        uvViews[i].size() != vertexCount) {
+      return;
+    }
+  }
+
+  this->_vertices.resize(static_cast<size_t>(vertexCount));
   for (size_t i = 0; i < this->_vertices.size(); ++i) {
     Vertex& vertex = this->_vertices[i];
     vertex.position = posView[i];
-    vertex.normal = normView[i]; 
-    vertex.uv = uvView[i];
+    vertex.normal = normView[i];
+    for (size_t j = 0; j < uvCount; ++j) { 
+      vertex.uvs[j] = uvViews[j][i];
+    }
   }
 
   if (primitive.indices < 0 ||
@@ -132,19 +232,29 @@ Primitive::Primitive(
     }
   }
 
+  std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>> textureMap;
   if (primitive.material >= 0 && primitive.material < model.materials.size()) {
     const CesiumGltf::Material& material = model.materials[primitive.material];
     if (material.pbrMetallicRoughness) {
       const CesiumGltf::MaterialPBRMetallicRoughness& pbr = 
           *material.pbrMetallicRoughness;
-      if (pbr.baseColorTexture && pbr.baseColorTexture->index >= 0 && 
-          pbr.baseColorTexture->index <= model.textures.size() && 
-          // TODO: generalize
-          pbr.baseColorTexture->texCoord == 0) {
-        this->_pBaseTexture = 
-            std::make_unique<Texture>(app, model, model.textures[pbr.baseColorTexture->index]);
-      } 
+      _textureSlots.pBaseTexture = createTexture(
+          app, 
+          model, 
+          pbr.baseColorTexture, 
+          textureMap, 
+          _constants.baseTextureCoordinateIndex, 
+          uvCount);
+      // TODO: pbr.baseColorFactor 
     }
+
+    _textureSlots.pNormalMapTexture = createTexture(
+        app, 
+        model, 
+        material.normalTexture, 
+        textureMap, 
+        _constants.normalMapTextureCoordinateIndex, 
+        uvCount);
   }
 
   const VkExtent2D& extent = app.getSwapChainExtent();
@@ -172,14 +282,15 @@ Primitive::Primitive(Primitive&& rhs) noexcept
     _relativeTransform(rhs._relativeTransform),
     _vertices(std::move(rhs._vertices)),
     _indices(std::move(rhs._indices)),
+    _constants(rhs._constants),
+    _textureSlots(std::move(rhs._textureSlots)),
     _vertexBuffer(rhs._vertexBuffer),
     _indexBuffer(rhs._indexBuffer),
     _uniformBuffers(std::move(rhs._uniformBuffers)),
     _vertexBufferMemory(rhs._vertexBufferMemory),
     _indexBufferMemory(rhs._indexBufferMemory),
     _uniformBuffersMemory(std::move(rhs._uniformBuffersMemory)),
-    _descriptorSets(std::move(rhs._descriptorSets)),
-    _pBaseTexture(std::move(rhs._pBaseTexture)) {
+    _descriptorSets(std::move(rhs._descriptorSets)) {
   rhs._needsDestruction = false;
 }
 
@@ -211,36 +322,67 @@ void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDesc
     descriptorSet = availableDescriptorSets.back();
     availableDescriptorSets.pop_back();
 
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(ModelViewProjection);
+    VkDescriptorBufferInfo uniformBufferInfo{};
+    uniformBufferInfo.buffer = uniformBuffer;
+    uniformBufferInfo.offset = 0;
+    uniformBufferInfo.range = sizeof(ModelViewProjection);
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = descriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
     descriptorWrites[0].pImageInfo = nullptr;
     descriptorWrites[0].pTexelBufferView = nullptr;
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = this->_pBaseTexture->getImageView();
-    imageInfo.sampler = this->_pBaseTexture->getSampler();
     
+    VkWriteDescriptorSetInlineUniformBlock inlineConstantsWrite{};
+    inlineConstantsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
+    inlineConstantsWrite.dataSize = sizeof(PrimitiveConstants);
+    inlineConstantsWrite.pData = &_constants;
+
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSet;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pBufferInfo = nullptr;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].pImageInfo = nullptr;
     descriptorWrites[1].pTexelBufferView = nullptr;
+    descriptorWrites[1].pNext = &inlineConstantsWrite;
+
+    VkDescriptorImageInfo baseTextureImageInfo{};
+    baseTextureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    baseTextureImageInfo.imageView = _textureSlots.pBaseTexture->getImageView();
+    baseTextureImageInfo.sampler = _textureSlots.pBaseTexture->getSampler();
+    
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = descriptorSet;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = nullptr;
+    descriptorWrites[2].pImageInfo = &baseTextureImageInfo;
+    descriptorWrites[2].pTexelBufferView = nullptr;
+
+    VkDescriptorImageInfo normalTextureImageInfo{};
+    normalTextureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    normalTextureImageInfo.imageView = _textureSlots.pNormalMapTexture->getImageView();
+    normalTextureImageInfo.sampler = _textureSlots.pNormalMapTexture->getSampler();
+    
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = descriptorSet;
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = nullptr;
+    descriptorWrites[3].pImageInfo = &normalTextureImageInfo;
+    descriptorWrites[3].pTexelBufferView = nullptr;
 
     vkUpdateDescriptorSets(this->_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
@@ -273,22 +415,14 @@ Primitive::~Primitive() noexcept {
   vkDestroyBuffer(this->_device, this->_vertexBuffer, nullptr);
   vkDestroyBuffer(this->_device, this->_indexBuffer, nullptr);
 
-  vkFreeMemory(this->_device, this->_vertexBufferMemory, nullptr);
-  vkFreeMemory(this->_device, this->_indexBufferMemory, nullptr);  
-
   for (VkBuffer& uniformBuffer : this->_uniformBuffers) {
     vkDestroyBuffer(this->_device, uniformBuffer, nullptr);
   }
 
+  vkFreeMemory(this->_device, this->_vertexBufferMemory, nullptr);
+  vkFreeMemory(this->_device, this->_indexBufferMemory, nullptr);
+
   for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
     vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
   }
-}
-
-void Primitive::_loadTexture(
-    const CesiumGltf::Model& model,
-    const CesiumGltf::TextureInfo& texture,
-    std::unordered_map<const CesiumGltf::Texture*, Texture>& textureMap,
-    std::unordered_map<uint32_t, TextureCoordinateSet>& textureCoordinateAttributes) {
-  
 }

@@ -32,6 +32,8 @@ glob_files(SHADER_FILES Shaders/*[.vert|.tesc|.tese|.geom|.frag|.comp])
 
 add_executable(Althea ${SRC_FILES_LIST})
 
+target_compile_definitions(Althea PRIVATE MAX_UV_COORDS=4)
+
 # Compile GLSL into SPIRV files and put it in the output directory.
 make_directory(${PROJECT_BINARY_DIR}/Shaders/)
 foreach(SHADER_FILE ${SHADER_FILES})

@@ -24,20 +24,30 @@ struct TextureInfo;
 } // namespace CesiumGltf
 
 struct Vertex {
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec2 uv;
+  glm::vec3 position{};
+  glm::vec3 normal{};
+  glm::vec2 uvs[MAX_UV_COORDS]{};
 
   static VkVertexInputBindingDescription getBindingDescription();
-  static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+  static std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+      getAttributeDescriptions();
 };
 
-struct TextureCoordinateSet {
-  VkBuffer buffer;
-  VkDeviceMemory memory;
+struct PrimitiveConstants {
+  int32_t baseTextureCoordinateIndex{};
+  int32_t normalMapTextureCoordinateIndex{};
+};
+
+struct TextureSlots {
+  std::shared_ptr<Texture> pBaseTexture;
+  std::shared_ptr<Texture> pNormalMapTexture;
 };
 
 class Primitive {
+public: 
+  static std::array<VkDescriptorSetLayoutBinding, 4> getBindings();
+  static std::array<VkDescriptorPoolSize, 4> getPoolSizes(uint32_t descriptorCount);
+
 private:
   VkDevice _device;
 
@@ -46,6 +56,10 @@ private:
   std::vector<Vertex> _vertices;
   std::vector<uint32_t> _indices;
 
+  PrimitiveConstants _constants;
+
+  TextureSlots _textureSlots;
+
   VkBuffer _vertexBuffer;
   VkBuffer _indexBuffer;
   std::vector<VkBuffer> _uniformBuffers;
@@ -53,10 +67,8 @@ private:
   VkDeviceMemory _vertexBufferMemory;
   VkDeviceMemory _indexBufferMemory;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
-
+  
   std::vector<VkDescriptorSet> _descriptorSets;
-
-  std::unique_ptr<Texture> _pBaseTexture;
 
   bool _needsDestruction = true;
 public:
@@ -78,11 +90,4 @@ public:
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
       uint32_t currentFrame) const;
-
-private:
-  void _loadTexture(
-      const CesiumGltf::Model& model,
-      const CesiumGltf::TextureInfo& texture,
-      std::unordered_map<const CesiumGltf::Texture*, Texture>& textureMap,
-      std::unordered_map<uint32_t, TextureCoordinateSet>& textureCoordinateAttributes); 
 };

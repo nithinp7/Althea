@@ -155,7 +155,7 @@ void Model::_loadNode(
   } else {
     glm::mat4 translation(1.0);
     if (node.translation.size() == 3) {
-      translation[3] = glm::dvec4(
+      translation[3] = glm::vec4(
           static_cast<float>(node.translation[0]),
           static_cast<float>(node.translation[1]),
           static_cast<float>(node.translation[2]),
