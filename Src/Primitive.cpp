@@ -24,8 +24,8 @@ static std::shared_ptr<Texture> createTexture(
     int32_t& textureCoordinateIndexConstant,
     size_t uvCount) {
   if (texture && texture->index >= 0 && texture->index <= model.textures.size() && 
-      texture->texCoord < uvCount) {
-    textureCoordinateIndexConstant = texture->texCoord;
+      static_cast<int32_t>(texture->texCoord) < uvCount) {
+    textureCoordinateIndexConstant = static_cast<int32_t>(texture->texCoord);
 
     const CesiumGltf::Texture& gltfTexture = model.textures[texture->index];
     auto textureIt = textureMap.find(&gltfTexture);
@@ -88,7 +88,7 @@ std::array<VkDescriptorSetLayoutBinding, 4> Primitive::getBindings() {
 
   VkDescriptorSetLayoutBinding& constantsLayoutBinding = bindings[1];
   constantsLayoutBinding.binding = 1;
-  constantsLayoutBinding.descriptorCount = 1;
+  constantsLayoutBinding.descriptorCount = sizeof(PrimitiveConstants);
   constantsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
   constantsLayoutBinding.pImmutableSamplers = nullptr;
   constantsLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -116,7 +116,7 @@ std::array<VkDescriptorPoolSize, 4> Primitive::getPoolSizes(uint32_t descriptorC
   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[0].descriptorCount = descriptorCount;
   poolSizes[1].type = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-  poolSizes[1].descriptorCount = descriptorCount;
+  poolSizes[1].descriptorCount = sizeof(PrimitiveConstants) * descriptorCount;
   poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   poolSizes[2].descriptorCount = descriptorCount;
   poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -348,7 +348,7 @@ void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDesc
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].descriptorCount = sizeof(PrimitiveConstants);
     descriptorWrites[1].pBufferInfo = nullptr;
     descriptorWrites[1].pImageInfo = nullptr;
     descriptorWrites[1].pTexelBufferView = nullptr;

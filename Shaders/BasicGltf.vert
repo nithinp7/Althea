@@ -7,6 +7,7 @@ layout(location = 2) in vec2 uvs[4];
 
 layout(location = 0) out vec2 baseColorUV;
 layout(location = 1) out vec2 normalMapUV;
+layout(location = 2) out vec4 debugColor;
 
 layout(binding = 0) uniform UniformBufferObject {
   mat4 model;
@@ -15,6 +16,7 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(binding = 1) uniform ConstantBufferObject {
+  vec4 testColor;
   int baseTextureCoordinateIndex;
   int normalMapTextureCoordinateIndex;
 } constants;
@@ -24,4 +26,5 @@ void main() {
   
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];
+  debugColor = constants.testColor;
 }

@@ -223,7 +223,7 @@ void Application::createInstance() {
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
+  appInfo.apiVersion = VK_API_VERSION_1_3;
 
   VkInstanceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -355,17 +355,25 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   }
 
   VkPhysicalDeviceProperties deviceProperties;
-  VkPhysicalDeviceFeatures deviceFeatures;
+  VkPhysicalDeviceFeatures2 deviceFeatures{};
+  deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  
+  VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
+  inlineBlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
+
+  deviceFeatures.pNext = &inlineBlockFeatures;
+
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
-  vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+  vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
 
   return
     indices.isComplete() &&
     extensionsSupported &&
     swapChainAdequete &&
     deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-    deviceFeatures.geometryShader &&
-    deviceFeatures.samplerAnisotropy;
+    deviceFeatures.features.geometryShader &&
+    deviceFeatures.features.samplerAnisotropy &&
+    inlineBlockFeatures.inlineUniformBlock; // && inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -409,6 +417,12 @@ void Application::createLogicalDevice() {
 
   VkPhysicalDeviceFeatures deviceFeatures{};
   deviceFeatures.samplerAnisotropy = VK_TRUE;
+  deviceFeatures.geometryShader = VK_TRUE;
+
+  VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
+  inlineBlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
+  inlineBlockFeatures.inlineUniformBlock = VK_TRUE;
+  // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind = VK_TRUE;
 
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -419,6 +433,8 @@ void Application::createLogicalDevice() {
 
   createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
+  createInfo.pNext = &inlineBlockFeatures;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());

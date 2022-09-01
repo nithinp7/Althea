@@ -34,6 +34,7 @@ struct Vertex {
 };
 
 struct PrimitiveConstants {
+  glm::vec4 debugColor = glm::vec4(0.5f, 0.0f, 0.5f, 1.0f);
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
 };
