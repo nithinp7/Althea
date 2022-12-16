@@ -13,7 +13,124 @@
 #include <memory>
 #include <array>
 
+#include <filesystem>
+
 #include <vulkan/vulkan.h>
+
+static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalData(
+    CesiumAsync::AsyncSystem asyncSystem,
+    const std::string& baseUrl,
+    std::shared_ptr<CesiumAsync::IAssetAccessor> pAssetAccessor,
+    const CesiumGltfReader::GltfReaderOptions& options,
+    CesiumGltfReader::GltfReaderResult&& result) {
+
+  if (!result.model) {
+    return asyncSystem.createResolvedFuture(std::move(result));
+  }
+
+  // Get a rough count of how many external buffers we may have.
+  // Some of these may be data uris though.
+  size_t uriBuffersCount = 0;
+  for (const CesiumGltf::Buffer& buffer : result.model->buffers) {
+    if (buffer.uri) {
+      ++uriBuffersCount;
+    }
+  }
+
+  for (const CesiumGltf::Image& image : result.model->images) {
+    if (image.uri) {
+      ++uriBuffersCount;
+    }
+  }
+
+  if (uriBuffersCount == 0) {
+    return asyncSystem.createResolvedFuture(std::move(result));
+  }
+
+  auto pResult = std::make_unique<CesiumGltfReader::GltfReaderResult>(std::move(result));
+
+  struct ExternalBufferLoadResult {
+    bool success = false;
+    std::string bufferUri;
+  };
+
+  std::vector<CesiumAsync::Future<ExternalBufferLoadResult>> resolvedBuffers;
+  resolvedBuffers.reserve(uriBuffersCount);
+
+  // We need to skip data uris.
+  constexpr std::string_view dataPrefix = "data:";
+  constexpr size_t dataPrefixLength = dataPrefix.size();
+
+  std::filesystem::path basePath(baseUrl);
+
+  for (CesiumGltf::Buffer& buffer : pResult->model->buffers) {
+    if (buffer.uri && buffer.uri->substr(0, dataPrefixLength) != dataPrefix) {
+      resolvedBuffers.push_back(
+          pAssetAccessor
+              ->get(asyncSystem, basePath.parent_path().append(*buffer.uri).string(), {})
+              .thenInWorkerThread(
+                  [pBuffer =
+                   &buffer](std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest) {
+                    const CesiumAsync::IAssetResponse* pResponse = pRequest->response();
+
+                    std::string bufferUri = *pBuffer->uri;
+
+                    if (pResponse) {
+                      pBuffer->uri = std::nullopt;
+                      pBuffer->cesium.data = std::vector<std::byte>(
+                          pResponse->data().begin(),
+                          pResponse->data().end());
+                      return ExternalBufferLoadResult{true, bufferUri};
+                    }
+
+                    return ExternalBufferLoadResult{false, bufferUri};
+                  }));
+    }
+  }
+
+  for (CesiumGltf::Image& image : pResult->model->images) {
+    if (image.uri && image.uri->substr(0, dataPrefixLength) != dataPrefix) {
+      resolvedBuffers.push_back(
+          pAssetAccessor
+              ->get(asyncSystem, basePath.parent_path().append(*image.uri).string(), {})
+              .thenInWorkerThread(
+                  [pImage = &image,
+                   ktx2TranscodeTargets = options.ktx2TranscodeTargets](
+                      std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest) {
+                    const CesiumAsync::IAssetResponse* pResponse = pRequest->response();
+
+                    std::string imageUri = *pImage->uri;
+
+                    if (pResponse) {
+                      pImage->uri = std::nullopt;
+
+                      CesiumGltfReader::ImageReaderResult imageResult =
+                          CesiumGltfReader::GltfReader::readImage(pResponse->data(), ktx2TranscodeTargets);
+                      if (imageResult.image) {
+                        pImage->cesium = std::move(*imageResult.image);
+                        return ExternalBufferLoadResult{true, imageUri};
+                      }
+                    }
+
+                    return ExternalBufferLoadResult{false, imageUri};
+                  }));
+    }
+  }
+
+  return asyncSystem.all(std::move(resolvedBuffers))
+      .thenInWorkerThread(
+          [pResult = std::move(pResult)](
+              std::vector<ExternalBufferLoadResult>&& loadResults) mutable {
+            for (auto& bufferResult : loadResults) {
+              if (!bufferResult.success) {
+                pResult->warnings.push_back(
+                    "Could not load the external gltf buffer: " +
+                    bufferResult.bufferUri);
+              }
+            }
+            return std::move(*pResult.release());
+          });
+}
 
 Model::Model(
     const Application& app, 
@@ -35,11 +152,10 @@ Model::Model(
         options);
   
   CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> futureResult = 
-      reader.resolveExternalData(
+      resolveExternalData(
         async,
         // this might not be a valid base url, may need to remove file name
         path,
-        {},
         std::make_shared<FileAssetAccessor>(),
         options,
         std::move(result));

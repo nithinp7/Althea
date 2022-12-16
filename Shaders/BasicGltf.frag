@@ -12,4 +12,5 @@ layout(binding = 3) uniform sampler2D normalMapTexture;
 
 void main() {
   outColor = texture(baseColorTexture, baseColorUV);
+  outColor = debugColor;
 }

@@ -51,14 +51,11 @@ CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
 FileAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
     const std::string& url,
     const std::vector<THeader>& headers) {
-  return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
-      [url, headers](const auto& promise) {
-        // TODO: implement async file request
-        return 
-            FileRequest(
-              url, 
-              std::make_shared<FileResponse>(Utilities::readFile(url)));
-      });
+  // TODO: support async file reads?
+  return asyncSystem.createResolvedFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
+      std::make_shared<FileRequest>(
+        url, 
+        std::make_shared<FileResponse>(Utilities::readFile(url))));
 }
 
 CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>> FileAssetAccessor::request(

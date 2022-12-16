@@ -52,20 +52,24 @@ endforeach()
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 
-function(copy_files rel_path)
-  glob_files(FILES_TO_COPY ${rel_path}/*)
+function(copy_files dir_rel_path)
+  file(GLOB_RECURSE FILES_TO_COPY LIST_DIRECTORIES true ${dir_rel_path}/*)  
 
-  make_directory(${PROJECT_BINARY_DIR}/${rel_path}/)
   foreach(FILE ${FILES_TO_COPY})
-    get_filename_component(FILE_NAME ${FILE} NAME)
-    set(output_file "${PROJECT_BINARY_DIR}/${rel_path}/${FILE_NAME}")
-    add_custom_command(
-      OUTPUT ${output_file}
-      COMMAND ${CMAKE_COMMAND} -E copy ${FILE} ${output_file}
-      DEPENDS ${FILE})
-    message(STATUS "Generating build commands for ${output_file}")
-    list(APPEND COPIED_FILES ${output_file})
-    set(COPIED_FILES ${COPIED_FILES} PARENT_SCOPE)
+    file(RELATIVE_PATH relativePath ${CMAKE_CURRENT_LIST_DIR} ${FILE})
+    if(IS_DIRECTORY FILE)
+      make_directory(${PROJECT_BINARY_DIR}/${relativePath}/)
+    else()
+      set(output_file "${PROJECT_BINARY_DIR}/${relativePath}")
+      add_custom_command(
+        OUTPUT ${output_file}
+        COMMAND ${CMAKE_COMMAND} -E copy ${FILE} ${output_file}
+        DEPENDS ${FILE})
+      message(STATUS "Generating build commands for ${output_file}")
+      list(APPEND COPIED_FILES ${output_file})
+      set(COPIED_FILES ${COPIED_FILES} PARENT_SCOPE)
+    endif()
+    message(${relativePath})
   endforeach()
 endfunction()
 
