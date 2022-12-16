@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Texture.h"
 #include <vulkan/vulkan.h>
 
@@ -6,10 +8,10 @@
 namespace AltheaEngine {
 class Application;
 
-std::unique_ptr<Texture> GNormalTexture1x1 = nullptr;
-std::unique_ptr<Texture> GGreenTexture1x1 = nullptr; 
-std::unique_ptr<Texture> GWhiteTexture1x1 = nullptr; 
+extern std::shared_ptr<Texture> GNormalTexture1x1;
+extern std::shared_ptr<Texture> GGreenTexture1x1; 
+extern std::shared_ptr<Texture> GWhiteTexture1x1; 
 
-static void initDefaultTextures(const Application& appliaction);
-static void destroyDefaultTextures();
+void initDefaultTextures(const Application& appliaction);
+void destroyDefaultTextures();
 } // namespace AltheaEngine

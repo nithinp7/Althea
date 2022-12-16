@@ -2,6 +2,7 @@
 #include "Utilities.h"
 #include "Application.h"
 #include "ModelViewProjection.h"
+#include "DefaultTextures.h"
 
 #include <CesiumGltf/MeshPrimitive.h>
 #include <CesiumGltf/Model.h>
@@ -39,6 +40,14 @@ static std::shared_ptr<Texture> createTexture(
   }
 
   return nullptr;
+}
+
+void TextureSlots::fillEmptyWithDefaults() {
+  if (!this->pBaseTexture)
+    this->pBaseTexture = GWhiteTexture1x1;
+  
+  if (!this->pNormalMapTexture)
+    this->pNormalMapTexture = GNormalTexture1x1;
 }
 
 /*static*/
@@ -239,24 +248,26 @@ Primitive::Primitive(
     if (material.pbrMetallicRoughness) {
       const CesiumGltf::MaterialPBRMetallicRoughness& pbr = 
           *material.pbrMetallicRoughness;
-      _textureSlots.pBaseTexture = createTexture(
+      this->_textureSlots.pBaseTexture = createTexture(
           app, 
           model, 
           pbr.baseColorTexture, 
           textureMap, 
-          _constants.baseTextureCoordinateIndex, 
+          this->_constants.baseTextureCoordinateIndex, 
           uvCount);
       // TODO: pbr.baseColorFactor 
     }
 
-    _textureSlots.pNormalMapTexture = createTexture(
+    this->_textureSlots.pNormalMapTexture = createTexture(
         app, 
         model, 
         material.normalTexture, 
         textureMap, 
-        _constants.normalMapTextureCoordinateIndex, 
+        this->_constants.normalMapTextureCoordinateIndex, 
         uvCount);
   }
+
+  this->_textureSlots.fillEmptyWithDefaults();
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 

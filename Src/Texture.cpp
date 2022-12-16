@@ -12,8 +12,7 @@ namespace AltheaEngine {
 Texture::Texture(
     const Application& app,
     const CesiumGltf::Model& model,
-    const CesiumGltf::Texture& texture) 
-  : _device(app.getDevice()) {
+    const CesiumGltf::Texture& texture) {
   if (texture.sampler < 0 || texture.sampler >= model.samplers.size() ||
       texture.source < 0 || texture.source >= model.images.size()) {
     return;
@@ -36,6 +35,8 @@ void Texture::_initTexture(
     const Application& app,
     const CesiumGltf::ImageCesium& image, 
     const CesiumGltf::Sampler& sampler) {
+  this->_device = app.getDevice();
+  
   // TODO: support compressed pixel formats
   if (image.compressedPixelFormat != CesiumGltf::GpuCompressedPixelFormat::NONE) {
     return;
@@ -105,6 +106,7 @@ void Texture::_initTexture(
 
   if (vkCreateSampler(this->_device, &samplerInfo, nullptr, &this->_textureSampler) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create texture sampler!");
+    return;
   }
 
   app.createTextureImage(

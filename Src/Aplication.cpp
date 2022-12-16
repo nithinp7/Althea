@@ -1,6 +1,7 @@
 
 #include "Application.h"
 #include "RenderPass.h"
+#include "DefaultTextures.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -164,7 +165,7 @@ void Application::cleanup() {
     vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
     vkDestroyFence(device, inFlightFences[i], nullptr);
   }
-  
+
   vkDestroyCommandPool(device, commandPool, nullptr);
 
   cleanupSwapChain();
@@ -573,10 +574,13 @@ void Application::cleanupSwapChain() {
     vkDestroyFramebuffer(device, framebuffer, nullptr);
   }
 
+  // TODO: Probably not the best place to clean up render passes...
   if (pRenderPassManager) {
     delete pRenderPassManager;
     pRenderPassManager = nullptr;
   }
+
+  destroyDefaultTextures();
 
   for (VkImageView imageView : swapChainImageViews) {
     vkDestroyImageView(device, imageView, nullptr);
@@ -613,6 +617,8 @@ void Application::createImageViews() {
 }
 
 void Application::createGraphicsPipeline() {  
+  initDefaultTextures(*this);
+
   this->pRenderPassManager = 
       new RenderPassManager(*this);
   this->pDefaultRenderPass = 

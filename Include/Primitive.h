@@ -43,6 +43,8 @@ struct PrimitiveConstants {
 struct TextureSlots {
   std::shared_ptr<Texture> pBaseTexture;
   std::shared_ptr<Texture> pNormalMapTexture;
+
+  void fillEmptyWithDefaults();
 };
 
 class Primitive {

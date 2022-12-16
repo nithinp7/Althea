@@ -7,24 +7,21 @@
 #include <string>
 #include <vector>
 #include <gsl/span>
-#include <memory>
+
+#include <cassert>
 
 using namespace CesiumGltf;
 using namespace CesiumGltfReader;
 
 namespace AltheaEngine {
-const static std::string NORMAL_1x1_PATH = "./Content/Engine/normal1x1.png";
-const static std::string GREEN_1x1_PATH = "./Content/Engine/green1x1.png";
-const static std::string WHITE_1x1_PATH = "./Content/Engine/white1x1.png";
+// TODO: Read these paths from somewhere? Config file?
+const static std::string NORMAL_1x1_PATH = "../Content/Engine/Textures/normal1x1.png";
+const static std::string GREEN_1x1_PATH = "../Content/Engine/Textures/green1x1.png";
+const static std::string WHITE_1x1_PATH = "../Content/Engine/Textures/white1x1.png";
 
-// /*static*/
-// std::unique_ptr<Texture> GNormalTexture1x1 = nullptr;
-
-// /*static*/
-// std::unique_ptr<Texture> GGreenTexture1x1 = nullptr;
-
-// /*static*/
-// std::unique_ptr<Texture> GWhiteTexture1x1 = nullptr;
+std::shared_ptr<Texture> GNormalTexture1x1 = nullptr;
+std::shared_ptr<Texture> GGreenTexture1x1 = nullptr; 
+std::shared_ptr<Texture> GWhiteTexture1x1 = nullptr; 
 
 namespace {
 gsl::span<const std::byte> charVecToByteSpan(const std::vector<char>& buffer) {
@@ -35,7 +32,6 @@ gsl::span<const std::byte> charVecToByteSpan(const std::vector<char>& buffer) {
 }
 }
 
-/*static*/ 
 void initDefaultTextures(const Application& app) {
   std::vector<char> rawNormal1x1 = Utilities::readFile(NORMAL_1x1_PATH);
   std::vector<char> rawGreen1x1 = Utilities::readFile(GREEN_1x1_PATH);
@@ -52,6 +48,7 @@ void initDefaultTextures(const Application& app) {
 
   if (!normalResult.image || !greenResult.image || !whiteResult.image) {
     throw std::runtime_error("Failed to initialize default textures!");
+    return;
   }
 
   Sampler sampler;
@@ -60,15 +57,18 @@ void initDefaultTextures(const Application& app) {
   sampler.wrapS = Sampler::WrapS::CLAMP_TO_EDGE;
   sampler.wrapT = Sampler::WrapT::CLAMP_TO_EDGE;
 
-  GNormalTexture1x1 = std::make_unique<Texture>(app, *normalResult.image, sampler);
-  GGreenTexture1x1 = std::make_unique<Texture>(app, *greenResult.image, sampler);
-  GWhiteTexture1x1 = std::make_unique<Texture>(app, *whiteResult.image, sampler);
+  GNormalTexture1x1 = std::make_shared<Texture>(app, *normalResult.image, sampler);
+  GGreenTexture1x1 = std::make_shared<Texture>(app, *greenResult.image, sampler);
+  GWhiteTexture1x1 = std::make_shared<Texture>(app, *whiteResult.image, sampler);
 }
 
-/*static*/ 
 void destroyDefaultTextures() {
-  GNormalTexture1x1.reset(nullptr);
-  GGreenTexture1x1.reset(nullptr);
-  GWhiteTexture1x1.reset(nullptr);
+  assert(GNormalTexture1x1.use_count() == 1);
+  assert(GGreenTexture1x1.use_count() == 1);
+  assert(GWhiteTexture1x1.use_count() == 1);
+
+  GNormalTexture1x1 = nullptr;
+  GGreenTexture1x1 = nullptr;
+  GWhiteTexture1x1 = nullptr;
 }
 } // namespace AltheaEngine
