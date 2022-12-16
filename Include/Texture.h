@@ -7,14 +7,21 @@
 namespace CesiumGltf {
 struct Model;
 struct Texture;
+struct ImageCesium;
+struct Sampler;
 } // namespace CesiumGltf
 
+namespace AltheaEngine {
 class Texture {
 public: 
   Texture(
       const Application& app,
       const CesiumGltf::Model& model,
       const CesiumGltf::Texture& texture);
+  Texture(
+      const Application& app,
+      const CesiumGltf::ImageCesium& image,
+      const CesiumGltf::Sampler& sampler);
   Texture(Texture&& rhs);
   ~Texture();
 
@@ -26,6 +33,11 @@ public:
     return this->_textureSampler;
   }
 private:
+  void _initTexture(
+      const Application& app, 
+      const CesiumGltf::ImageCesium& image, 
+      const CesiumGltf::Sampler& sampler);
+
   VkDevice _device;
 
   VkImage _textureImage;
@@ -36,4 +48,4 @@ private:
 
   bool _needsDestruction = true;
 };
-
+} // namespace AltheaEngine

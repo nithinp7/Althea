@@ -1,6 +1,8 @@
 #include "Application.h"
 #include <iostream>
 
+using namespace AltheaEngine;
+
 int main() {
   Application app;
 

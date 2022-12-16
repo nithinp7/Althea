@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <vulkan/vulkan.h>
 
+namespace AltheaEngine {
 void Application::createTextureImage(
     void* pSrc,
     VkDeviceSize bufferSize,
@@ -215,3 +216,4 @@ void Application::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t wid
 
   endSingleTimeCommands(commandBuffer);
 }
+} // namespace AltheaEngine

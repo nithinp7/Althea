@@ -76,6 +76,7 @@ endfunction()
 # Automatically copy config and content files
 copy_files(Config)
 copy_files(Content/Models)
+copy_files(Content/Engine)
 
 add_custom_target(
   CopiedFiles

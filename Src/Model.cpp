@@ -17,6 +17,7 @@
 
 #include <vulkan/vulkan.h>
 
+namespace AltheaEngine {
 static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalData(
     CesiumAsync::AsyncSystem asyncSystem,
     const std::string& baseUrl,
@@ -378,3 +379,4 @@ void ModelManager::render(
     model.render(commandBuffer, pipelineLayout, currentFrame);
   }
 }
+} // namespace AltheaEngine

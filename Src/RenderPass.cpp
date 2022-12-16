@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
+namespace AltheaEngine {
 ShaderManager::ShaderManager(const VkDevice& device) 
     : _device(device) {}
 
@@ -434,3 +435,4 @@ RenderPassManager::RenderPassManager(const Application& app)
 const RenderPass& RenderPassManager::find(const std::string& renderPassName) const {
   return this->_renderPasses.find(renderPassName)->second;
 }
+} // namespace AltheaEngine

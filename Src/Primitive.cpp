@@ -16,6 +16,7 @@
 // TODO: do this in cmake
 #define GLM_FORCE_RADIANS
 
+namespace AltheaEngine {
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     const CesiumGltf::Model& model,
@@ -426,3 +427,4 @@ Primitive::~Primitive() noexcept {
     vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
   }
 }
+} // namespace AltheaEngine

@@ -11,6 +11,7 @@
 #include <vulkan/vulkan.h>
 #include <array>
 
+namespace AltheaEngine {
 class Application;
 
 class Model {
@@ -58,4 +59,5 @@ public:
       const VkPipelineLayout& pipelineLayout, 
       uint32_t currentFrame) const;
 };
+} // namespace AltheaEngine
 

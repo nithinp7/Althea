@@ -14,14 +14,15 @@
 #include <unordered_map>
 #include <memory>
 
-class Application;
-
 namespace CesiumGltf {
 struct Model;
 struct MeshPrimitive;
 struct Texture;
 struct TextureInfo;
 } // namespace CesiumGltf
+
+namespace AltheaEngine {
+class Application;
 
 struct Vertex {
   glm::vec3 position{};
@@ -92,3 +93,4 @@ public:
       const VkPipelineLayout& pipelineLayout, 
       uint32_t currentFrame) const;
 };
+} // namespace AltheaEngine

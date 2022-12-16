@@ -14,6 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
+namespace AltheaEngine {
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application() 
   : configParser("../Config/ConfigFile.txt") {}
@@ -710,3 +711,4 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     throw std::runtime_error("Failed to record command buffer!");
   }
 }
+} // namespace AltheaEngine

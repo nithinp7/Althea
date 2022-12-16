@@ -10,6 +10,7 @@
 #include <vector> 
 #include <optional>
 
+namespace AltheaEngine {
 class RenderPassManager;
 class RenderPass;
 
@@ -211,3 +212,4 @@ public:
   void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 };
+} // namespace AltheaEngine

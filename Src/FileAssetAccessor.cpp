@@ -1,6 +1,7 @@
 #include "FileAssetAccessor.h"
 #include "Utilities.h"
 
+namespace AltheaEngine {
 FileResponse::FileResponse(std::vector<char>&& data) 
   : _statusCode(data.empty() ? 400 : 200),
     _headers(),
@@ -70,3 +71,4 @@ CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>> FileAssetAccess
 }
 
 void FileAssetAccessor::tick() noexcept {}
+} // namespace AltheaEngine

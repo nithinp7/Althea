@@ -4,6 +4,7 @@
 #include <CesiumAsync/IAssetRequest.h>
 #include <CesiumAsync/IAssetResponse.h>
 
+namespace AltheaEngine {
 class FileResponse : public CesiumAsync::IAssetResponse {
 private:
   uint16_t _statusCode;
@@ -102,3 +103,4 @@ public:
    */
   void tick() noexcept override;
 };
+} // namespace AltheaEngine

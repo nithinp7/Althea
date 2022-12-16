@@ -10,6 +10,7 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 
+namespace AltheaEngine {
 class Application;
 
 class ShaderManager {
@@ -83,3 +84,5 @@ private:
   ShaderManager _shaderManager;
   std::unordered_map<std::string, RenderPass> _renderPasses;
 };
+} // namespace AltheaEngine
+

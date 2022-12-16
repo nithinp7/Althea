@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+namespace AltheaEngine {
 // Buffer related implementations for the Application class
 uint32_t Application::findMemoryType(
     uint32_t typeFilter,
@@ -151,4 +152,5 @@ void Application::createUniformBuffers(
         uniformBuffers[i],
         uniformBuffersMemory[i]);
   }
+}
 }

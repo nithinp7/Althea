@@ -3,6 +3,7 @@
 #include <fstream>
 #include <utility>
 
+namespace AltheaEngine {
 ConfigCategory::ConfigCategory(
     const std::string& name) 
   : _name(name)  {}
@@ -29,3 +30,4 @@ void ConfigParser::parseCategory(ConfigCategory& category) const {
     }
   }
 }
+} // namespace AltheaEngine

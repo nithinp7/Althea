@@ -1,6 +1,7 @@
 
 #include "Application.h"
 
+namespace AltheaEngine {
 VkCommandBuffer Application::beginSingleTimeCommands() const {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -34,3 +35,4 @@ void Application::endSingleTimeCommands(VkCommandBuffer commandBuffer) const {
 
   vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
+} // namespace AltheaEngine

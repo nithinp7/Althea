@@ -8,6 +8,7 @@
 
 #include <memory>
 
+namespace AltheaEngine {
 Texture::Texture(
     const Application& app,
     const CesiumGltf::Model& model,
@@ -21,6 +22,20 @@ Texture::Texture(
   const CesiumGltf::Sampler& sampler = model.samplers[texture.sampler];
   const CesiumGltf::ImageCesium& image = model.images[texture.source].cesium;
 
+  this->_initTexture(app, image, sampler);
+}
+
+Texture::Texture(
+    const Application& app,
+    const CesiumGltf::ImageCesium& image,
+    const CesiumGltf::Sampler& sampler) {
+  this->_initTexture(app, image, sampler);
+}
+
+void Texture::_initTexture(
+    const Application& app,
+    const CesiumGltf::ImageCesium& image, 
+    const CesiumGltf::Sampler& sampler) {
   // TODO: support compressed pixel formats
   if (image.compressedPixelFormat != CesiumGltf::GpuCompressedPixelFormat::NONE) {
     return;
@@ -125,3 +140,4 @@ Texture::~Texture() {
   vkDestroyImage(this->_device, this->_textureImage, nullptr);
   vkFreeMemory(this->_device, this->_textureImageMemory, nullptr);
 }
+} // namespace AltheaEngine
