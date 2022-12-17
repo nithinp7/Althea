@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "ModelViewProjection.h"
 #include "DefaultTextures.h"
+#include "GeometryUtilities.h"
 
 #include <CesiumGltf/MeshPrimitive.h>
 #include <CesiumGltf/Model.h>
@@ -145,17 +146,129 @@ std::array<VkDescriptorPoolSize, 4> Primitive::getPoolSizes(uint32_t descriptorC
   return poolSizes;
 }
 
-template <typename TIndexType>
+template <typename TIndex>
 static void copyIndices(
     std::vector<uint32_t>& indicesOut, 
-    const CesiumGltf::AccessorView<TIndexType>& indexAccessor) {
-  if (indexAccessor.status() != CesiumGltf::AccessorViewStatus::Valid) {
-    return;
-  }
+    const CesiumGltf::AccessorView<TIndex>& indexAccessor) {
+  assert(indexAccessor.status() == CesiumGltf::AccessorViewStatus::Valid);
 
   indicesOut.resize(indexAccessor.size());
-  for (size_t i = 0; i < indexAccessor.size(); ++i) {
+  for (int64_t i = 0; i < indexAccessor.size(); ++i) {
     indicesOut[i] = static_cast<uint32_t>(indexAccessor[i]);
+  }
+}
+
+template <typename TIndex>
+static std::vector<Vertex> duplicateVertices(
+    const CesiumGltf::AccessorView<glm::vec3>& verticesView, 
+    const CesiumGltf::AccessorView<TIndex>& indicesView,
+    const CesiumGltf::AccessorView<glm::vec3>& normAccessor,
+    const CesiumGltf::AccessorView<glm::vec4>& tangAccessor,
+    const CesiumGltf::AccessorView<glm::vec2> uvAccessors[MAX_UV_COORDS],
+    uint32_t uvCount) {
+  std::vector<Vertex> result;
+  result.resize(indicesView.size());
+
+  bool hasNormals = normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasTangents = tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+
+  for (int64_t i = 0; i < indicesView.size(); ++i) {
+    Vertex& vertex = result[i];
+    size_t srcVertexIndex = static_cast<size_t>(indicesView[i]);
+    vertex.position = verticesView[srcVertexIndex];
+
+    if (hasNormals) {
+      vertex.normal = normAccessor[srcVertexIndex];
+      if (hasTangents) {
+        const glm::vec4& tangent = tangAccessor[srcVertexIndex];
+        vertex.tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
+        vertex.bitangent = tangent.w * glm::cross(vertex.normal, vertex.tangent);
+      }
+    } 
+
+    for (uint32_t j = 0; j < uvCount; ++j) {
+      vertex.uvs[j] = uvAccessors[j][srcVertexIndex];
+    }
+  }
+
+  return result;
+}
+
+static std::vector<uint32_t> createDummyIndices(uint32_t indicesCount) {
+  std::vector<uint32_t> indices;
+  indices.resize(indicesCount);
+  for (uint32_t i = 0; i < indicesCount; ++i) {
+    indices[i] = i;
+  }
+
+  return indices;
+}
+
+static std::vector<Vertex> createAndCopyVertices(
+    const CesiumGltf::AccessorView<glm::vec3>& verticesAccessor,
+    const CesiumGltf::AccessorView<glm::vec3>& normAccessor,
+    const CesiumGltf::AccessorView<glm::vec4>& tangAccessor,
+    const CesiumGltf::AccessorView<glm::vec2> uvAccessors[MAX_UV_COORDS],
+    uint32_t uvCount) {
+  assert(verticesAccessor.status() == CesiumGltf::AccessorViewStatus::Valid);
+
+  std::vector<Vertex> vertices;
+  vertices.resize(verticesAccessor.size());
+
+  bool hasNormals = normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasTangents = tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+
+  for (int64_t i = 0; i < verticesAccessor.size(); ++i) {
+    Vertex& vertex = vertices[i];
+    vertex.position = verticesAccessor[i];
+    
+    if (hasNormals) {
+      vertex.normal = normAccessor[i];
+      if (hasTangents) {
+        const glm::vec4& tangent = tangAccessor[i];
+        vertex.tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
+        vertex.bitangent = tangent.w * glm::cross(vertex.normal, vertex.tangent);
+      }
+    } 
+
+    for (uint32_t j = 0; j < uvCount; ++j) {
+      vertex.uvs[j] = uvAccessors[j][i];
+    }
+  }
+
+  return vertices;
+}
+
+template <typename TIndex>
+static void initVerticesAndIndices(
+    std::vector<Vertex>& vertices, 
+    std::vector<uint32_t>& indices, 
+    const CesiumGltf::AccessorView<glm::vec3>& verticesAccessor, 
+    const CesiumGltf::AccessorView<TIndex>& indicesAccessor, 
+    const CesiumGltf::AccessorView<glm::vec3>& normAccessor,
+    const CesiumGltf::AccessorView<glm::vec4>& tangAccessor,
+    const CesiumGltf::AccessorView<glm::vec2> uvAccessors[MAX_UV_COORDS],
+    uint32_t uvCount,
+    bool shouldDuplicateVertices) {
+  if (shouldDuplicateVertices) {
+    vertices = 
+        duplicateVertices(
+          verticesAccessor, 
+          indicesAccessor,
+          normAccessor,
+          tangAccessor,
+          uvAccessors,
+          uvCount);
+    indices = createDummyIndices(static_cast<uint32_t>(verticesAccessor.size()));
+  } else {
+    vertices = 
+        createAndCopyVertices(
+          verticesAccessor,
+          normAccessor,
+          tangAccessor,
+          uvAccessors,
+          uvCount);
+    copyIndices(indices, indicesAccessor);
   }
 }
 
@@ -172,25 +285,42 @@ Primitive::Primitive(
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   AttributeIterator posIt = primitive.attributes.find("POSITION");
-  AttributeIterator normIt = primitive.attributes.find("NORMAL");
-
-  bool duplicatedVertices = true;
-  
-  if (posIt == primitive.attributes.end() ||
-      normIt == primitive.attributes.end()) {
+  if (posIt == primitive.attributes.end()) {
     return;
   }
 
   CesiumGltf::AccessorView<glm::vec3> posView(model, posIt->second);
-  CesiumGltf::AccessorView<glm::vec3> normView(model, normIt->second);
-  size_t vertexCount = posView.size();
-  if (posView.status() != CesiumGltf::AccessorViewStatus::Valid ||
-      normView.status() != CesiumGltf::AccessorViewStatus::Valid ||
-      normView.size() != vertexCount) {
+  if (posView.status() != CesiumGltf::AccessorViewStatus::Valid) {
     return;
   }
+
+  size_t vertexCount = static_cast<size_t>(posView.size());
+
+  bool hasTangents = false;
+  bool hasNormals = false;
+  bool hasNormalMap = false;
+
+  AttributeIterator normIt = primitive.attributes.find("NORMAL");
+  CesiumGltf::AccessorView<glm::vec3> normView;
+  if (normIt != primitive.attributes.end()) {
+    normView = CesiumGltf::AccessorView<glm::vec3>(model, normIt->second);
+    if (normView.status() == CesiumGltf::AccessorViewStatus::Valid &&
+        static_cast<size_t>(normView.size()) >= vertexCount) {
+      hasNormals = true;
+    }
+  }
+
+  AttributeIterator tangIt = primitive.attributes.find("TANGENT");
+  CesiumGltf::AccessorView<glm::vec4> tangView;
+  if (tangIt != primitive.attributes.end()) {
+    tangView = CesiumGltf::AccessorView<glm::vec4>(model, tangIt->second);
+    if (tangView.status() == CesiumGltf::AccessorViewStatus::Valid &&
+        static_cast<size_t>(tangView.size()) >= vertexCount) {
+      hasTangents = true;
+    }
+  }
   
-  size_t uvCount = 0;
+  uint32_t uvCount = 0;
   std::array<AttributeIterator, MAX_UV_COORDS> uvIterators;
   for (size_t i = 0; i < MAX_UV_COORDS; ++i) {
     uvIterators[i] = 
@@ -203,56 +333,17 @@ Primitive::Primitive(
   }
 
   CesiumGltf::AccessorView<glm::vec2> uvViews[MAX_UV_COORDS];
-  for (size_t i = 0; i < uvCount; ++i) {
+  for (uint32_t i = 0; i < uvCount; ++i) {
     uvViews[i] = CesiumGltf::AccessorView<glm::vec2>(model, uvIterators[i]->second);
     if (uvViews[i].status() != CesiumGltf::AccessorViewStatus::Valid ||
-        uvViews[i].size() != vertexCount) {
+        static_cast<size_t>(uvViews[i].size()) < vertexCount) {
       return;
     }
   }
 
-  this->_vertices.resize(static_cast<size_t>(vertexCount));
-  for (size_t i = 0; i < this->_vertices.size(); ++i) {
-    Vertex& vertex = this->_vertices[i];
-    vertex.position = posView[i];
-    vertex.normal = normView[i];
-    for (size_t j = 0; j < uvCount; ++j) { 
-      vertex.uvs[j] = uvViews[j][i];
-    }
-  }
-
-  if (primitive.indices < 0 ||
-      primitive.indices >= model.accessors.size()) {
-    this->_indices.resize(this->_vertices.size());
-    for (uint32_t i = 0; i < this->_indices.size(); ++i) {
-      this->_indices[i] = i;
-    }
-  } else {
-    const CesiumGltf::Accessor& indexAccessorGltf = model.accessors[primitive.indices];
-    if (indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::BYTE) {
-      CesiumGltf::AccessorView<int8_t> indexAccessor(model, primitive.indices);
-      copyIndices(this->_indices, indexAccessor);
-    } else if (
-        indexAccessorGltf.componentType ==
-        CesiumGltf::Accessor::ComponentType::UNSIGNED_BYTE) {
-      CesiumGltf::AccessorView<uint8_t> indexAccessor(model, primitive.indices);
-      copyIndices(this->_indices, indexAccessor);
-    } else if (
-        indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::SHORT) {
-      CesiumGltf::AccessorView<int16_t> indexAccessor(model, primitive.indices);
-      copyIndices(this->_indices, indexAccessor);
-    } else if (
-        indexAccessorGltf.componentType ==
-        CesiumGltf::Accessor::ComponentType::UNSIGNED_SHORT) {
-      CesiumGltf::AccessorView<uint16_t> indexAccessor(model, primitive.indices);
-      copyIndices(this->_indices, indexAccessor);
-    } else if (
-        indexAccessorGltf.componentType ==
-        CesiumGltf::Accessor::ComponentType::UNSIGNED_INT) {
-      CesiumGltf::AccessorView<uint32_t> indexAccessor(model, primitive.indices);
-      copyIndices(this->_indices, indexAccessor);
-    }
-  }
+  // If the normal map exists, we might need its UV coordinates for tangent-space
+  // generation later.
+  uint32_t normalMapUvIndex = 0;
 
   std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>> textureMap;
   if (primitive.material >= 0 && primitive.material < model.materials.size()) {
@@ -277,9 +368,108 @@ Primitive::Primitive(
         textureMap, 
         this->_constants.normalMapTextureCoordinateIndex, 
         uvCount);
+
+    if (material.normalTexture) {
+      hasNormalMap = true;
+      normalMapUvIndex = this->_constants.normalMapTextureCoordinateIndex;
+    }
   }
 
   this->_textureSlots.fillEmptyWithDefaults();
+
+  bool needsTangents = hasNormalMap || hasTangents; // || alwaysWantTangents;
+  bool duplicateVertices = !hasNormals || (needsTangents && !hasTangents);
+
+  // Create and copy over the vertex and index buffers, duplicate vertices if necessary.
+  bool validIndices = primitive.indices >= 0 && primitive.indices < model.accessors.size();
+  if (validIndices) {
+    const CesiumGltf::Accessor& indexAccessorGltf = model.accessors[primitive.indices];
+    if (indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::BYTE) {
+      CesiumGltf::AccessorView<int8_t> indexAccessor(model, primitive.indices);
+      initVerticesAndIndices(
+          this->_vertices, 
+          this->_indices, 
+          posView, 
+          indexAccessor, 
+          normView,
+          tangView,
+          uvViews,
+          uvCount,
+          duplicateVertices);
+    } else if (
+        indexAccessorGltf.componentType ==
+        CesiumGltf::Accessor::ComponentType::UNSIGNED_BYTE) {
+      CesiumGltf::AccessorView<uint8_t> indexAccessor(model, primitive.indices);
+      initVerticesAndIndices(
+          this->_vertices, 
+          this->_indices, 
+          posView, 
+          indexAccessor, 
+          normView,
+          tangView,
+          uvViews,
+          uvCount,
+          duplicateVertices);
+    } else if (
+        indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::SHORT) {
+      CesiumGltf::AccessorView<int16_t> indexAccessor(model, primitive.indices);
+      initVerticesAndIndices(
+          this->_vertices, 
+          this->_indices, 
+          posView, 
+          indexAccessor, 
+          normView,
+          tangView,
+          uvViews,
+          uvCount,
+          duplicateVertices);
+    } else if (
+        indexAccessorGltf.componentType ==
+        CesiumGltf::Accessor::ComponentType::UNSIGNED_SHORT) {
+      CesiumGltf::AccessorView<uint16_t> indexAccessor(model, primitive.indices);
+      initVerticesAndIndices(
+          this->_vertices, 
+          this->_indices, 
+          posView, 
+          indexAccessor, 
+          normView,
+          tangView,
+          uvViews,
+          uvCount,
+          duplicateVertices);
+    } else if (
+        indexAccessorGltf.componentType ==
+        CesiumGltf::Accessor::ComponentType::UNSIGNED_INT) {
+      CesiumGltf::AccessorView<uint32_t> indexAccessor(model, primitive.indices);
+      initVerticesAndIndices(
+          this->_vertices, 
+          this->_indices, 
+          posView, 
+          indexAccessor, 
+          normView,
+          tangView,
+          uvViews,
+          uvCount,
+          duplicateVertices);
+    } else {
+      validIndices = false;
+    }
+  }
+
+  // Assume the vertex buffer is a regular triangle mesh if the 
+  // index buffer is invalid.
+  if (!validIndices) {
+    this->_vertices = createAndCopyVertices(posView, normView, tangView, uvViews, uvCount);
+    this->_indices = createDummyIndices(static_cast<uint32_t>(vertexCount));
+  }
+
+  if (!hasNormals) {
+    GeometryUtilities::computeFlatNormals(this->_vertices);
+  }
+
+  if (!hasTangents && needsTangents) {
+    GeometryUtilities::computeTangentSpace(this->_vertices, normalMapUvIndex);
+  }
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 

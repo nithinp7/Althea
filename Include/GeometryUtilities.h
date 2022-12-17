@@ -4,24 +4,21 @@
 #include <glm/glm.hpp>
 
 #include "mikktspace.h"
+#include <vector>
+#include <cstdint>
 
 namespace AltheaEngine {
 
+namespace {
+template<typename TVertex>
+struct VerticesAndUvIndex {
+  std::vector<TVertex>* vertices;
+  uint32_t uvIndex;
+};
+} // namespace
+
 class GeometryUtilities {
 public:
-  template <typename TVertexIn, typename TVertexOut, typename TVertexConverter, typename TIndex>
-  static std::vector<TVertexOut> duplicateVertices(
-      const std::vector<TVertexIn>& originalVertices, const std::vector<TIndex>& indices, TVertexConverter converter) {
-    std::vector<TVertex> result;
-    result.resize(indices.size());
-
-    for (size_t i = 0; i < indices.size(); ++i) {
-      result[i] = converter(originalVertices[static_cast<size_t>(indices[i])]);
-    }
-
-    return result;
-  }
-
   /**
    * @brief Fill in normals for these vertices. Assumes a non-indexed, triangle
    * mesh.
@@ -50,7 +47,7 @@ public:
 
   // TODO: abstract the Vertex interface instead of using a templated type here
   template<typename TVertex>
-  static void computeTangentSpace(std::vector<TVertex>& vertices) {
+  static void computeTangentSpace(std::vector<TVertex>& vertices, uint32_t uvIndex) {
     SMikkTSpaceInterface MikkTInterface{};
     MikkTInterface.m_getNormal = _mikkGetNormal<TVertex>;
     MikkTInterface.m_getNumFaces = _mikkGetNumFaces<TVertex>;
@@ -60,9 +57,14 @@ public:
     MikkTInterface.m_setTSpaceBasic = _mikkSetTSpaceBasic<TVertex>;
     MikkTInterface.m_setTSpace = nullptr;
 
+    VerticesAndUvIndex<TVertex> vertsAndUvIndex {
+      &vertices,
+      uvIndex
+    };
+
     SMikkTSpaceContext MikkTContext{};
     MikkTContext.m_pInterface = &MikkTInterface;
-    MikkTContext.m_pUserData = (void*)(&vertices);
+    MikkTContext.m_pUserData = (void*)(&vertsAndUvIndex);
     // MikkTContext.m_bIgnoreDegenerates = false;
     genTangSpaceDefault(&MikkTContext);
   }
@@ -72,15 +74,15 @@ private:
   template<typename TVertex>
   static int _mikkGetNumFaces(const SMikkTSpaceContext* Context) {
     std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
-    vertices.size() / 3;
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData)->vertices;
+    return static_cast<int>(vertices.size()) / 3;
   }
   
   template<typename TVertex>
   static int
   _mikkGetNumVertsOfFace(const SMikkTSpaceContext* Context, const int FaceIdx) {
     std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData)->vertices;
     return FaceIdx < (vertices.size() / 3) ? 3 : 0;
   }
   
@@ -91,7 +93,7 @@ private:
       const int FaceIdx,
       const int VertIdx) {
     std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData)->vertices;
     const glm::vec3& position = vertices[3 * FaceIdx + VertIdx].position;
     Position[0] = position.x;
     Position[1] = position.y;
@@ -105,7 +107,7 @@ private:
       const int FaceIdx,
       const int VertIdx) {
     std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData)->vertices;
     const glm::vec3& normal = vertices[3 * FaceIdx + VertIdx].normal;
     Normal[0] = normal.x;
     Normal[1] = normal.y;
@@ -118,9 +120,11 @@ private:
       float UV[2],
       const int FaceIdx,
       const int VertIdx) {
-    std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
-    const glm::vec2& uv0 = vertices[3 * FaceIdx + VertIdx].uvs[0];
+    VerticesAndUvIndex<TVertex>& vertsAndUvIndex = 
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData);
+    std::vector<TVertex>& vertices = *vertsAndUvIndex.vertices;
+
+    const glm::vec2& uv0 = vertices[3 * FaceIdx + VertIdx].uvs[vertsAndUvIndex.uvIndex];
     UV[0] = uv0.x;
     UV[1] = uv0.y;
   }
@@ -134,7 +138,7 @@ private:
       const int VertIdx) {
     
     std::vector<TVertex>& vertices = 
-        *reinterpret_cast<std::vector<TVertex>*>(Context->m_pUserData);
+        *reinterpret_cast<VerticesAndUvIndex<TVertex>*>(Context->m_pUserData)->vertices;
     TVertex& vertex = vertices[3 * FaceIdx + VertIdx];
     vertex.tangent.x = Tangent[0];
     vertex.tangent.y = Tangent[1];

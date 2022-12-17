@@ -88,19 +88,20 @@ find_package(Vulkan REQUIRED FATAL_ERROR) # error
 add_subdirectory(Extern/glm)
 add_subdirectory(Extern/glfw)
 
+add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
+set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
+
 target_include_directories (${PROJECT_NAME}
     PUBLIC
       ${Vulkan_INCLUDE_DIRS}
       ${GLFW_INCLUDE_DIRS}
       Extern/glm
-      Extern/stb)
-
-add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
-set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
-target_include_directories(MikkTSpace PUBLIC MikkTSpace)
+      Extern/stb
+      Extern/MikkTSpace)
 
 target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
 target_link_libraries (${PROJECT_NAME} glfw)
+target_link_libraries (${PROJECT_NAME} MikkTSpace)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     set(CESIUM_ARCHITECTURE "aarch64")
