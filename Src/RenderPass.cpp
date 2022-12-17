@@ -81,7 +81,6 @@ RenderPass::RenderPass(
   viewportState.pScissors = &scissor;
 
   // FIXED FUNCTION STAGES
-  // TODO: currently hardcoded to _no_ vertex input, abstract vertex input
   VkVertexInputBindingDescription bindingDescriptions = 
       Vertex::getBindingDescription();
   auto attributeDescriptions = 

@@ -93,8 +93,11 @@ target_include_directories (${PROJECT_NAME}
       ${Vulkan_INCLUDE_DIRS}
       ${GLFW_INCLUDE_DIRS}
       Extern/glm
-      Extern/stb
-)
+      Extern/stb)
+
+add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
+set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
+target_include_directories(MikkTSpace PUBLIC MikkTSpace)
 
 target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
 target_link_libraries (${PROJECT_NAME} glfw)

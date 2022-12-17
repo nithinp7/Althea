@@ -168,9 +168,8 @@ Model::Model(
     return;
   }
 
-  // Not really movable
   this->_model = std::move(*result.model);
-  this->_model.generateMissingNormalsSmooth();
+  // this->_model.generateMissingNormalsSmooth();
 
   glm::mat4 transform(1.0f);
 

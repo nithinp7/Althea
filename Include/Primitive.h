@@ -26,16 +26,18 @@ class Application;
 
 struct Vertex {
   glm::vec3 position{};
+  glm::vec3 tangent{};
+  glm::vec3 bitangent{};
   glm::vec3 normal{};
   glm::vec2 uvs[MAX_UV_COORDS]{};
 
   static VkVertexInputBindingDescription getBindingDescription();
-  static std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+  static std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
       getAttributeDescriptions();
 };
 
 struct PrimitiveConstants {
-  glm::vec4 debugColor = glm::vec4(0.5f, 0.0f, 0.5f, 1.0f);
+  glm::vec4 debugColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
 };

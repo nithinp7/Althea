@@ -10,3 +10,6 @@
 [submodule "Extern/cesium-native"]
 	path = Extern/cesium-native
 	url = https://github.com/CesiumGS/cesium-native
+[submodule "Extern/MikkTSpace"]
+	path = Extern/MikkTSpace
+	url = git@github.com:mmikk/MikkTSpace.git

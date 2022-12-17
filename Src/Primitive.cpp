@@ -60,26 +60,36 @@ VkVertexInputBindingDescription Vertex::getBindingDescription() {
 }
 
 /*static*/
-std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
     Vertex::getAttributeDescriptions() {
-  std::array<VkVertexInputAttributeDescription, 2 + MAX_UV_COORDS> 
+  std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
       attributeDescriptions;
   
   attributeDescriptions[0].binding = 0;
   attributeDescriptions[0].location = 0;
   attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
   attributeDescriptions[0].offset = offsetof(Vertex, position);
-  
+
   attributeDescriptions[1].binding = 0;
   attributeDescriptions[1].location = 1;
   attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[1].offset = offsetof(Vertex, normal);
+  attributeDescriptions[1].offset = offsetof(Vertex, tangent);
   
-  for (size_t i = 0; i < MAX_UV_COORDS; ++i) {
-    attributeDescriptions[2 + i].binding = 0;
-    attributeDescriptions[2 + i].location = 2 + i;
-    attributeDescriptions[2 + i].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2 + i].offset = offsetof(Vertex, uvs[i]);
+  attributeDescriptions[2].binding = 0;
+  attributeDescriptions[2].location = 2;
+  attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+  attributeDescriptions[2].offset = offsetof(Vertex, bitangent);
+  
+  attributeDescriptions[3].binding = 0;
+  attributeDescriptions[3].location = 3;
+  attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+  attributeDescriptions[3].offset = offsetof(Vertex, normal);
+  
+  for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
+    attributeDescriptions[4 + i].binding = 0;
+    attributeDescriptions[4 + i].location = 4 + i;
+    attributeDescriptions[4 + i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[4 + i].offset = offsetof(Vertex, uvs[i]);
   }
 
   return attributeDescriptions;
@@ -163,6 +173,8 @@ Primitive::Primitive(
 
   AttributeIterator posIt = primitive.attributes.find("POSITION");
   AttributeIterator normIt = primitive.attributes.find("NORMAL");
+
+  bool duplicatedVertices = true;
   
   if (posIt == primitive.attributes.end() ||
       normIt == primitive.attributes.end()) {

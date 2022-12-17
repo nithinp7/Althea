@@ -11,6 +11,8 @@ layout(binding = 2) uniform sampler2D baseColorTexture;
 layout(binding = 3) uniform sampler2D normalMapTexture;
 
 void main() {
+  // TODO: need TBN
+  vec3 tangntSpaceNormal = 2.0 * texture(normalMapTexture, normalMapUV).rgb - 1.0;
   outColor = texture(baseColorTexture, baseColorUV);
-  outColor = debugColor;
+  // outColor = debugColor;
 }
