@@ -12,15 +12,15 @@ layout(binding = 2) uniform sampler2D baseColorTexture;
 layout(binding = 3) uniform sampler2D normalMapTexture;
 
 void main() {
-  vec3 lightDir = vec3(1.0, 1.0, 1.0);
+  vec3 lightDir = -vec3(1.0, -1.0, 5.0);
 
-  // TODO: need TBN
-  // vec3 tangentSpaceNormal = 2.0 * texture(normalMapTexture, normalMapUV).rgb - 1.0;
-  // vec3 normal = fragTBN * tangentSpaceNormal;
+  vec3 tangentSpaceNormal = 2.0 * texture(normalMapTexture, normalMapUV).rgb - 1.0;
+  vec3 normal = fragTBN * tangentSpaceNormal;
 
-  // float intensity = max(0, dot(lightDir, tangentSpaceNormal));//normal));
+  float intensity = max(0, dot(lightDir, normal));
 
-  // outColor = intensity * texture(baseColorTexture, baseColorUV);
-  outColor = texture(normalMapTexture, normalMapUV);
+  outColor = intensity * texture(baseColorTexture, baseColorUV);
+  //outColor = vec4(abs(normal.xyz), 1.0);
+  // outColor = vec4(normalize(normal.xyz) * 0.5 + 0.5, 1.0);//texture(normalMapTexture, normalMapUV);
   // outColor = debugColor;
 }

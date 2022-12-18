@@ -31,5 +31,5 @@ void main() {
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];
   debugColor = constants.testColor;
-  vertTbn = mat3(ubo.model) * vertTbn;
+  vertTbn = mat3(ubo.model) * tbn;
 }
