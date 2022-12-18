@@ -13,7 +13,6 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <chrono>
 
 namespace AltheaEngine {
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
@@ -62,6 +61,7 @@ void Application::initVulkan() {
 }
 
 void Application::mainLoop() {
+  this->startTime = this->lastFrameTime = std::chrono::high_resolution_clock::now();
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     drawFrame();
@@ -91,10 +91,11 @@ void Application::drawFrame() {
     throw std::runtime_error("Failed to acquire swap chain image!");
   }
   
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
   auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->startTime).count();
+  float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->lastFrameTime).count();
+  this->lastFrameTime = currentTime;
+
   float angle = time * glm::radians(90.0f);
   float distance = 20.0f;
   glm::vec3 eye(0.0f, 0.0f, -distance);

@@ -1,0 +1,23 @@
+
+Short-term goals / logistics:
+-Camera system with basic movement
+-Implement input system around glfw
+-Basic skybox 
+-Simple scene graph / ECS system.
+-decouple engine code from "application code"
+-A default world-space grid (different shader model etc)
+-clang format
+-Update Cesium Native when this becomes stable again
+
+Long-term
+-Put together more concrete readme with roadmap
+-Revisit RenderPass code, is it properly decoupled from Primitives? 
+-Deferred rendering setup?
+-Shader hot-reloading
+-Basic Imgui elements
+-Better Vulkan memory management (external lib?)
+-3D Tiles support
+-Multithreaded rendering / job system
+-More elegant shader compilation, allow conditional compilation, cached variant generation etc.
+-Menu system for loading / unloading models, adjusting settings etc
+-"user application" code hot-reloading??
