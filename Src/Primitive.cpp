@@ -256,7 +256,7 @@ static void initVerticesAndIndices(
           tangAccessor,
           uvAccessors,
           uvCount);
-    indices = createDummyIndices(static_cast<uint32_t>(verticesAccessor.size()));
+    indices = createDummyIndices(static_cast<uint32_t>(indicesAccessor.size()));
   } else {
     vertices = 
         createAndCopyVertices(
