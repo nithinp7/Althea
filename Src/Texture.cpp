@@ -119,7 +119,7 @@ void Texture::_initTexture(
       this->_textureImageMemory);
 
   this->_textureImageView = 
-      app.createImageView(this->_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+      app.createImageView(this->_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 Texture::Texture(Texture&& rhs) 

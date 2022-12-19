@@ -58,6 +58,7 @@ private:
   VkDevice _device;
 
   glm::mat4 _relativeTransform;
+  bool _flipFrontFace = false;
 
   std::vector<Vertex> _vertices;
   std::vector<uint32_t> _indices;

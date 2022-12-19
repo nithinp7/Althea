@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
 namespace AltheaEngine {
@@ -6,19 +7,22 @@ Camera::Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPl
     _transform(1.0f),
     _projection(
       glm::perspective(glm::radians(fovDegrees), aspectRatio, nearPlane, farPlane))
-    {}
+    {
+  // Convert from OpenGL to Vulkan screen-Y convention.
+  this->_projection[1][1] *= -1.0f;
+}
 
 void Camera::tick(float deltaTime) {}
 
 void Camera::setPosition(const glm::vec3& position) {
-  this->_transform[3] = position;
+  this->_transform[3] = glm::vec4(position, 1.0f);
 }
 
 void Camera::setRotation(float yawDegrees, float pitchDegrees) {
   pitchDegrees = glm::clamp(pitchDegrees, -89.0f, 89.0f);
-  glm::mat4 R = 
-      glm::rotate(glm::radians(yawDegrees), glm::vec3(0.0f, 1.0f, 0.0f)) *
-      glm::rotate(glm::radians(pitchDegrees), glm::vec3(1.0f, 0.0f, 0.0f));
+  glm::mat4 R(1.0f);
+  R = glm::rotate(R, glm::radians(yawDegrees), glm::vec3(0.0f, 1.0f, 0.0f));
+  R = glm::rotate(R, glm::radians(pitchDegrees), glm::vec3(1.0f, 0.0f, 0.0f));
   
   // Update only the rotation columns of the transform.
   this->_transform[0] = R[0];

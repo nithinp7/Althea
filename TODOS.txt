@@ -3,8 +3,11 @@ Short-term goals / logistics:
 -Camera system with basic movement
 -Implement input system around glfw
 -Basic skybox 
+-Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.
 -decouple engine code from "application code"
+-Mip-maps
+-Abstract descriptor set management (reference vkguide)
 -A default world-space grid (different shader model etc)
 -clang format
 -Update Cesium Native when this becomes stable again

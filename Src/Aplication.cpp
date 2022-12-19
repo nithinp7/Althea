@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "RenderPass.h"
 #include "DefaultTextures.h"
+#include "Camera.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -9,8 +10,6 @@
 #include <algorithm>
 #include <set>
 
-// TODO: define this in cmake
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -54,6 +53,7 @@ void Application::initVulkan() {
   createSwapChain();
   createImageViews();
   createCommandPool();
+  createDepthResource();
   createGraphicsPipeline();
   createFramebuffers();
   createCommandBuffers();
@@ -96,24 +96,26 @@ void Application::drawFrame() {
   float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->lastFrameTime).count();
   this->lastFrameTime = currentTime;
 
-  float angle = time * glm::radians(90.0f);
-  float distance = 20.0f;
-  glm::vec3 eye(0.0f, 0.0f, -distance);
-  glm::vec3 lookTarget(distance * glm::cos(angle), 0.0f, distance * glm::sin(angle));
-  glm::mat4 view = 
-      glm::lookAt(
-        eye, 
-        lookTarget, 
-        glm::vec3(0.0f, 1.0f, 0.0f));
-  glm::mat4 projection =
-      glm::perspective(
-        glm::radians(60.0f), 
-        (float) swapChainExtent.width / (float) swapChainExtent.height, 
-        0.1f, 
-        100.0f);
-  projection[1][1] *= -1.0f;
+  static Camera camera(
+      90.0f, 
+      (float) swapChainExtent.width / (float) swapChainExtent.height,
+      0.1f,
+      1000.0f);
 
-  pDefaultRenderPass->updateUniforms(view, projection, currentFrame);
+  float angle = time * 45.0f;
+  float angleRad = glm::radians(angle);
+  float cosAngle = cos(angleRad);
+  float sinAngle = sin(angleRad);
+
+  float distance = 7.0f;
+
+  camera.setPosition(glm::vec3(distance * cosAngle, 5.0f, -distance * sinAngle));
+  camera.setRotation(90.0f + angle, 0.0f);
+
+  pDefaultRenderPass->updateUniforms(
+      camera.computeView(), 
+      camera.getProjection(), 
+      currentFrame);
 
   vkResetFences(device, 1, &inFlightFence);
 
@@ -343,6 +345,8 @@ bool Application::checkDeviceExtensionSupport(const VkPhysicalDevice& device) co
     requiredExtensions.erase(extension.extensionName);
   }
 
+  assert(requiredExtensions.empty());
+
   return requiredExtensions.empty();
 }
 
@@ -364,7 +368,11 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
+  VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicStateFeatures{};
+  extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+
   deviceFeatures.pNext = &inlineBlockFeatures;
+  inlineBlockFeatures.pNext = &extendedDynamicStateFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -376,7 +384,8 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
     deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
     deviceFeatures.features.geometryShader &&
     deviceFeatures.features.samplerAnisotropy &&
-    inlineBlockFeatures.inlineUniformBlock; // && inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
+    inlineBlockFeatures.inlineUniformBlock &&
+    extendedDynamicStateFeatures.extendedDynamicState2; // && inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -587,6 +596,10 @@ void Application::cleanupSwapChain() {
     vkDestroyImageView(device, imageView, nullptr);
   }
 
+  vkDestroyImage(device, depthImage, nullptr);
+  vkDestroyImageView(device, depthImageView, nullptr);
+  vkFreeMemory(device, depthImageMemory, nullptr);
+
   vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
@@ -604,6 +617,7 @@ void Application::recreateSwapChain() {
   cleanupSwapChain();
 
   createSwapChain();
+  createDepthResource();
   createImageViews();
   createGraphicsPipeline();
   createFramebuffers();
@@ -613,9 +627,56 @@ void Application::createImageViews() {
   swapChainImageViews.resize(swapChainImages.size());
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
     swapChainImageViews[i] = 
-        createImageView(swapChainImages[i], swapChainImageFormat);
+        createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
+
+VkFormat Application::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+  for (VkFormat format : candidates) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &properties);
+
+    if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+
+  throw std::runtime_error("Failed to find supported format!");
+}
+
+VkFormat Application::findDepthFormat() {
+  return findSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
+bool Application::hasStencilComponent() const {
+    return depthImageFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || depthImageFormat == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+void Application::createDepthResource() {
+  depthImageFormat = findDepthFormat();
+  createImage(
+      swapChainExtent.width, 
+      swapChainExtent.height, 
+      depthImageFormat, 
+      VK_IMAGE_TILING_OPTIMAL, 
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+      depthImage, 
+      depthImageMemory);
+  depthImageView = 
+      createImageView(depthImage, depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+  transitionImageLayout(
+      depthImage, 
+      depthImageFormat, 
+      VK_IMAGE_LAYOUT_UNDEFINED, 
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
 
 void Application::createGraphicsPipeline() {  
   initDefaultTextures(*this);
@@ -632,7 +693,8 @@ void Application::createFramebuffers() {
 
   for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
     VkImageView attachments[] {
-        swapChainImageViews[i]
+        swapChainImageViews[i],
+        depthImageView
     };
 
     VkFramebufferCreateInfo framebufferInfo{};
@@ -640,7 +702,7 @@ void Application::createFramebuffers() {
     framebufferInfo.renderPass = 
         pDefaultRenderPass->getVulkanRenderPass();
     // TODO: should really be pulled from the render pass
-    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.attachmentCount = 2;
     framebufferInfo.pAttachments = attachments;
     framebufferInfo.width = swapChainExtent.width;
     framebufferInfo.height = swapChainExtent.height;
@@ -713,7 +775,7 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
       swapChainFramebuffers[imageIndex], 
       swapChainExtent,
       currentFrame);
-  
+
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");
   }

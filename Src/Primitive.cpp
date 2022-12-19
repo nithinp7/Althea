@@ -15,9 +15,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <string>
 
-// TODO: do this in cmake
-#define GLM_FORCE_RADIANS
-
 namespace AltheaEngine {
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
@@ -280,7 +277,8 @@ Primitive::Primitive(
     const CesiumGltf::MeshPrimitive& primitive,
     const glm::mat4& nodeTransform) 
   : _device(app.getDevice()),
-    _relativeTransform(nodeTransform) {
+    _relativeTransform(nodeTransform),
+    _flipFrontFace(glm::determinant(nodeTransform) < 0.0f) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
@@ -607,6 +605,7 @@ void Primitive::render(
     const VkPipelineLayout& pipelineLayout, 
     uint32_t currentFrame) const {
   VkDeviceSize offset = 0;
+  vkCmdSetFrontFace(commandBuffer, this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE);
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
   vkCmdBindIndexBuffer(commandBuffer, this->_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdBindDescriptorSets(

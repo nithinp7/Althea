@@ -36,7 +36,8 @@ private:
   };
 
   const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME
   };
 
 #ifdef NDEBUG
@@ -59,8 +60,15 @@ private:
 
   VkSwapchainKHR swapChain;
   std::vector<VkImage> swapChainImages;
+  std::vector<VkImageView> swapChainImageViews;
+  std::vector<VkFramebuffer> swapChainFramebuffers;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
+
+  VkImage depthImage;
+  VkDeviceMemory depthImageMemory;
+  VkImageView depthImageView;
+  VkFormat depthImageFormat;
 
   VkCommandPool commandPool;
 
@@ -77,9 +85,6 @@ private:
   RenderPassManager* pRenderPassManager;
   const RenderPass* pDefaultRenderPass;
 
-  // TODO: group imageView and frameBuffer into a class
-  std::vector<VkImageView> swapChainImageViews;
-  std::vector<VkFramebuffer> swapChainFramebuffers;
 
   void initWindow();
   void initVulkan();
@@ -113,9 +118,13 @@ private:
   VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
   VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
+  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+  VkFormat findDepthFormat();
+
   void createSwapChain();
   void cleanupSwapChain();
   void recreateSwapChain();
+  void createDepthResource();
   void createImageViews();
   void createGraphicsPipeline();
   void createFramebuffers();
@@ -150,6 +159,12 @@ public:
   const VkFormat& getSwapChainImageFormat() const {
     return swapChainImageFormat;
   } 
+  
+  const VkFormat& getDepthImageFormat() const {
+    return depthImageFormat;
+  } 
+
+  bool hasStencilComponent() const;
 
   const ConfigParser& getConfigParser() const {
     return configParser;
@@ -212,7 +227,8 @@ public:
       VkDeviceMemory& imageMemory) const;
   VkImageView createImageView(
       VkImage image,
-      VkFormat format) const;
+      VkFormat format,
+      VkImageAspectFlags aspectFlags) const;
   void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 };

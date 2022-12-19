@@ -19,8 +19,5 @@ void main() {
 
   float intensity = max(0, dot(lightDir, normal));
 
-  outColor = intensity * texture(baseColorTexture, baseColorUV);
-  //outColor = vec4(abs(normal.xyz), 1.0);
-  // outColor = vec4(normalize(normal.xyz) * 0.5 + 0.5, 1.0);//texture(normalMapTexture, normalMapUV);
-  // outColor = debugColor;
+  outColor = vec4(intensity * texture(baseColorTexture, baseColorUV).rgb, 1.0);
 }
