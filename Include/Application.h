@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ConfigParser.h"
+#include "InputManager.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -85,6 +86,7 @@ private:
   RenderPassManager* pRenderPassManager;
   const RenderPass* pDefaultRenderPass;
 
+  InputManager* pInputManager;
 
   void initWindow();
   void initVulkan();
@@ -168,6 +170,10 @@ public:
 
   const ConfigParser& getConfigParser() const {
     return configParser;
+  }
+
+  InputManager& getInputManager() {
+    return *pInputManager;
   }
 
   uint32_t getMaxFramesInFlight() const {

@@ -42,6 +42,9 @@ void Application::initWindow() {
 
   window = glfwCreateWindow(WIDTH, HEIGHT, "Althea Renderer", nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
+
+  pInputManager = new InputManager(window);
+
   glfwSetFramebufferSizeCallback(window, frameBufferResizeCallback);
 }
 
@@ -177,6 +180,9 @@ void Application::cleanup() {
   vkDestroySurfaceKHR(instance, surface, nullptr);
   vkDestroyInstance(instance, nullptr);
 
+  delete pInputManager;
+  pInputManager = nullptr;
+  
   glfwDestroyWindow(window);
   glfwTerminate();
 }
