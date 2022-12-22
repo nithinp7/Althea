@@ -3,4 +3,4 @@ SHADER_PIPELINES
 default BasicGltf.vert BasicGltf.frag
 
 MODELS_LIST
-default AntiqueCamera.glb
+default Sponza.gltf

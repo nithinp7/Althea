@@ -4,6 +4,7 @@ Short-term goals / logistics:
 -Implement input system around glfw
 -Mouse controls
 -Velocity-based, feedback controller for smooth input reaction
+-Use Press / Release instead of Repeat for key input
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.
