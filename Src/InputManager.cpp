@@ -16,4 +16,12 @@ void InputManager::_processKey(int key, int action, int mods) {
     (bindingIt->second)();
   }
 }
+
+bool InputManager::addBinding(const KeyBinding& binding, std::function<void()>&& callback) {
+  return this->_bindings.insert(std::make_pair(binding, std::move(callback))).second;  
+}
+
+bool InputManager::removeBinding(const KeyBinding& binding) {
+  return !!this->_bindings.erase(binding);
+}
 } // namespace AltheaEngine

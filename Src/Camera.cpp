@@ -12,8 +12,6 @@ Camera::Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPl
   this->_projection[1][1] *= -1.0f;
 }
 
-void Camera::tick(float deltaTime) {}
-
 void Camera::setPosition(const glm::vec3& position) {
   this->_transform[3] = glm::vec4(position, 1.0f);
 }

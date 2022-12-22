@@ -2,6 +2,8 @@
 Short-term goals / logistics:
 -Camera system with basic movement
 -Implement input system around glfw
+-Mouse controls
+-Velocity-based, feedback controller for smooth input reaction
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.
@@ -11,9 +13,13 @@ Short-term goals / logistics:
 -A default world-space grid (different shader model etc)
 -clang format
 -Update Cesium Native when this becomes stable again
+-Fix CMake build rules for directories (copying resources to build folder)
 
 Long-term
+-Integrate unit test framework / write unit tests
 -Put together more concrete readme with roadmap
+-More thorough documentation.
+-Organize code into subfolders
 -Revisit RenderPass code, is it properly decoupled from Primitives? 
 -Deferred rendering setup?
 -Shader hot-reloading

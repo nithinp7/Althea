@@ -6,9 +6,6 @@ namespace AltheaEngine {
 class Camera {
 public:
   Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPlane);
-
-  void tick(float deltaTime);
-
   void setPosition(const glm::vec3& position);
   void setRotation(float yawDegrees, float pitchDegrees);
 

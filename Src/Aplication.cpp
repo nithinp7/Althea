@@ -2,7 +2,6 @@
 #include "Application.h"
 #include "RenderPass.h"
 #include "DefaultTextures.h"
-#include "Camera.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -44,6 +43,12 @@ void Application::initWindow() {
   glfwSetWindowUserPointer(window, this);
 
   pInputManager = new InputManager(window);
+
+  pCameraController = 
+      std::make_unique<CameraController>(
+        *pInputManager, 
+        90.0f, 
+        (float)swapChainExtent.width/(float)swapChainExtent.height);
 
   glfwSetFramebufferSizeCallback(window, frameBufferResizeCallback);
 }
@@ -94,26 +99,14 @@ void Application::drawFrame() {
     throw std::runtime_error("Failed to acquire swap chain image!");
   }
   
+  // TODO: compute time with GLFW instead of std::chrono
   auto currentTime = std::chrono::high_resolution_clock::now();
   float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->startTime).count();
   float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->lastFrameTime).count();
   this->lastFrameTime = currentTime;
 
-  static Camera camera(
-      90.0f, 
-      (float) swapChainExtent.width / (float) swapChainExtent.height,
-      0.1f,
-      1000.0f);
-
-  float angle = time * 45.0f;
-  float angleRad = glm::radians(angle);
-  float cosAngle = cos(angleRad);
-  float sinAngle = sin(angleRad);
-
-  float distance = 7.0f;
-
-  camera.setPosition(glm::vec3(distance * cosAngle, 5.0f, -distance * sinAngle));
-  camera.setRotation(90.0f + angle, 0.0f);
+  pCameraController->tick(deltaTime);
+  const Camera& camera = pCameraController->getCamera();
 
   pDefaultRenderPass->updateUniforms(
       camera.computeView(), 

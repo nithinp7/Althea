@@ -2,6 +2,7 @@
 
 #include "ConfigParser.h"
 #include "InputManager.h"
+#include "CameraController.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -11,6 +12,8 @@
 #include <vector> 
 #include <optional>
 #include <chrono>
+
+#include <memory>
 
 namespace AltheaEngine {
 class RenderPassManager;
@@ -87,6 +90,8 @@ private:
   const RenderPass* pDefaultRenderPass;
 
   InputManager* pInputManager;
+  
+  std::unique_ptr<CameraController> pCameraController;
 
   void initWindow();
   void initVulkan();
