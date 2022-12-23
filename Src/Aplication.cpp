@@ -43,6 +43,11 @@ void Application::initWindow() {
   glfwSetWindowUserPointer(window, this);
 
   pInputManager = new InputManager(window);
+  pInputManager->addKeyBinding(
+      {GLFW_KEY_ESCAPE, GLFW_PRESS, 0}, 
+      std::bind([](Application* app) {
+        app->shouldClose = true;
+      }, this));
 
   pCameraController = 
       std::make_unique<CameraController>(
@@ -70,7 +75,7 @@ void Application::initVulkan() {
 
 void Application::mainLoop() {
   this->startTime = this->lastFrameTime = std::chrono::high_resolution_clock::now();
-  while (!glfwWindowShouldClose(window)) {
+  while (!glfwWindowShouldClose(window) && !shouldClose) {
     glfwPollEvents();
     drawFrame();
   }

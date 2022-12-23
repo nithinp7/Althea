@@ -13,6 +13,8 @@ public:
     return this->_transform;
   }
 
+  float computeYawDegrees() const;
+  float computePitchDegrees() const;
   glm::mat4 computeView() const;
 
   const glm::mat4& getProjection() const {

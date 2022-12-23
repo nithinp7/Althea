@@ -103,6 +103,7 @@ target_include_directories (${PROJECT_NAME}
 target_compile_definitions(
     ${PROJECT_NAME}
     PUBLIC
+        GLM_FORCE_DEPTH_ZERO_TO_ONE # Don't use OpenGL conventions for depth projections
         GLM_FORCE_RADIANS
         GLM_FORCE_XYZW_ONLY # Disable .rgba and .stpq to make it easier to view values from debugger
         GLM_FORCE_EXPLICIT_CTOR # Disallow implicit conversions between dvec3 <-> dvec4, dvec3 <-> fvec3, etc

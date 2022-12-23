@@ -19,7 +19,7 @@ public:
 
 private:
   // Mouse updates, using normalized screen coordinates.
-  void _updateMouse(float x, float y);
+  void _updateMouse(double x, double y, bool cursorHidden);
 
   void _updateTargetDirection(uint32_t axis, int dir);
 
@@ -32,6 +32,23 @@ private:
   // a consistent overall magnitude.
   glm::vec3 _targetDirection{};
   float _targetSpeed = 5.0f;
+
+  // We manually track the camera yaw so we can track winding.
+  // This lets us unambiguously know the direction we should rotate the 
+  // camera during large mouse movements (larger than 180 degrees before the 
+  // feedback controller can catch up).
+  float _yaw = 0.0f;
+
+  // The amount of time it takes for the orientation to converge to
+  // the desired orientation.
+  float _orientationSettleTime = 0.5f;
+  float _pitchRate = 0.0f;
+  float _yawRate = 0.0f;
+  float _targetPitch = 0.0f;
+  float _targetYaw = 0.0f;
+
+  float _yawMultiplier = 0.5f;//0.25f;
+  float _pitchMultiplier = 1.0f;//0.25f;
 
   Camera _camera;
 };

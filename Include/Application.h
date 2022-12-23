@@ -90,6 +90,7 @@ private:
   const RenderPass* pDefaultRenderPass;
 
   InputManager* pInputManager;
+  bool shouldClose = false;
   
   std::unique_ptr<CameraController> pCameraController;
 
