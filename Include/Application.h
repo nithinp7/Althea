@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <vector> 
 #include <optional>
-#include <chrono>
 
 #include <memory>
 
@@ -32,8 +31,9 @@ private:
 
   const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-  std::chrono::steady_clock::time_point startTime;
-  std::chrono::steady_clock::time_point lastFrameTime;
+  bool syncFramerate = true;
+
+  double lastFrameTime = 0.0f;
 
   const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"

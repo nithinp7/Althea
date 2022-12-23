@@ -5,6 +5,8 @@ Short-term goals / logistics:
 -Mouse controls
 -Velocity-based, feedback controller for smooth input reaction
 -Use Press / Release instead of Repeat for key input
+-Cap framerate with vsync
+
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.

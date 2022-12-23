@@ -74,7 +74,7 @@ void Application::initVulkan() {
 }
 
 void Application::mainLoop() {
-  this->startTime = this->lastFrameTime = std::chrono::high_resolution_clock::now();
+  this->lastFrameTime = glfwGetTime();
   while (!glfwWindowShouldClose(window) && !shouldClose) {
     glfwPollEvents();
     drawFrame();
@@ -104,11 +104,9 @@ void Application::drawFrame() {
     throw std::runtime_error("Failed to acquire swap chain image!");
   }
   
-  // TODO: compute time with GLFW instead of std::chrono
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->startTime).count();
-  float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - this->lastFrameTime).count();
-  this->lastFrameTime = currentTime;
+  double time = glfwGetTime();
+  float deltaTime = static_cast<float>(time - this->lastFrameTime);
+  this->lastFrameTime = time;
 
   pCameraController->tick(deltaTime);
   const Camera& camera = pCameraController->getCamera();
@@ -501,9 +499,11 @@ VkSurfaceFormatKHR Application::chooseSwapSurfaceFormat(const std::vector<VkSurf
 }
 
 VkPresentModeKHR Application::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const {
-  for (const VkPresentModeKHR& availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-      return availablePresentMode;
+  if (!this->syncFramerate) {
+    for (const VkPresentModeKHR& availablePresentMode : availablePresentModes) {
+      if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        return availablePresentMode;
+      }
     }
   }
   
