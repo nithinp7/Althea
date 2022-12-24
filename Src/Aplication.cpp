@@ -581,6 +581,9 @@ void Application::createSwapChain() {
 
   swapChainImageFormat = surfaceFormat.format;
   swapChainExtent = extent;
+
+  pCameraController->getCamera().setAspectRatio(
+      (float)swapChainExtent.width/(float)swapChainExtent.height);
 }
 
 void Application::cleanupSwapChain() {

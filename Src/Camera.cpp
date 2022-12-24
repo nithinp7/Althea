@@ -4,12 +4,30 @@
 
 namespace AltheaEngine {
 Camera::Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPlane) :
+    _fov(glm::radians(fovDegrees)),
+    _aspectRatio(aspectRatio),
+    _nearPlane(nearPlane),
+    _farPlane(farPlane),
     _transform(1.0f),
-    _projection(
-      glm::perspective(glm::radians(fovDegrees), aspectRatio, nearPlane, farPlane))
-    {
-  // Convert from OpenGL to Vulkan screen-Y convention.
-  this->_projection[1][1] *= -1.0f;
+    _projection(1.0f) {
+  this->_recomputeProjection();
+}
+
+void Camera::setFovDegrees(float fovDegrees) {
+  this->_fov = glm::radians(fovDegrees);
+  this->_recomputeProjection();
+}
+
+void Camera::setAspectRatio(float aspectRatio) {
+  this->_aspectRatio = aspectRatio;
+  this->_recomputeProjection();
+}
+
+void Camera::setClippingPlanes(float nearPlane, float farPlane) {
+  this->_nearPlane = nearPlane;
+  this->_farPlane = farPlane;
+
+  this->_recomputeProjection();
 }
 
 void Camera::setPosition(const glm::vec3& position) {
@@ -52,5 +70,17 @@ float Camera::computePitchDegrees() const {
 
 glm::mat4 Camera::computeView() const {
   return glm::affineInverse(this->_transform);
+}
+
+void Camera::_recomputeProjection() {
+  this->_projection = 
+      glm::perspective(
+        this->_fov, 
+        this->_aspectRatio, 
+        this->_nearPlane, 
+        this->_farPlane);
+  
+  // Convert from OpenGL to Vulkan screen-Y convention.
+  this->_projection[1][1] *= -1.0f;
 }
 } // namespace AltheaEngine

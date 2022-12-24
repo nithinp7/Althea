@@ -17,6 +17,10 @@ public:
     return this->_camera;
   }
 
+  Camera& getCamera() {
+    return this->_camera;
+  }
+
 private:
   // Mouse updates, using normalized screen coordinates.
   void _updateMouse(double x, double y, bool cursorHidden);

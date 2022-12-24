@@ -75,8 +75,8 @@ void Application::createImage(
   imageInfo.extent.width = width;
   imageInfo.extent.height = height;
   imageInfo.extent.depth = 1;
+  
   // TODO: generate mip levels
-  // better to do contribute code to cesium native (already have code for that)
   imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
   imageInfo.format = format;
