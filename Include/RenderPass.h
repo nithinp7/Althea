@@ -12,23 +12,7 @@
 
 namespace AltheaEngine {
 class Application;
-
-class ShaderManager {
-public:
-  ShaderManager(const VkDevice& device);
-  ~ShaderManager();
-
-  const VkShaderModule& getShaderModule(const std::string& shaderName);
-
-private:
-  struct ShaderModuleEntry {
-    std::vector<char> code;
-    VkShaderModule module;
-  };
-
-  VkDevice _device;
-  std::unordered_map<std::string, ShaderModuleEntry> _shaders;
-};
+class ShaderManager;
 
 struct RenderPassCreateInfo {
   std::optional<std::string> vertexShader;

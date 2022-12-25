@@ -162,6 +162,9 @@ void Application::drawFrame() {
 }
 
 void Application::cleanup() {
+  pShaderManager.reset();
+  pShaderManager = nullptr;
+
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
     vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -687,6 +690,7 @@ void Application::createDepthResource() {
 
 void Application::createGraphicsPipeline() {  
   initDefaultTextures(*this);
+  pShaderManager = std::make_unique<ShaderManager>(device);
 
   this->pRenderPassManager = 
       new RenderPassManager(*this);

@@ -1,5 +1,6 @@
 #include "RenderPass.h"
 #include "Application.h"
+#include "ShaderManager.h"
 #include "ModelViewProjection.h"
 
 #include "Utilities.h"
@@ -9,42 +10,6 @@
 #include <unordered_map>
 
 namespace AltheaEngine {
-ShaderManager::ShaderManager(const VkDevice& device) 
-    : _device(device) {}
-
-ShaderManager::~ShaderManager() {
-  for (const auto& shaderPair : this->_shaders) {
-    vkDestroyShaderModule(this->_device, shaderPair.second.module, nullptr);
-  }
-}
-
-const VkShaderModule& ShaderManager::getShaderModule(const std::string& shaderName) {
-  auto shaderIt = this->_shaders.find(shaderName);
-  if (shaderIt != this->_shaders.end()) {
-    return shaderIt->second.module;
-  }
-
-  auto newShaderResult =
-      this->_shaders.emplace(
-        shaderName, 
-        ShaderModuleEntry {
-          Utilities::readFile("../Shaders/" + shaderName + ".spv"),
-          VkShaderModule{}});
-  
-  ShaderModuleEntry& newShader = newShaderResult.first->second;
-  
-  VkShaderModuleCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = newShader.code.size();
-  createInfo.pCode = 
-      reinterpret_cast<const uint32_t*>(newShader.code.data());
-
-  if (vkCreateShaderModule(this->_device, &createInfo, nullptr, &newShader.module) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create shader module!");
-  }
-
-  return newShader.module;
-}
 
 RenderPass::RenderPass(
       const Application& app, 
@@ -85,7 +50,7 @@ RenderPass::RenderPass(
       Vertex::getBindingDescription();
   auto attributeDescriptions = 
       Vertex::getAttributeDescriptions();
-  
+
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -328,10 +293,9 @@ RenderPass::RenderPass(
   pipelineInfo.pViewportState = &viewportState;
   pipelineInfo.pRasterizationState = &rasterizer;
   pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr;
+  pipelineInfo.pDepthStencilState = &depthStencil;
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
-  pipelineInfo.pDepthStencilState = &depthStencil;
   pipelineInfo.layout = this->_pipelineLayout;
   pipelineInfo.renderPass = this->_renderPass;
   pipelineInfo.subpass = 0;

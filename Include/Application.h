@@ -3,6 +3,7 @@
 #include "ConfigParser.h"
 #include "InputManager.h"
 #include "CameraController.h"
+#include "ShaderManager.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -86,6 +87,8 @@ private:
   uint32_t currentFrame = 0;
 
   ConfigParser configParser;
+  std::unique_ptr<ShaderManager> pShaderManager;
+
   RenderPassManager* pRenderPassManager;
   const RenderPass* pDefaultRenderPass;
 
@@ -176,6 +179,10 @@ public:
 
   const ConfigParser& getConfigParser() const {
     return configParser;
+  }
+
+  ShaderManager& getShaderManager() {
+    return *pShaderManager.get();
   }
 
   InputManager& getInputManager() {

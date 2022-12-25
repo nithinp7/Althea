@@ -1,5 +1,4 @@
-
-Short-term goals / logistics:
+DONE:
 -Camera system with basic movement
 -Implement input system around glfw
 -Mouse controls
@@ -7,10 +6,25 @@ Short-term goals / logistics:
 -Use Press / Release instead of Repeat for key input
 -Cap framerate with vsync
 
+TODO:
+
+Pipeline Creation Refactor Plan:
+-Pipeline builder, contains all needed "createInfo" structs (based on vkguide)
+-Will have individual init functions for each category (shaders, vertex input, rasterization, etc)
+-Each category minimally configurable from "user-land" initialization code
+-Descriptor pool system needs a dedicated allocator, currently preallocates based on initial count
+of objects - not flexible to dynamic number of objects.
+-Attributes, bindings, etc should be pulled directly from user-land primitive class.
+-Absorb boiler plate code in Primitive::assignDescriptorSets into the pipeline building
+-Abstract primitive class, so it can be implemented by user (e.g., getBindings, getPoolSizes)
+
+Short-term goals / logistics:
+-dynamic primitive count (descriptor set allocator)
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.
 -decouple engine code from "application code"
+-Better Vulkan memory management (external lib?)
 -Mip-maps
 -Abstract descriptor set management (reference vkguide)
 -A default world-space grid (different shader model etc)
@@ -19,6 +33,7 @@ Short-term goals / logistics:
 -Fix CMake build rules for directories (copying resources to build folder)
 
 Long-term
+-Generalize to support non-graphics pipelines (compute / raytrace)
 -Integrate unit test framework / write unit tests
 -Put together more concrete readme with roadmap
 -More thorough documentation.
@@ -27,9 +42,16 @@ Long-term
 -Deferred rendering setup?
 -Shader hot-reloading
 -Basic Imgui elements
--Better Vulkan memory management (external lib?)
 -3D Tiles support
 -Multithreaded rendering / job system
 -More elegant shader compilation, allow conditional compilation, cached variant generation etc.
 -Menu system for loading / unloading models, adjusting settings etc
 -"user application" code hot-reloading??
+
+Other notes:
+-Each object should not need a separate uniform buffer, should pipeline object keep 
+UBO that primitives index into??
+-Global uniforms? Pipeline-wide uniform? E.g., model, view?
+-Decouple gltf primitive logic from general primitive logic
+-May want to refactor ImageUtilities? Does it work well with refactored graphics pipeline?
+-const correctness for Application class?
