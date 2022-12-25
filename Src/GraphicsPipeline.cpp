@@ -2,8 +2,6 @@
 #include "Application.h"
 #include "ShaderManager.h"
 
-#include <stdexcept>
-
 namespace AltheaEngine {
 
 
@@ -11,7 +9,8 @@ GraphicsPipeline::GraphicsPipeline(
     const Application& app, 
     const PipelineContext& context,
     const GraphicsPipelineBuilder& builder) : 
-    _device(app.getDevice()) {
+    _device(app.getDevice()),
+    _descriptorSetLayoutBindings(builder._descriptorSetLayoutBindings) {
 
   // VIEWPORT, SCISSOR, ETC
 
@@ -271,7 +270,12 @@ GraphicsPipeline::~GraphicsPipeline() {
   vkDestroyPipelineLayout(this->_device, this->_pipelineLayout, nullptr);
 }
 
-uint32_t GraphicsPipelineBuilder::addTextureBinding(
+DescriptorAssignment GraphicsPipeline::assignDescriptorSet(
+    VkDescriptorSet& targetDescriptorSet) {
+  return DescriptorAssignment(*this, targetDescriptorSet);
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTextureBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT) {
   uint32_t bindingIndex = 
       static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
@@ -283,10 +287,10 @@ uint32_t GraphicsPipelineBuilder::addTextureBinding(
   binding.pImmutableSamplers = nullptr;
   binding.stageFlags = stageFlags;
 
-  return bindingIndex;
+  return *this;
 }
 
-uint32_t GraphicsPipelineBuilder::addUniformBufferBinding(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addUniformBufferBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
   uint32_t bindingIndex = 
       static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
@@ -298,16 +302,18 @@ uint32_t GraphicsPipelineBuilder::addUniformBufferBinding(
   binding.pImmutableSamplers = nullptr;
   binding.stageFlags = stageFlags;
 
-  return bindingIndex;
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addComputeShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addComputeShader(
     ShaderManager& shaderManager,
     const std::string& shaderPath) {
   throw std::runtime_error("Compute shaders not yet supported!");
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addVertexShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
     ShaderManager& shaderManager, 
     const std::string& shaderPath) {
   VkPipelineShaderStageCreateInfo& vertShaderStageInfo = 
@@ -317,21 +323,27 @@ void GraphicsPipelineBuilder::addVertexShader(
   vertShaderStageInfo.module = 
       shaderManager.getShaderModule(shaderPath);
   vertShaderStageInfo.pName = "main";
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addTessellationControlShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
     ShaderManager& shaderManager, 
     const std::string& shaderPath) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addTessellationEvaluationShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationEvaluationShader(
     ShaderManager& shaderManager, 
     const std::string& shaderPath) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addGeometryShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
     ShaderManager& shaderManager, 
     const std::string& shaderPath) {
   throw std::runtime_error("Geometry shaders not yet supported!");
@@ -342,9 +354,11 @@ void GraphicsPipelineBuilder::addGeometryShader(
   // geomShaderStageInfo.module =
   //   shaderManager.getShaderModule(shaderPath);
   // geomShaderStageInfo.pName = "main";
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::addFragmentShader(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
     ShaderManager& shaderManager, 
     const std::string& shaderPath) {
   VkPipelineShaderStageCreateInfo& fragShaderStageInfo = 
@@ -354,9 +368,11 @@ void GraphicsPipelineBuilder::addFragmentShader(
   fragShaderStageInfo.module =
     shaderManager.getShaderModule(shaderPath);
   fragShaderStageInfo.pName = "main";
+
+  return *this;
 }
 
-uint32_t GraphicsPipelineBuilder::addVertexAttribute(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
     VertexAttributeType attributeType, 
     uint32_t offset) {
   VkFormat format;
@@ -387,22 +403,86 @@ uint32_t GraphicsPipelineBuilder::addVertexAttribute(
   attribute.format = format;
   attribute.offset = offset;
 
-  return attributeId;
+  return *this;
 }
 
-void GraphicsPipelineBuilder::setPrimitiveType(PrimitiveType type) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setPrimitiveType(PrimitiveType type) {
   this->_primitiveType = type;
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::setLineWidth(float width) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setLineWidth(float width) {
   this->_lineWidth = width;
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::setDepthTesting(bool depthTest) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDepthTesting(bool depthTest) {
   this->_depthTest = depthTest;
+
+  return *this;
 }
 
-void GraphicsPipelineBuilder::enableDynamicFrontFace() {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::enableDynamicFrontFace() {
   this->_dynamicStates.push_back(VK_DYNAMIC_STATE_FRONT_FACE);
+
+  return *this;
+}
+
+DescriptorAssignment::DescriptorAssignment(
+    GraphicsPipeline& pipeline, 
+    VkDescriptorSet& targetDescriptorSet) :
+    _pipeline(pipeline),
+    _targetDescriptorSet(targetDescriptorSet) {
+  this->_descriptorWrites.resize(
+      this->_pipeline._descriptorSetLayoutBindings.size());
+
+  this->_targetDescriptorSet = this->_pipeline._descriptorSets.back();
+  this->_pipeline._descriptorSets.pop_back();
+}
+
+DescriptorAssignment::~DescriptorAssignment() {
+  // The descriptor writes for this descriptor set are commited when this 
+  // assignment object goes out of scope.
+  vkUpdateDescriptorSets(
+      this->_pipeline._device, 
+      static_cast<uint32_t>(this->_descriptorWrites.size()),
+      this->_descriptorWrites.data(),
+      0,
+      nullptr);
+}
+
+DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
+    VkImageView imageView, VkSampler sampler) {
+  if ((size_t)this->_currentIndex >= 
+      this->_pipeline._descriptorSetLayoutBindings.size()) {
+    throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
+  }
+
+  if (this->_pipeline._descriptorSetLayoutBindings[this->_currentIndex].descriptorType !=
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+    throw std::runtime_error("Unexpected binding in descriptor set.");
+  }
+
+  VkDescriptorImageInfo textureImageInfo{};
+  textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  textureImageInfo.imageView = imageView;
+  textureImageInfo.sampler = sampler;
+  
+  VkWriteDescriptorSet& descriptorWrite = 
+      this->_descriptorWrites[this->_currentIndex];
+  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrite.dstSet = this->_targetDescriptorSet;
+  descriptorWrite.dstBinding = this->_currentIndex;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = nullptr;
+  descriptorWrite.pImageInfo = &textureImageInfo;
+  descriptorWrite.pTexelBufferView = nullptr;
+
+  ++this->_currentIndex;
+  return *this;
 }
 } // namespace AltheaEngine
