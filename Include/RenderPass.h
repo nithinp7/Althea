@@ -77,14 +77,14 @@ private:
 };
 
 class ActiveRenderPass;
-class RenderPass2 {
+class RenderPass {
 public:
-  RenderPass2(
+  RenderPass(
       const Application& app, 
       std::vector<Attachment>&& attachments, 
       std::vector<SubpassBuilder>&& subpasses,
       uint32_t primitiveCount);
-  ~RenderPass2();
+  ~RenderPass();
 
   ActiveRenderPass begin(
       const Application& app, 
@@ -120,7 +120,7 @@ private:
 class ActiveRenderPass {
 public:
   ActiveRenderPass(
-      const RenderPass2& renderPass, 
+      const RenderPass& renderPass, 
       const VkCommandBuffer& commandBuffer, 
       const FrameContext& frame,
       const VkExtent2D& extent);
@@ -144,7 +144,7 @@ public:
 private:
   uint32_t _currentSubpass = 0;
 
-  const RenderPass2& _renderPass;
+  const RenderPass& _renderPass;
   const VkCommandBuffer& _commandBuffer;
   const FrameContext& _frame;
 

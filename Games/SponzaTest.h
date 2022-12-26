@@ -3,7 +3,7 @@
 #include "IGameInstance.h"
 #include "CameraController.h"
 
-#include "RenderPass2.h"
+#include "RenderPass.h"
 #include "Model.h"
 
 using namespace AltheaEngine;
@@ -29,5 +29,5 @@ public:
 private:
   std::unique_ptr<CameraController> _pCameraController;
   std::unique_ptr<Model> _pSponzaModel;
-  std::unique_ptr<RenderPass2> _pRenderPass;
+  std::unique_ptr<RenderPass> _pRenderPass;
 };

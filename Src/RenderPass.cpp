@@ -1,4 +1,4 @@
-#include "RenderPass2.h"
+#include "RenderPass.h"
 
 #include "Application.h"
 
@@ -11,7 +11,7 @@ Subpass::Subpass(
     const SubpassBuilder& builder) :
   _pipeline(app, context, builder.pipelineBuilder) {}
 
-RenderPass2::RenderPass2(
+RenderPass::RenderPass(
     const Application& app,
     std::vector<Attachment>&& attachments, 
     std::vector<SubpassBuilder>&& subpassBuilders,
@@ -170,7 +170,7 @@ RenderPass2::RenderPass2(
   }
 }
 
-RenderPass2::~RenderPass2() {
+RenderPass::~RenderPass() {
   for (VkFramebuffer& framebuffer : this->_frameBuffers) {
     vkDestroyFramebuffer(this->_device, framebuffer, nullptr);
   }
@@ -178,7 +178,7 @@ RenderPass2::~RenderPass2() {
   vkDestroyRenderPass(this->_device, this->_renderPass, nullptr);
 }
 
-void RenderPass2::_createFrameBuffer(
+void RenderPass::_createFrameBuffer(
     const VkExtent2D& extent,
     const std::optional<VkImageView>& swapChainImageView) {
   std::vector<VkImageView> attachmentImageViews(this->_attachments.size());
@@ -212,7 +212,7 @@ void RenderPass2::_createFrameBuffer(
   }
 }
 
-ActiveRenderPass RenderPass2::begin(
+ActiveRenderPass RenderPass::begin(
     const Application& app, 
     const VkCommandBuffer& commandBuffer, 
     const FrameContext& frame) {
@@ -225,7 +225,7 @@ ActiveRenderPass RenderPass2::begin(
 }
 
 ActiveRenderPass::ActiveRenderPass(
-    const RenderPass2& renderPass, 
+    const RenderPass& renderPass, 
     const VkCommandBuffer& commandBuffer,
     const FrameContext& frame,
     const VkExtent2D& extent) :

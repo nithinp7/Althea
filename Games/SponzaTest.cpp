@@ -75,7 +75,7 @@ void SponzaTest::init(Application& app) {
       static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
 
   this->_pRenderPass = 
-      std::make_unique<RenderPass2>(
+      std::make_unique<RenderPass>(
         app, 
         std::move(attachments), 
         std::move(subpassBuilders),
