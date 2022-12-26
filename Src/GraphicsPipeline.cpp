@@ -279,7 +279,7 @@ void GraphicsPipeline::returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet)
   this->_descriptorSets.push_back(std::move(freedDescriptorSet));
 }
 
-void GraphicsPipeline::bindPipeline(const VkCommandBuffer& commandBuffer) {
+void GraphicsPipeline::bindPipeline(const VkCommandBuffer& commandBuffer) const {
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 }
 

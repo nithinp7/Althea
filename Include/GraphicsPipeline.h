@@ -172,7 +172,16 @@ public:
   DescriptorAssignment assignDescriptorSet(
       VkDescriptorSet& targetDescriptorSet);
   void returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet);
-  void bindPipeline(const VkCommandBuffer& commandBuffer);
+  
+  void bindPipeline(const VkCommandBuffer& commandBuffer) const;
+
+  const VkPipelineLayout& getLayout() const {
+    return this->_pipelineLayout;
+  }
+
+  const VkPipeline& getVulkanPipeline() const {
+    return this->_pipeline;
+  }
 
 private:
   friend class DescriptorAssignment;

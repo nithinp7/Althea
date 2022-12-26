@@ -20,8 +20,6 @@ RenderPass2::RenderPass2(
 
   // TODO: make this more readable
 
-  bool firstAttachmentFromSwapChain = false;
-
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
     const Attachment& attachment = this->_attachments[i];
@@ -34,7 +32,7 @@ RenderPass2::RenderPass2(
         throw std::runtime_error("Attachment for presentation must be the first attachment.");
       }
 
-      firstAttachmentFromSwapChain = true;
+      this->_firstAttachmentFromSwapChain = true;
     }
 
     vkAttachment.format = attachment.format;
@@ -158,7 +156,7 @@ RenderPass2::RenderPass2(
 
   // TODO: Support frame buffer extents other than swap chain image size?
   VkExtent2D extent = app.getSwapChainExtent();
-  if (firstAttachmentFromSwapChain) {
+  if (this->_firstAttachmentFromSwapChain) {
     // This frame buffer will be used for presenting and the first attachment
     // will be from the swapchain. So we will need a different frame buffer for
     // each image in the swapchain.
@@ -212,5 +210,69 @@ void RenderPass2::_createFrameBuffer(
         &frameBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create frame buffer!");
   }
+}
+
+ActiveRenderPass RenderPass2::begin(
+    const Application& app, 
+    const VkCommandBuffer& commandBuffer, 
+    const FrameContext& frame) {
+  return 
+      ActiveRenderPass(
+        *this, 
+        commandBuffer, 
+        frame, 
+        app.getSwapChainExtent());
+}
+
+ActiveRenderPass::ActiveRenderPass(
+    const RenderPass2& renderPass, 
+    const VkCommandBuffer& commandBuffer,
+    const FrameContext& frame,
+    const VkExtent2D& extent) :
+    _currentSubpass(0),
+    _renderPass(renderPass),
+    _commandBuffer(commandBuffer),
+    _frame(frame) {
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = this->_renderPass._renderPass;
+
+  if (this->_renderPass._firstAttachmentFromSwapChain) {
+    renderPassInfo.framebuffer = 
+        this->_renderPass._frameBuffers[this->_frame.swapChainImageIndex];
+  }
+  
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = extent;
+
+  const Subpass& currentSubpass = 
+      this->_renderPass._subpasses[this->_currentSubpass];
+  
+  // TODO: Support compute as well?
+  vkCmdBeginRenderPass(
+      this->_commandBuffer, 
+      &renderPassInfo,
+      VK_SUBPASS_CONTENTS_INLINE);
+  currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
+}
+
+ActiveRenderPass::~ActiveRenderPass() {
+  vkCmdEndRenderPass(this->_commandBuffer);
+}
+
+ActiveRenderPass& ActiveRenderPass::nextSubpass() {
+  ++this->_currentSubpass;
+  if (this->_currentSubpass >= this->_renderPass._subpasses.size()) {
+    throw std::runtime_error("Called nextSubpass with no remaining subpasses");
+  }
+
+  vkCmdNextSubpass(this->_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+
+  const Subpass& currentSubpass = 
+      this->_renderPass._subpasses[this->_currentSubpass];
+  currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
+
+  return *this;
 }
 } // namespace AltheaEngine

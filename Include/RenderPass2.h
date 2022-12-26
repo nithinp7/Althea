@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GraphicsPipeline.h"
+#include "FrameContext.h"
 
 #include <vulkan/vulkan.h>
 
@@ -64,10 +65,14 @@ public:
       const PipelineContext& context, 
       const SubpassBuilder& builder);
 
+  const GraphicsPipeline& getPipeline() const {
+    return this->_pipeline;
+  }
 private:
   GraphicsPipeline _pipeline;
 };
 
+class ActiveRenderPass;
 class RenderPass2 {
 public:
   RenderPass2(
@@ -76,7 +81,14 @@ public:
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass2();
 
+  ActiveRenderPass begin(
+      const Application& app, 
+      const VkCommandBuffer& commandBuffer, 
+      const FrameContext& frame);
+
 private:
+  friend class ActiveRenderPass;
+
   void _createFrameBuffer(
       const VkExtent2D& extent, 
       const std::optional<VkImageView>& swapChainImageView);
@@ -89,5 +101,39 @@ private:
   std::vector<VkFramebuffer> _frameBuffers;
 
   VkDevice _device;
+
+  bool _firstAttachmentFromSwapChain = false;
+};
+
+class ActiveRenderPass {
+public:
+  ActiveRenderPass(
+      const RenderPass2& renderPass, 
+      const VkCommandBuffer& commandBuffer, 
+      const FrameContext& frame,
+      const VkExtent2D& extent);
+  ~ActiveRenderPass();
+
+  ActiveRenderPass& nextSubpass();
+
+  // TODO: create IDrawable interface instead?
+  template <typename TDrawable>
+  ActiveRenderPass& draw(const TDrawable& object) {
+    const Subpass& currentSubpass = 
+        this->_renderPass._subpasses[this->_currentSubpass];
+    const VkPipelineLayout& pipelineLayout = 
+        currentSubpass.getPipeline().getLayout();
+    
+    object.draw(this->_commandBuffer, pipelineLayout, this->_frame);
+
+    return *this;
+  }
+
+private:
+  uint32_t _currentSubpass = 0;
+
+  const RenderPass2& _renderPass;
+  const VkCommandBuffer& _commandBuffer;
+  const FrameContext& _frame;
 };
 } // namespace AltheaEngine
