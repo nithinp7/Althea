@@ -1,6 +1,5 @@
 
 #include "Application.h"
-#include "RenderPass.h"
 #include "DefaultTextures.h"
 #include "IGameInstance.h"
 
@@ -737,11 +736,6 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, const Frame
     throw std::runtime_error("Failed to begin recording command buffer!");
   }
 
-  // pDefaultRenderPass->runRenderPass(
-  //     commandBuffer, 
-  //     swapChainFramebuffers[imageIndex], 
-  //     swapChainExtent,
-  //     currentFrame);
   this->gameInstance->draw(*this, commandBuffer, frame);
 
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {

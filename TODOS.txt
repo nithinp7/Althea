@@ -16,12 +16,14 @@ of objects - not flexible to dynamic number of objects.
 -Absorb boiler plate code in Primitive::assignDescriptorSets into the pipeline building
 -Abstract primitive class, so it can be implemented by user (e.g., getBindings, getPoolSizes)
 
-
-TODO:
 Remaining Refactor
 -Debug crashes in refactored render pass / pipeline code
 -Implement begin/end render pass
 -test sample program drawing
+
+
+TODO:
+-Code cleanup, especially vestigial code from before refactor 
 
 Short-term goals / logistics:
 -Cleanup / readability / organization pass of Application.cpp
