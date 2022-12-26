@@ -27,10 +27,10 @@ public:
       const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const;
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(
+  void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
-      uint32_t currentFrame) const;
+      const FrameContext& frame) const;
 private:
   CesiumGltf::Model _model;
   std::vector<Primitive> _primitives;
@@ -52,13 +52,13 @@ public:
   ModelManager(const ModelManager& rhs) = delete;
 
   void updateUniforms(
-      const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
+      const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const;
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(
+  void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
-      uint32_t currentFrame) const;
+      const FrameContext& frame) const;
 };
 } // namespace AltheaEngine
 

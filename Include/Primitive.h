@@ -93,9 +93,9 @@ public:
       const glm::mat4& projection, 
       uint32_t currentFrame) const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
-  void render(
+  void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
-      uint32_t currentFrame) const;
+      const FrameContext& frame) const;
 };
 } // namespace AltheaEngine

@@ -221,12 +221,12 @@ void Model::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescript
   }
 }
 
-void Model::render(
+void Model::draw(
     const VkCommandBuffer& commandBuffer, 
     const VkPipelineLayout& pipelineLayout,
-    uint32_t currentFrame) const {
+    const FrameContext& frame) const {
   for (const Primitive& primitive : this->_primitives) {
-    primitive.render(commandBuffer, pipelineLayout, currentFrame);
+    primitive.draw(commandBuffer, pipelineLayout, frame);
   }
 }
 
@@ -351,9 +351,9 @@ ModelManager::ModelManager(
 }
 
 void ModelManager::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
+    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
   for (const Model& model : this->_models) {
-    //model.updateUniforms(view, projection, currentFrame);
+    model.updateUniforms(view, projection, frame);
   }
 }
 
@@ -371,12 +371,12 @@ void ModelManager::assignDescriptorSets(std::vector<VkDescriptorSet>& availableD
   }
 }
 
-void ModelManager::render(
+void ModelManager::draw(
     const VkCommandBuffer& commandBuffer,
     const VkPipelineLayout& pipelineLayout, 
-    uint32_t currentFrame) const {
+    const FrameContext& frame) const {
   for (const Model& model : this->_models) {
-    model.render(commandBuffer, pipelineLayout, currentFrame);
+    model.draw(commandBuffer, pipelineLayout, frame);
   }
 }
 } // namespace AltheaEngine

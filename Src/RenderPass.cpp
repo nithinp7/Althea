@@ -317,7 +317,7 @@ RenderPass::RenderPass(
 
 void RenderPass::updateUniforms(
     const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
-  this->_modelManager.updateUniforms(view, projection, currentFrame);
+  // this->_modelManager.updateUniforms(view, projection, currentFrame);
 }
 
 void RenderPass::runRenderPass(
@@ -343,7 +343,7 @@ void RenderPass::runRenderPass(
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
-  this->_modelManager.render(commandBuffer, this->_pipelineLayout, currentFrame);
+  // this->_modelManager.render(commandBuffer, this->_pipelineLayout, currentFrame);
 
   vkCmdEndRenderPass(commandBuffer);
 }

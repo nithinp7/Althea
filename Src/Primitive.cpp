@@ -600,10 +600,10 @@ void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDesc
   }
 }
 
-void Primitive::render(
+void Primitive::draw(
     const VkCommandBuffer& commandBuffer, 
     const VkPipelineLayout& pipelineLayout, 
-    uint32_t currentFrame) const {
+    const FrameContext& frame) const {
   VkDeviceSize offset = 0;
   vkCmdSetFrontFace(commandBuffer, this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE);
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
@@ -614,7 +614,7 @@ void Primitive::render(
       pipelineLayout, 
       0, 
       1, 
-      &this->_descriptorSets[currentFrame], 
+      &this->_descriptorSets[frame.frameRingBufferIndex], 
       0, 
       nullptr);
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
