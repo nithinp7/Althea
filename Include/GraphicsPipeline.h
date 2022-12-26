@@ -8,6 +8,8 @@
 #include <string>
 #include <stdexcept>
 
+#include <memory>
+
 namespace AltheaEngine {
 class Application;
 class ShaderManager;
@@ -172,7 +174,7 @@ public:
   DescriptorAssignment assignDescriptorSet(
       VkDescriptorSet& targetDescriptorSet);
   void returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet);
-  
+
   void bindPipeline(const VkCommandBuffer& commandBuffer) const;
 
   const VkPipelineLayout& getLayout() const {
@@ -225,7 +227,9 @@ public:
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
 
-    VkDescriptorBufferInfo uniformBufferInfo{};
+    this->_descriptorBufferInfos.push_back(std::make_unique<VkDescriptorBufferInfo>());
+    VkDescriptorBufferInfo& uniformBufferInfo = 
+        *this->_descriptorBufferInfos.back();
     uniformBufferInfo.buffer = uniformBuffer;
     uniformBufferInfo.offset = 0;
     uniformBufferInfo.range = sizeof(TUniforms);
@@ -258,8 +262,11 @@ public:
         VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) {
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
-
-    VkWriteDescriptorSetInlineUniformBlock inlineConstantsWrite{};
+        
+    this->_inlineConstantWrites.push_back(
+          std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
+    VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite = 
+        *this->_inlineConstantWrites.back();
     inlineConstantsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
     inlineConstantsWrite.dataSize = sizeof(TPrimitiveConstants);
     inlineConstantsWrite.pData = pConstants;
@@ -287,5 +294,11 @@ private:
   VkDescriptorSet& _targetDescriptorSet;
 
   std::vector<VkWriteDescriptorSet> _descriptorWrites;
+  
+  // Temporary storage of info needed for descriptor writes
+  // TODO: Is there a better way to do this? It looks awkward
+  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>> _inlineConstantWrites;
+  std::vector<std::unique_ptr<VkDescriptorBufferInfo>> _descriptorBufferInfos;
+  std::vector<std::unique_ptr<VkDescriptorImageInfo>> _descriptorImageInfos;
 };
 } // namespace AltheaEngine

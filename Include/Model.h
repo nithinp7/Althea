@@ -14,6 +14,7 @@
 
 namespace AltheaEngine {
 class Application;
+class GraphicsPipeline;
 
 class Model {
 public:
@@ -22,11 +23,10 @@ public:
       const std::string& name);
   Model(Model&& rhs) = default;
   Model(const Model& rhs) =  delete;
-
+  size_t getPrimitivesCount() const;
+  void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
       const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const;
-  size_t getPrimitivesCount() const;
-  void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
@@ -50,11 +50,10 @@ public:
       const Application& app, 
       const std::string& graphicsPipelineName);
   ModelManager(const ModelManager& rhs) = delete;
-
+  size_t getPrimitivesCount() const;
+  void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
       const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const;
-  size_t getPrimitivesCount() const;
-  void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 

@@ -69,8 +69,8 @@ GraphicsPipeline::GraphicsPipeline(
   poolInfo.pPoolSizes = poolSizes.data();
   poolInfo.maxSets = descriptorSetCount;
   
+  VkDescriptorPoolInlineUniformBlockCreateInfo inlineDescriptorPoolCreateInfo{};
   if (builder._hasBoundConstants) {
-    VkDescriptorPoolInlineUniformBlockCreateInfo inlineDescriptorPoolCreateInfo{};
     inlineDescriptorPoolCreateInfo.sType = 
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO;
     inlineDescriptorPoolCreateInfo.maxInlineUniformBlockBindings = 
@@ -473,7 +473,9 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
     throw std::runtime_error("Unexpected binding in descriptor set.");
   }
 
-  VkDescriptorImageInfo textureImageInfo{};
+  this->_descriptorImageInfos.push_back(std::make_unique<VkDescriptorImageInfo>());
+  VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
+
   textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   textureImageInfo.imageView = imageView;
   textureImageInfo.sampler = sampler;

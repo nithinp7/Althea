@@ -68,6 +68,10 @@ public:
   const GraphicsPipeline& getPipeline() const {
     return this->_pipeline;
   }
+
+  GraphicsPipeline& getPipeline() {
+    return this->_pipeline;
+  }
 private:
   GraphicsPipeline _pipeline;
 };
@@ -78,7 +82,8 @@ public:
   RenderPass2(
       const Application& app, 
       std::vector<Attachment>&& attachments, 
-      std::vector<SubpassBuilder>&& subpasses);
+      std::vector<SubpassBuilder>&& subpasses,
+      uint32_t primitiveCount);
   ~RenderPass2();
 
   ActiveRenderPass begin(
@@ -86,6 +91,13 @@ public:
       const VkCommandBuffer& commandBuffer, 
       const FrameContext& frame);
 
+  const std::vector<Subpass>& getSubpasses() const {
+    return this->_subpasses;
+  }
+
+  std::vector<Subpass>& getSubpasses() {
+    return this->_subpasses;
+  }
 private:
   friend class ActiveRenderPass;
 

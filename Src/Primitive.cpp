@@ -4,6 +4,7 @@
 #include "ModelViewProjection.h"
 #include "DefaultTextures.h"
 #include "GeometryUtilities.h"
+#include "GraphicsPipeline.h"
 
 #include <CesiumGltf/MeshPrimitive.h>
 #include <CesiumGltf/Model.h>
@@ -504,6 +505,23 @@ Primitive::Primitive(Primitive&& rhs) noexcept
     _uniformBuffersMemory(std::move(rhs._uniformBuffersMemory)),
     _descriptorSets(std::move(rhs._descriptorSets)) {
   rhs._needsDestruction = false;
+}
+
+void Primitive::assignDescriptorSets(
+    const Application& app, GraphicsPipeline& pipeline) {
+  uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
+  this->_descriptorSets.resize(maxFramesInFlight);
+  for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
+    pipeline.assignDescriptorSet(this->_descriptorSets[i])
+        .bindUniformBufferDescriptor<ModelViewProjection>(this->_uniformBuffers[i])
+        .bindInlineConstantDescriptors(&this->_constants)
+        .bindTextureDescriptor(
+            this->_textureSlots.pBaseTexture->getImageView(),
+            this->_textureSlots.pBaseTexture->getSampler())
+        .bindTextureDescriptor(
+            this->_textureSlots.pNormalMapTexture->getImageView(),
+            this->_textureSlots.pNormalMapTexture->getSampler());
+  }
 }
 
 void Primitive::updateUniforms(

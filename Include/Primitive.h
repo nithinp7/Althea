@@ -23,6 +23,7 @@ struct TextureInfo;
 
 namespace AltheaEngine {
 class Application;
+class GraphicsPipeline;
 
 struct Vertex {
   glm::vec3 position{};
@@ -87,11 +88,15 @@ public:
   Primitive(Primitive&& rhs) noexcept;
   Primitive(const Primitive& rhs) = delete;
   ~Primitive() noexcept;
+
+  void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
       const glm::mat4& parentTransform, 
       const glm::mat4& view, 
       const glm::mat4& projection, 
       uint32_t currentFrame) const;
+
+  // TODO: remove
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void draw(
       const VkCommandBuffer& commandBuffer, 

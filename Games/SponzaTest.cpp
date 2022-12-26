@@ -71,11 +71,19 @@ void SponzaTest::init(Application& app) {
 
       .enableDynamicFrontFace();
 
+  uint32_t primitiveCount = 
+      static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
+
   this->_pRenderPass = 
       std::make_unique<RenderPass2>(
         app, 
         std::move(attachments), 
-        std::move(subpassBuilders));
+        std::move(subpassBuilders),
+        primitiveCount);
+
+  this->_pSponzaModel->assignDescriptorSets(
+      app, 
+      this->_pRenderPass->getSubpasses()[0].getPipeline());
 }
 
 void SponzaTest::tick(Application& app, const FrameContext& frame) {

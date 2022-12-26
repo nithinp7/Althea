@@ -312,7 +312,7 @@ RenderPass::RenderPass(
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
 
-  this->_modelManager.assignDescriptorSets(descriptorSets);
+  // this->_modelManager.assignDescriptorSets(descriptorSets);
 }
 
 void RenderPass::updateUniforms(

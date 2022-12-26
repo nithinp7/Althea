@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "FileAssetAccessor.h"
 #include "TaskProcessor.h"
+#include "GraphicsPipeline.h"
 
 #include "Utilities.h"
 #include <gsl/span>
@@ -204,20 +205,20 @@ Model::Model(
   }
 }
 
-void Model::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
-  for (const Primitive& primitive : this->_primitives) {
-    primitive.updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
-  }
-}
-
 size_t Model::getPrimitivesCount() const {
   return this->_primitives.size();
 }
 
-void Model::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
+void Model::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
   for (Primitive& primitive : this->_primitives) {
-    primitive.assignDescriptorSets(availableDescriptorSets);
+    primitive.assignDescriptorSets(app, pipeline);
+  }
+}
+
+void Model::updateUniforms(
+    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
+  for (const Primitive& primitive : this->_primitives) {
+    primitive.updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
   }
 }
 
@@ -350,13 +351,6 @@ ModelManager::ModelManager(
   }
 }
 
-void ModelManager::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
-  for (const Model& model : this->_models) {
-    model.updateUniforms(view, projection, frame);
-  }
-}
-
 size_t ModelManager::getPrimitivesCount() const {
   size_t primitivesCount = 0;
   for (const Model& model : this->_models) {
@@ -365,9 +359,16 @@ size_t ModelManager::getPrimitivesCount() const {
   return primitivesCount;
 }
 
-void ModelManager::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
+void ModelManager::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
   for (Model& model : this->_models) {
-    model.assignDescriptorSets(availableDescriptorSets);
+    model.assignDescriptorSets(app, pipeline);
+  }
+}
+
+void ModelManager::updateUniforms(
+    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
+  for (const Model& model : this->_models) {
+    model.updateUniforms(view, projection, frame);
   }
 }
 

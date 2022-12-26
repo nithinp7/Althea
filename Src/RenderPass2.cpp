@@ -14,7 +14,8 @@ Subpass::Subpass(
 RenderPass2::RenderPass2(
     const Application& app,
     std::vector<Attachment>&& attachments, 
-    std::vector<SubpassBuilder>&& subpassBuilders) :
+    std::vector<SubpassBuilder>&& subpassBuilders,
+    uint32_t primitiveCount) :
     _attachments(std::move(attachments)),
     _device(app.getDevice()) {
 
@@ -145,11 +146,10 @@ RenderPass2::RenderPass2(
   for (uint32_t subpassIndex = 0; 
        subpassIndex < subpassBuilders.size();
        ++subpassIndex) {
-    this->_subpasses.push_back(
-        Subpass(
-          app,  
-          PipelineContext{this->_renderPass, subpassIndex},
-          subpassBuilders[subpassIndex]));
+    this->_subpasses.emplace_back(
+        app,  
+        PipelineContext{this->_renderPass, subpassIndex, primitiveCount},
+        subpassBuilders[subpassIndex]);
   }
 
   // Create frame buffers for this render pass.
