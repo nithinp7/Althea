@@ -4,9 +4,12 @@
 #include "InputManager.h"
 #include "CameraController.h"
 #include "ShaderManager.h"
+#include "FrameContext.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#include <vulkan/vulkan.h>
 
 #include <cstdlib>
 #include <cstdint>
@@ -16,12 +19,16 @@
 #include <memory>
 
 namespace AltheaEngine {
-class RenderPassManager;
-class RenderPass;
+class IGameInstance;
 
 class Application {
 public:
   Application();
+
+  template <typename TGameInstance>
+  void createGame() {
+    this->gameInstance = std::make_unique<TGameInstance>();
+  }
 
   void run();
   void notifyWindowResized();
@@ -51,6 +58,8 @@ private:
   const bool enableValidationLayers = true;
 #endif
 
+  std::unique_ptr<IGameInstance> gameInstance;
+
   GLFWwindow* window;
 
   // TODO: refactor this into OO-heirarchy!!!
@@ -66,7 +75,6 @@ private:
   VkSwapchainKHR swapChain;
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
-  std::vector<VkFramebuffer> swapChainFramebuffers;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
@@ -89,14 +97,9 @@ private:
   ConfigParser configParser;
   std::unique_ptr<ShaderManager> pShaderManager;
 
-  RenderPassManager* pRenderPassManager;
-  const RenderPass* pDefaultRenderPass;
-
   InputManager* pInputManager;
   bool shouldClose = false;
   
-  std::unique_ptr<CameraController> pCameraController;
-
   void initWindow();
   void initVulkan();
   void mainLoop();
@@ -136,14 +139,13 @@ private:
   void cleanupSwapChain();
   void recreateSwapChain();
   void createDepthResource();
-  void createImageViews();
+  void cleanupDepthResource();
   void createGraphicsPipeline();
-  void createFramebuffers();
   void createCommandPool();
   void createCommandBuffers();
   void createSyncObjects();
 
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame);
 
 public:
   // Getters
@@ -170,10 +172,18 @@ public:
   const VkFormat& getSwapChainImageFormat() const {
     return swapChainImageFormat;
   } 
+
+  const std::vector<VkImageView>& getSwapChainImageViews() const {
+    return swapChainImageViews;
+  }
   
   const VkFormat& getDepthImageFormat() const {
     return depthImageFormat;
   } 
+
+  const VkImageView& getDepthImageView() const {
+    return depthImageView;
+  }
 
   bool hasStencilComponent() const;
 

@@ -1,10 +1,13 @@
 #include "Application.h"
 #include <iostream>
 
+#include "SponzaTest.h"
+
 using namespace AltheaEngine;
 
 int main() {
   Application app;
+  app.createGame<SponzaTest>();
 
   try {
     app.run();

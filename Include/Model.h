@@ -2,6 +2,7 @@
 
 #include "ConfigParser.h"
 #include "Primitive.h"
+#include "FrameContext.h"
 
 #include <glm/glm.hpp>
 #include <vector>
@@ -18,12 +19,12 @@ class Model {
 public:
   Model(
       const Application& app,
-      const std::string& path);
+      const std::string& name);
   Model(Model&& rhs) = default;
   Model(const Model& rhs) =  delete;
 
   void updateUniforms(
-      const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const;
+      const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const;
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void render(

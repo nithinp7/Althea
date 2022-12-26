@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/ThirdParty)
 set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_SYSTEM_NAME}-x${CESIUM_ARCHITECTURE})
 
-include_directories(Include Src)
+include_directories(Include Src Games)
 
 function(glob_files out_var_name regexes)
     set(files "")
@@ -27,7 +27,9 @@ function(glob_files out_var_name regexes)
     set(${ARGV0} "${files}" PARENT_SCOPE)
 endfunction()
 
-glob_files(SRC_FILES_LIST Src/*.cpp)
+glob_files(SRC_FILES_LIST Src/*.cpp Games/*.cpp)
+glob_files(TST Src/*.cpp)
+message("${SRC_FILES_LIST}")
 glob_files(SHADER_FILES Shaders/*[.vert|.tesc|.tese|.geom|.frag|.comp])
 
 add_executable(Althea ${SRC_FILES_LIST})

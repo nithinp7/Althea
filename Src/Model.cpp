@@ -135,7 +135,9 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
 
 Model::Model(
     const Application& app, 
-    const std::string& path) {
+    const std::string& name) {
+  std::string path = "../Content/Models/" + name;
+
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
 
@@ -203,9 +205,9 @@ Model::Model(
 }
 
 void Model::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
+    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
   for (const Primitive& primitive : this->_primitives) {
-    primitive.updateUniforms(glm::mat4(1.0f), view, projection, currentFrame);
+    primitive.updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
   }
 }
 
@@ -330,8 +332,7 @@ public:
     size_t split = line.find(" ");
     if (split != std::string::npos && 
         line.substr(0, split) == this->_graphicsPipelineName) {
-      this->modelNames.push_back(
-          "../Content/Models/" + line.substr(split + 1, line.size()));
+      this->modelNames.push_back(line.substr(split + 1, line.size()));
     }
   }
 };
@@ -352,7 +353,7 @@ ModelManager::ModelManager(
 void ModelManager::updateUniforms(
     const glm::mat4& view, const glm::mat4& projection, uint32_t currentFrame) const {
   for (const Model& model : this->_models) {
-    model.updateUniforms(view, projection, currentFrame);
+    //model.updateUniforms(view, projection, currentFrame);
   }
 }
 

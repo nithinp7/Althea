@@ -19,6 +19,7 @@ of objects - not flexible to dynamic number of objects.
 -Abstract primitive class, so it can be implemented by user (e.g., getBindings, getPoolSizes)
 
 Short-term goals / logistics:
+-Cleanup / readability / organization pass of Application.cpp
 -dynamic primitive count (descriptor set allocator)
 -Basic skybox 
 -Tentative architecture diagram / writeup

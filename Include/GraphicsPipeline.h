@@ -33,13 +33,14 @@ enum class PrimitiveType {
 };
 
 class GraphicsPipelineBuilder {
+public:
   /**
    * @brief Add a texture binding to the descriptor set layout.
    * 
    * @param stageFlags The shader stages this binding should be accessible to.
    * @return This builder.
    */
-  GraphicsPipelineBuilder& addTextureBinding(VkShaderStageFlags stageFlags);
+  GraphicsPipelineBuilder& addTextureBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
   
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
@@ -47,7 +48,7 @@ class GraphicsPipelineBuilder {
    * @param stageFlags The shader stages this binding should be accessible to.   
    * @return This builder.
    */
-  GraphicsPipelineBuilder& addUniformBufferBinding(VkShaderStageFlags stageFlags);
+  GraphicsPipelineBuilder& addUniformBufferBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
   
   /**
    * @brief Add a constant, inline uniform buffer to the descriptor set layout.
@@ -168,7 +169,6 @@ public:
       const GraphicsPipelineBuilder& builder);
   ~GraphicsPipeline();
 
-  // TODO:
   DescriptorAssignment assignDescriptorSet(
       VkDescriptorSet& targetDescriptorSet);
   void returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet);

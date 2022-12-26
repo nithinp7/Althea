@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "RenderPass.h"
 #include "DefaultTextures.h"
+#include "IGameInstance.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -20,7 +21,9 @@ Application::Application()
 void Application::run() {
   initWindow();
   initVulkan();
+  this->gameInstance->init(*this);
   mainLoop();
+  this->gameInstance->shutdown(*this);
   cleanup();
 }
 
@@ -49,12 +52,6 @@ void Application::initWindow() {
         app->shouldClose = true;
       }, this));
 
-  pCameraController = 
-      std::make_unique<CameraController>(
-        *pInputManager, 
-        90.0f, 
-        (float)swapChainExtent.width/(float)swapChainExtent.height);
-
   glfwSetFramebufferSizeCallback(window, frameBufferResizeCallback);
 }
 
@@ -64,11 +61,9 @@ void Application::initVulkan() {
   pickPhysicalDevice();
   createLogicalDevice();
   createSwapChain();
-  createImageViews();
   createCommandPool();
   createDepthResource();
   createGraphicsPipeline();
-  createFramebuffers();
   createCommandBuffers();
   createSyncObjects();
 }
@@ -108,18 +103,19 @@ void Application::drawFrame() {
   float deltaTime = static_cast<float>(time - this->lastFrameTime);
   this->lastFrameTime = time;
 
-  pCameraController->tick(deltaTime);
-  const Camera& camera = pCameraController->getCamera();
+  FrameContext frame {
+    time,
+    deltaTime,
+    currentFrame,
+    imageIndex
+  };
 
-  pDefaultRenderPass->updateUniforms(
-      camera.computeView(), 
-      camera.getProjection(), 
-      currentFrame);
+  this->gameInstance->tick(*this, frame);
 
   vkResetFences(device, 1, &inFlightFence);
 
   vkResetCommandBuffer(commandBuffer, 0);
-  recordCommandBuffer(commandBuffer, imageIndex, currentFrame);
+  recordCommandBuffer(commandBuffer, frame);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -174,6 +170,7 @@ void Application::cleanup() {
   vkDestroyCommandPool(device, commandPool, nullptr);
 
   cleanupSwapChain();
+  cleanupDepthResource();
 
   vkDestroyDevice(device, nullptr);
   vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -584,33 +581,28 @@ void Application::createSwapChain() {
 
   swapChainImageFormat = surfaceFormat.format;
   swapChainExtent = extent;
-
-  pCameraController->getCamera().setAspectRatio(
-      (float)swapChainExtent.width/(float)swapChainExtent.height);
+  
+  swapChainImageViews.resize(swapChainImages.size());
+  for (size_t i = 0; i < swapChainImages.size(); ++i) {
+    swapChainImageViews[i] = 
+        createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+  }
 }
 
 void Application::cleanupSwapChain() {
-  for (VkFramebuffer& framebuffer : this->swapChainFramebuffers) {
-    vkDestroyFramebuffer(device, framebuffer, nullptr);
-  }
-
-  // TODO: Probably not the best place to clean up render passes...
-  if (pRenderPassManager) {
-    delete pRenderPassManager;
-    pRenderPassManager = nullptr;
-  }
-
   destroyDefaultTextures();
 
   for (VkImageView imageView : swapChainImageViews) {
     vkDestroyImageView(device, imageView, nullptr);
   }
 
+  vkDestroySwapchainKHR(device, swapChain, nullptr);
+}
+
+void Application::cleanupDepthResource() {
   vkDestroyImage(device, depthImage, nullptr);
   vkDestroyImageView(device, depthImageView, nullptr);
   vkFreeMemory(device, depthImageMemory, nullptr);
-
-  vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
 void Application::recreateSwapChain() {
@@ -625,20 +617,16 @@ void Application::recreateSwapChain() {
   vkDeviceWaitIdle(device);
 
   cleanupSwapChain();
+  cleanupDepthResource();
 
   createSwapChain();
   createDepthResource();
-  createImageViews();
-  createGraphicsPipeline();
-  createFramebuffers();
-}
-
-void Application::createImageViews() {
-  swapChainImageViews.resize(swapChainImages.size());
-  for (size_t i = 0; i < swapChainImages.size(); ++i) {
-    swapChainImageViews[i] = 
-        createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-  }
+  
+  // TODO: is this a good name for the callback?
+  // TODO: this callback will need a reference to the Application
+  // to fully recreate the render state.
+  this->gameInstance->notifyWindowSizeChange(
+      this->swapChainExtent.width, this->swapChainExtent.height);
 }
 
 VkFormat Application::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
@@ -687,42 +675,10 @@ void Application::createDepthResource() {
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-
+// TODO: this is no longer an accurate name for this function.
 void Application::createGraphicsPipeline() {  
   initDefaultTextures(*this);
   pShaderManager = std::make_unique<ShaderManager>(device);
-
-  this->pRenderPassManager = 
-      new RenderPassManager(*this);
-  this->pDefaultRenderPass = 
-      &this->pRenderPassManager->find("default");
-}
-
-// TODO: frame buffers have to be specific to whatever render passes we decide to later use?
-void Application::createFramebuffers() {
-  this->swapChainFramebuffers.resize(swapChainImageViews.size());
-
-  for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-    VkImageView attachments[] {
-        swapChainImageViews[i],
-        depthImageView
-    };
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = 
-        pDefaultRenderPass->getVulkanRenderPass();
-    // TODO: should really be pulled from the render pass
-    framebufferInfo.attachmentCount = 2;
-    framebufferInfo.pAttachments = attachments;
-    framebufferInfo.width = swapChainExtent.width;
-    framebufferInfo.height = swapChainExtent.height;
-    framebufferInfo.layers = 1;
-
-    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &this->swapChainFramebuffers[i]) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to create frame buffer!");
-    }
-  }
 }
 
 void Application::createCommandPool() {
@@ -771,7 +727,7 @@ void Application::createSyncObjects() {
   }
 }
 
-void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const {
+void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -781,11 +737,12 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     throw std::runtime_error("Failed to begin recording command buffer!");
   }
 
-  pDefaultRenderPass->runRenderPass(
-      commandBuffer, 
-      swapChainFramebuffers[imageIndex], 
-      swapChainExtent,
-      currentFrame);
+  // pDefaultRenderPass->runRenderPass(
+  //     commandBuffer, 
+  //     swapChainFramebuffers[imageIndex], 
+  //     swapChainExtent,
+  //     currentFrame);
+  this->gameInstance->draw(*this, commandBuffer, frame);
 
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");

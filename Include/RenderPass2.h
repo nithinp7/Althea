@@ -34,19 +34,27 @@ struct Attachment {
   VkClearValue clearValue;
 
   /**
-   * @brief Whether this attachment is used for presentation. If
-   * this is true the attachment will be stored at the end of the render pass - 
-   * otherwise it may be discarded. 
+   * @brief The image required to construct the frame buffer for 
+   * this render pass. 
+   * 
+   * If this attachment will be used for presentation, leave this empty.
+   * In that case, a frame buffer will be created for each swapchain image.
    */
-  bool forPresentation;
+  std::optional<VkImageView> frameBufferImageView = std::nullopt;
+
+  /**
+   * @brief This attachment is only used inside this render pass and the results
+   * will not be used by subsequent uses of the image (e.g., depth attachment). 
+   */
+  bool internalUsageOnly = false;
 };
 
 // TODO: Generalize to non-graphics pipelines
 struct SubpassBuilder {
-  std::vector<VkAttachmentReference> colorAttachments;
-  std::optional<VkAttachmentReference> depthAttachment;
+  std::vector<uint32_t> colorAttachments;
+  std::optional<uint32_t> depthAttachment;
 
-  GraphicsPipelineBuilder graphicsPipeline;
+  GraphicsPipelineBuilder pipelineBuilder;
 };
 
 class Subpass {
@@ -69,10 +77,16 @@ public:
   ~RenderPass2();
 
 private:
+  void _createFrameBuffer(
+      const VkExtent2D& extent, 
+      const std::optional<VkImageView>& swapChainImageView);
+
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;
 
   VkRenderPass _renderPass;
+
+  std::vector<VkFramebuffer> _frameBuffers;
 
   VkDevice _device;
 };

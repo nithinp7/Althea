@@ -275,8 +275,16 @@ DescriptorAssignment GraphicsPipeline::assignDescriptorSet(
   return DescriptorAssignment(*this, targetDescriptorSet);
 }
 
+void GraphicsPipeline::returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet) {
+  this->_descriptorSets.push_back(std::move(freedDescriptorSet));
+}
+
+void GraphicsPipeline::bindPipeline(const VkCommandBuffer& commandBuffer) {
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
+}
+
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTextureBinding(
-      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT) {
+      VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = 
       static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
   VkDescriptorSetLayoutBinding& binding = 
@@ -291,7 +299,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTextureBinding(
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addUniformBufferBinding(
-      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
+      VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = 
       static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
   VkDescriptorSetLayoutBinding& binding = 
