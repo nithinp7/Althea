@@ -24,6 +24,7 @@ struct TextureInfo;
 namespace AltheaEngine {
 class Application;
 class GraphicsPipeline;
+class GraphicsPipelineBuilder;
 
 struct Vertex {
   glm::vec3 position{};
@@ -31,10 +32,6 @@ struct Vertex {
   glm::vec3 bitangent{};
   glm::vec3 normal{};
   glm::vec2 uvs[MAX_UV_COORDS]{};
-
-  static VkVertexInputBindingDescription getBindingDescription();
-  static std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
-      getAttributeDescriptions();
 };
 
 struct PrimitiveConstants {
@@ -52,8 +49,7 @@ struct TextureSlots {
 
 class Primitive {
 public: 
-  static std::array<VkDescriptorSetLayoutBinding, 4> getBindings();
-  static std::array<VkDescriptorPoolSize, 4> getPoolSizes(uint32_t descriptorCount);
+  static void buildPipeline(GraphicsPipelineBuilder& builder);
 
 private:
   VkDevice _device;

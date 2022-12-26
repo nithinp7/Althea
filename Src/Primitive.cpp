@@ -50,98 +50,28 @@ void TextureSlots::fillEmptyWithDefaults() {
 }
 
 /*static*/
-VkVertexInputBindingDescription Vertex::getBindingDescription() {
-  VkVertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;
-  bindingDescription.stride = sizeof(Vertex);
-  bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  return bindingDescription;
-}
+void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
+  builder
+      .setPrimitiveType(PrimitiveType::TRIANGLES)
 
-/*static*/
-std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
-    Vertex::getAttributeDescriptions() {
-  std::array<VkVertexInputAttributeDescription, 4 + MAX_UV_COORDS> 
-      attributeDescriptions;
-  
-  attributeDescriptions[0].binding = 0;
-  attributeDescriptions[0].location = 0;
-  attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[0].offset = offsetof(Vertex, position);
+      .setVertexBufferBinding<Vertex>()
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))      
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))      
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, bitangent))      
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
 
-  attributeDescriptions[1].binding = 0;
-  attributeDescriptions[1].location = 1;
-  attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[1].offset = offsetof(Vertex, tangent);
-  
-  attributeDescriptions[2].binding = 0;
-  attributeDescriptions[2].location = 2;
-  attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[2].offset = offsetof(Vertex, bitangent);
-  
-  attributeDescriptions[3].binding = 0;
-  attributeDescriptions[3].location = 3;
-  attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[3].offset = offsetof(Vertex, normal);
-  
   for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
-    attributeDescriptions[4 + i].binding = 0;
-    attributeDescriptions[4 + i].location = 4 + i;
-    attributeDescriptions[4 + i].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[4 + i].offset = offsetof(Vertex, uvs[i]);
-  }
+    builder.addVertexAttribute(
+        VertexAttributeType::VEC3, offsetof(Vertex, uvs[i])); 
+  }     
+  
+  builder
+      .addUniformBufferBinding()
+      .addConstantsBufferBinding<PrimitiveConstants>()
+      .addTextureBinding()
+      .addTextureBinding()
 
-  return attributeDescriptions;
-}
-
-/*static*/
-std::array<VkDescriptorSetLayoutBinding, 4> Primitive::getBindings() {
-  std::array<VkDescriptorSetLayoutBinding, 4> bindings;
-
-  VkDescriptorSetLayoutBinding& uboLayoutBinding = bindings[0];
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.pImmutableSamplers = nullptr;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkDescriptorSetLayoutBinding& constantsLayoutBinding = bindings[1];
-  constantsLayoutBinding.binding = 1;
-  constantsLayoutBinding.descriptorCount = sizeof(PrimitiveConstants);
-  constantsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-  constantsLayoutBinding.pImmutableSamplers = nullptr;
-  constantsLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkDescriptorSetLayoutBinding& baseTextureLayoutBinding = bindings[2];
-  baseTextureLayoutBinding.binding = 2;
-  baseTextureLayoutBinding.descriptorCount = 1;
-  baseTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  baseTextureLayoutBinding.pImmutableSamplers = nullptr;
-  baseTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-  VkDescriptorSetLayoutBinding& normalTextureLayoutBinding = bindings[3];
-  normalTextureLayoutBinding.binding = 3;
-  normalTextureLayoutBinding.descriptorCount = 1;
-  normalTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  normalTextureLayoutBinding.pImmutableSamplers = nullptr;
-  normalTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-  return bindings;
-}
-
-/*static*/ 
-std::array<VkDescriptorPoolSize, 4> Primitive::getPoolSizes(uint32_t descriptorCount) {
-  std::array<VkDescriptorPoolSize, 4> poolSizes{};
-  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSizes[0].descriptorCount = descriptorCount;
-  poolSizes[1].type = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-  poolSizes[1].descriptorCount = sizeof(PrimitiveConstants) * descriptorCount;
-  poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[2].descriptorCount = descriptorCount;
-  poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[3].descriptorCount = descriptorCount;
-
-  return poolSizes;
+      .enableDynamicFrontFace();
 }
 
 template <typename TIndex>

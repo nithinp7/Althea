@@ -31,6 +31,7 @@ void SponzaTest::init(Application& app) {
 
   ShaderManager& shaderManager = app.getShaderManager();
 
+  // TODO: Default color and depth-stencil clear values for attachments?
   VkClearValue colorClear;
   colorClear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
   VkClearValue depthClear;
@@ -46,30 +47,10 @@ void SponzaTest::init(Application& app) {
   subpassBuilder.colorAttachments.push_back(0);
   subpassBuilder.depthAttachment = 1;
 
+  Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
   subpassBuilder.pipelineBuilder
-      .setPrimitiveType(PrimitiveType::TRIANGLES)
-
-      .setVertexBufferBinding<Vertex>()
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, bitangent))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
-
-  for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
-    subpassBuilder.pipelineBuilder.addVertexAttribute(
-        VertexAttributeType::VEC3, offsetof(Vertex, uvs[i])); 
-  }     
-  
-  subpassBuilder.pipelineBuilder
-      .addUniformBufferBinding()
-      .addConstantsBufferBinding<PrimitiveConstants>()
-      .addTextureBinding()
-      .addTextureBinding()
-
       .addVertexShader(shaderManager, "BasicGltf.vert")
-      .addFragmentShader(shaderManager, "BasicGltf.frag")
-
-      .enableDynamicFrontFace();
+      .addFragmentShader(shaderManager, "BasicGltf.frag");
 
   uint32_t primitiveCount = 
       static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());

@@ -31,6 +31,7 @@ Short-term goals / logistics:
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.
+-Instancing system
 -decouple engine code from "application code"
 -Better Vulkan memory management (external lib?)
 -Mip-maps

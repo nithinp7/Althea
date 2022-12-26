@@ -12,6 +12,10 @@ GraphicsPipeline::GraphicsPipeline(
     _device(app.getDevice()),
     _descriptorSetLayoutBindings(builder._descriptorSetLayoutBindings) {
 
+  if (builder._shaderStages.empty()) {
+    throw std::runtime_error("Attempting to build a graphics pipeline without any shader stages.");
+  }
+
   // VIEWPORT, SCISSOR, ETC
 
   const VkExtent2D& extent = app.getSwapChainExtent();
