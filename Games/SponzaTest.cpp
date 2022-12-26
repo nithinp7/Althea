@@ -100,7 +100,8 @@ void SponzaTest::draw(
     Application& app, 
     VkCommandBuffer commandBuffer, 
     const FrameContext& frame) {
-  
+  this->_pRenderPass->begin(app, commandBuffer, frame)
+      .draw(*this->_pSponzaModel);
 }
 
 void SponzaTest::shutdown(Application& app) {

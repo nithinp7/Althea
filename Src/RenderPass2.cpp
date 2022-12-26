@@ -246,6 +246,15 @@ ActiveRenderPass::ActiveRenderPass(
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = extent;
 
+  this->_clearValues.resize(this->_renderPass._attachments.size());
+  for (size_t i = 0; i < this->_clearValues.size(); ++i) {
+    this->_clearValues[i] = this->_renderPass._attachments[i].clearValue;
+  }
+
+  renderPassInfo.clearValueCount = 
+      static_cast<uint32_t>(this->_clearValues.size());
+  renderPassInfo.pClearValues = this->_clearValues.data();
+
   const Subpass& currentSubpass = 
       this->_renderPass._subpasses[this->_currentSubpass];
   

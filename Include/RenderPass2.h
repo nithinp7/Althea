@@ -147,5 +147,7 @@ private:
   const RenderPass2& _renderPass;
   const VkCommandBuffer& _commandBuffer;
   const FrameContext& _frame;
+
+  std::vector<VkClearValue> _clearValues;
 };
 } // namespace AltheaEngine
