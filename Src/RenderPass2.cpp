@@ -25,7 +25,7 @@ RenderPass2::RenderPass2(
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
     const Attachment& attachment = this->_attachments[i];
-    VkAttachmentDescription& vkAttachment = vkAttachments.emplace_back();
+    VkAttachmentDescription& vkAttachment = vkAttachments[i];
 
     bool forPresent = !attachment.frameBufferImageView;
 
@@ -72,6 +72,8 @@ RenderPass2::RenderPass2(
   vkSubpasses.resize(subpassBuilders.size());
   std::vector<VkSubpassDependency> subpassDependencies;
   subpassDependencies.resize(subpassBuilders.size());
+
+  std::vector<std::vector<VkAttachmentReference>> subpassAttachmentReferences;
   for (uint32_t subpassIndex = 0; 
        subpassIndex < static_cast<uint32_t>(subpassBuilders.size()); 
        ++subpassIndex) {
@@ -79,7 +81,8 @@ RenderPass2::RenderPass2(
     const SubpassBuilder& subpass = subpassBuilders[subpassIndex];
     VkSubpassDescription& vkSubpass = vkSubpasses[subpassIndex];
 
-    std::vector<VkAttachmentReference> vkColorAttachments;
+    std::vector<VkAttachmentReference>& vkColorAttachments = 
+        subpassAttachmentReferences.emplace_back();
     for (uint32_t attachmentIndex : subpass.colorAttachments) {
       vkColorAttachments.push_back({attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
     }

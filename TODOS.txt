@@ -6,8 +6,6 @@ DONE:
 -Use Press / Release instead of Repeat for key input
 -Cap framerate with vsync
 
-TODO:
-
 Pipeline Creation Refactor Plan:
 -Pipeline builder, contains all needed "createInfo" structs (based on vkguide)
 -Will have individual init functions for each category (shaders, vertex input, rasterization, etc)
@@ -17,6 +15,13 @@ of objects - not flexible to dynamic number of objects.
 -Attributes, bindings, etc should be pulled directly from user-land primitive class.
 -Absorb boiler plate code in Primitive::assignDescriptorSets into the pipeline building
 -Abstract primitive class, so it can be implemented by user (e.g., getBindings, getPoolSizes)
+
+
+TODO:
+Remaining Refactor
+-Debug crashes in refactored render pass / pipeline code
+-Implement begin/end render pass
+-test sample program drawing
 
 Short-term goals / logistics:
 -Cleanup / readability / organization pass of Application.cpp
