@@ -122,20 +122,7 @@ void Texture::_initTexture(
       app.createImageView(this->_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-Texture::Texture(Texture&& rhs) 
-  : _device(rhs._device),
-    _textureImage(rhs._textureImage),
-    _textureImageMemory(rhs._textureImageMemory),
-    _textureImageView(rhs._textureImageView),
-    _textureSampler(rhs._textureSampler) {
-  rhs._needsDestruction = false;
-}
-
 Texture::~Texture() {
-  if (!this->_needsDestruction) {
-    return;
-  }
-
   vkDestroySampler(this->_device, this->_textureSampler, nullptr);
   vkDestroyImageView(this->_device, this->_textureImageView, nullptr);
 

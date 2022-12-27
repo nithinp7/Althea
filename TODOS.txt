@@ -20,12 +20,12 @@ Remaining Refactor
 -Debug crashes in refactored render pass / pipeline code
 -Implement begin/end render pass
 -test sample program drawing
-
-
-TODO:
 -Code cleanup, especially vestigial code from before refactor 
 
+TODO
 Short-term goals / logistics:
+-Cubemap
+-Unify Cubemap and Texture classes?
 -Cleanup / readability / organization pass of Application.cpp
 -dynamic primitive count (descriptor set allocator)
 -Basic skybox 

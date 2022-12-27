@@ -195,11 +195,11 @@ Model::Model(
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
-        this->_primitives.emplace_back(
+        this->_primitives.push_back(std::make_unique<Primitive>(
             app, 
             this->_model, 
             primitive,
-            transform);
+            transform));
       }
     }
   }
@@ -210,15 +210,15 @@ size_t Model::getPrimitivesCount() const {
 }
 
 void Model::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
-  for (Primitive& primitive : this->_primitives) {
-    primitive.assignDescriptorSets(app, pipeline);
+  for (std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
+    pPrimitive->assignDescriptorSets(app, pipeline);
   }
 }
 
 void Model::updateUniforms(
     const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
-  for (const Primitive& primitive : this->_primitives) {
-    primitive.updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
+  for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
+    pPrimitive->updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
   }
 }
 
@@ -226,8 +226,9 @@ void Model::draw(
     const VkCommandBuffer& commandBuffer, 
     const VkPipelineLayout& pipelineLayout,
     const FrameContext& frame) const {
-  for (const Primitive& primitive : this->_primitives) {
-    primitive.draw(commandBuffer, pipelineLayout, frame);
+  for (const std::unique_ptr<Primitive>& pPrimitive : 
+       this->_primitives) {
+    pPrimitive->draw(commandBuffer, pipelineLayout, frame);
   }
 }
 
@@ -303,11 +304,11 @@ void Model::_loadNode(
   if (node.mesh >= 0 && node.mesh < model.meshes.size()) {
     const CesiumGltf::Mesh& mesh = model.meshes[node.mesh];
     for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
-      this->_primitives.emplace_back(
+      this->_primitives.push_back(std::make_unique<Primitive>(
         app, 
         this->_model, 
         primitive,
-        nodeTransform);
+        nodeTransform));
     }
   }
 
@@ -347,37 +348,37 @@ ModelManager::ModelManager(
 
   this->_models.reserve(modelsList.modelNames.size());
   for (const std::string& modelName : modelsList.modelNames) {
-    this->_models.emplace_back(app, modelName);
+    this->_models.push_back(std::make_unique<Model>(app, modelName));
   }
 }
 
 size_t ModelManager::getPrimitivesCount() const {
   size_t primitivesCount = 0;
-  for (const Model& model : this->_models) {
-    primitivesCount += model.getPrimitivesCount();
+  for (const std::unique_ptr<Model>& pModel : this->_models) {
+    primitivesCount += pModel->getPrimitivesCount();
   }
   return primitivesCount;
 }
 
 void ModelManager::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
-  for (Model& model : this->_models) {
-    model.assignDescriptorSets(app, pipeline);
+  for (std::unique_ptr<Model>& pModel : this->_models) {
+    pModel->assignDescriptorSets(app, pipeline);
   }
 }
 
 void ModelManager::updateUniforms(
     const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
-  for (const Model& model : this->_models) {
-    model.updateUniforms(view, projection, frame);
+  for (const std::unique_ptr<Model>& pModel : this->_models) {
+    pModel->updateUniforms(view, projection, frame);
   }
 }
 
 void ModelManager::draw(
     const VkCommandBuffer& commandBuffer,
     const VkPipelineLayout& pipelineLayout, 
-    const FrameContext& frame) const {
-  for (const Model& model : this->_models) {
-    model.draw(commandBuffer, pipelineLayout, frame);
+    const FrameContext& frame) const {  
+  for (const std::unique_ptr<Model>& pModel : this->_models) {
+    pModel->draw(commandBuffer, pipelineLayout, frame);
   }
 }
 } // namespace AltheaEngine

@@ -274,6 +274,8 @@ Primitive::Primitive(
   // generation later.
   uint32_t normalMapUvIndex = 0;
 
+  // TODO: texture map could exist on a model level, to allow for shared texture 
+  // resource across primitives
   std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>> textureMap;
   if (primitive.material >= 0 && primitive.material < model.materials.size()) {
     const CesiumGltf::Material& material = model.materials[primitive.material];
@@ -420,23 +422,6 @@ Primitive::Primitive(
   this->_descriptorSets.resize(app.getMaxFramesInFlight());
 }
 
-Primitive::Primitive(Primitive&& rhs) noexcept
-  : _device(rhs._device),
-    _relativeTransform(rhs._relativeTransform),
-    _vertices(std::move(rhs._vertices)),
-    _indices(std::move(rhs._indices)),
-    _constants(rhs._constants),
-    _textureSlots(std::move(rhs._textureSlots)),
-    _vertexBuffer(rhs._vertexBuffer),
-    _indexBuffer(rhs._indexBuffer),
-    _uniformBuffers(std::move(rhs._uniformBuffers)),
-    _vertexBufferMemory(rhs._vertexBufferMemory),
-    _indexBufferMemory(rhs._indexBufferMemory),
-    _uniformBuffersMemory(std::move(rhs._uniformBuffersMemory)),
-    _descriptorSets(std::move(rhs._descriptorSets)) {
-  rhs._needsDestruction = false;
-}
-
 void Primitive::assignDescriptorSets(
     const Application& app, GraphicsPipeline& pipeline) {
   uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
@@ -470,84 +455,6 @@ void Primitive::updateUniforms(
   vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
 }
 
-void Primitive::assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets) {
-  for (size_t i = 0; i < this->_descriptorSets.size(); ++i) {
-    VkDescriptorSet& descriptorSet = this->_descriptorSets[i];
-    const VkBuffer& uniformBuffer = this->_uniformBuffers[i];
-
-    if (availableDescriptorSets.size() == 0) {
-      throw std::runtime_error("Ran out of descriptor sets when assigning to primitive!");
-    }
-
-    descriptorSet = availableDescriptorSets.back();
-    availableDescriptorSets.pop_back();
-
-    VkDescriptorBufferInfo uniformBufferInfo{};
-    uniformBufferInfo.buffer = uniformBuffer;
-    uniformBufferInfo.offset = 0;
-    uniformBufferInfo.range = sizeof(ModelViewProjection);
-
-    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
-    descriptorWrites[0].pImageInfo = nullptr;
-    descriptorWrites[0].pTexelBufferView = nullptr;
-    
-    VkWriteDescriptorSetInlineUniformBlock inlineConstantsWrite{};
-    inlineConstantsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
-    inlineConstantsWrite.dataSize = sizeof(PrimitiveConstants);
-    inlineConstantsWrite.pData = &_constants;
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-    descriptorWrites[1].descriptorCount = sizeof(PrimitiveConstants);
-    descriptorWrites[1].pBufferInfo = nullptr;
-    descriptorWrites[1].pImageInfo = nullptr;
-    descriptorWrites[1].pTexelBufferView = nullptr;
-    descriptorWrites[1].pNext = &inlineConstantsWrite;
-
-    VkDescriptorImageInfo baseTextureImageInfo{};
-    baseTextureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    baseTextureImageInfo.imageView = _textureSlots.pBaseTexture->getImageView();
-    baseTextureImageInfo.sampler = _textureSlots.pBaseTexture->getSampler();
-    
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = descriptorSet;
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pBufferInfo = nullptr;
-    descriptorWrites[2].pImageInfo = &baseTextureImageInfo;
-    descriptorWrites[2].pTexelBufferView = nullptr;
-
-    VkDescriptorImageInfo normalTextureImageInfo{};
-    normalTextureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    normalTextureImageInfo.imageView = _textureSlots.pNormalMapTexture->getImageView();
-    normalTextureImageInfo.sampler = _textureSlots.pNormalMapTexture->getSampler();
-    
-    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[3].dstSet = descriptorSet;
-    descriptorWrites[3].dstBinding = 3;
-    descriptorWrites[3].dstArrayElement = 0;
-    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[3].descriptorCount = 1;
-    descriptorWrites[3].pBufferInfo = nullptr;
-    descriptorWrites[3].pImageInfo = &normalTextureImageInfo;
-    descriptorWrites[3].pTexelBufferView = nullptr;
-
-    vkUpdateDescriptorSets(this->_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-  }
-}
-
 void Primitive::draw(
     const VkCommandBuffer& commandBuffer, 
     const VkPipelineLayout& pipelineLayout, 
@@ -568,11 +475,7 @@ void Primitive::draw(
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
 }
 
-Primitive::~Primitive() noexcept {
-  if (!this->_needsDestruction) {
-    return;
-  }
-
+Primitive::~Primitive() {
   vkDestroyBuffer(this->_device, this->_vertexBuffer, nullptr);
   vkDestroyBuffer(this->_device, this->_indexBuffer, nullptr);
 

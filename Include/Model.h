@@ -11,6 +11,7 @@
 #include <CesiumGltf/Model.h>
 #include <vulkan/vulkan.h>
 #include <array>
+#include <memory>
 
 namespace AltheaEngine {
 class Application;
@@ -21,8 +22,10 @@ public:
   Model(
       const Application& app,
       const std::string& name);
-  Model(Model&& rhs) = default;
-  Model(const Model& rhs) =  delete;
+  Model(const Model& rhs) = delete;
+  Model& operator=(const Model& model) = delete;
+  Model(Model&& rhs) = delete;
+
   size_t getPrimitivesCount() const;
   void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
@@ -33,7 +36,7 @@ public:
       const FrameContext& frame) const;
 private:
   CesiumGltf::Model _model;
-  std::vector<Primitive> _primitives;
+  std::vector<std::unique_ptr<Primitive>> _primitives;
   
   void _loadNode(
       const Application& app,
@@ -44,7 +47,7 @@ private:
 
 class ModelManager {
 private:
-  std::vector<Model> _models;
+  std::vector<std::unique_ptr<Model>> _models;
 public:
   ModelManager(
       const Application& app, 

@@ -73,17 +73,16 @@ private:
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
   
   std::vector<VkDescriptorSet> _descriptorSets;
-
-  bool _needsDestruction = true;
 public:
   Primitive(
       const Application& app,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
       const glm::mat4& nodeTransform);
-  Primitive(Primitive&& rhs) noexcept;
   Primitive(const Primitive& rhs) = delete;
-  ~Primitive() noexcept;
+  Primitive& operator=(const Primitive& rhs) = delete;
+  Primitive(Primitive&& rhs) = delete;
+  ~Primitive();
 
   void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
@@ -91,9 +90,6 @@ public:
       const glm::mat4& view, 
       const glm::mat4& projection, 
       uint32_t currentFrame) const;
-
-  // TODO: remove
-  void assignDescriptorSets(std::vector<VkDescriptorSet>& availableDescriptorSets);
   void draw(
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 

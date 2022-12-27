@@ -20,9 +20,11 @@ Application::Application()
 void Application::run() {
   initWindow();
   initVulkan();
-  this->gameInstance->init(*this);
+  this->gameInstance->initGame(*this);
+  this->gameInstance->createRenderState(*this);
   mainLoop();
-  this->gameInstance->shutdown(*this);
+  this->gameInstance->destroyRenderState(*this);
+  this->gameInstance->shutdownGame(*this);
   cleanup();
 }
 
@@ -62,6 +64,7 @@ void Application::initVulkan() {
   createSwapChain();
   createCommandPool();
   createDepthResource();
+  initDefaultTextures(*this);
   createGraphicsPipeline();
   createCommandBuffers();
   createSyncObjects();
@@ -170,6 +173,8 @@ void Application::cleanup() {
 
   cleanupSwapChain();
   cleanupDepthResource();
+
+  destroyDefaultTextures();
 
   vkDestroyDevice(device, nullptr);
   vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -452,8 +457,7 @@ void Application::createLogicalDevice() {
   if (enableValidationLayers) {
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
-  }
-  else {
+  } else {
     createInfo.enabledLayerCount = 0;
   }
 
@@ -589,8 +593,6 @@ void Application::createSwapChain() {
 }
 
 void Application::cleanupSwapChain() {
-  destroyDefaultTextures();
-
   for (VkImageView imageView : swapChainImageViews) {
     vkDestroyImageView(device, imageView, nullptr);
   }
@@ -615,17 +617,15 @@ void Application::recreateSwapChain() {
 
   vkDeviceWaitIdle(device);
 
+  this->gameInstance->destroyRenderState(*this);
+
   cleanupSwapChain();
   cleanupDepthResource();
 
   createSwapChain();
   createDepthResource();
   
-  // TODO: is this a good name for the callback?
-  // TODO: this callback will need a reference to the Application
-  // to fully recreate the render state.
-  this->gameInstance->notifyWindowSizeChange(
-      this->swapChainExtent.width, this->swapChainExtent.height);
+  this->gameInstance->createRenderState(*this);
 }
 
 VkFormat Application::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
@@ -675,8 +675,7 @@ void Application::createDepthResource() {
 }
 
 // TODO: this is no longer an accurate name for this function.
-void Application::createGraphicsPipeline() {  
-  initDefaultTextures(*this);
+void Application::createGraphicsPipeline() { 
   pShaderManager = std::make_unique<ShaderManager>(device);
 }
 

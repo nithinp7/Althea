@@ -22,7 +22,9 @@ public:
       const Application& app,
       const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler);
-  Texture(Texture&& rhs);
+  Texture(const Texture& rhs) = delete;
+  Texture& operator=(const Texture& rhs) = delete;
+  Texture(Texture&& rhs) = delete;
   ~Texture();
 
   VkImageView getImageView() const {
@@ -45,7 +47,5 @@ private:
 
   VkImageView _textureImageView;
   VkSampler _textureSampler;
-
-  bool _needsDestruction = true;
 };
 } // namespace AltheaEngine

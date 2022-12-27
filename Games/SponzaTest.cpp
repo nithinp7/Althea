@@ -16,13 +16,23 @@ using namespace AltheaEngine;
 
 SponzaTest::SponzaTest() {}
 
-void SponzaTest::init(Application& app) {
+void SponzaTest::initGame(Application& app) {
   const VkExtent2D& windowDims = app.getSwapChainExtent();
   this->_pCameraController = 
       std::make_unique<CameraController>(
         app.getInputManager(), 
         90.0f,
         (float)windowDims.width/(float)windowDims.height);
+}
+
+void SponzaTest::shutdownGame(Application& app) {
+  this->_pCameraController.reset();
+}
+
+void SponzaTest::createRenderState(Application& app) {
+  const VkExtent2D& extent = app.getSwapChainExtent();
+  this->_pCameraController->getCamera().setAspectRatio(
+      (float)extent.width/(float)extent.height);
 
   this->_pSponzaModel = 
       std::make_unique<Model>(
@@ -67,6 +77,12 @@ void SponzaTest::init(Application& app) {
       this->_pRenderPass->getSubpasses()[0].getPipeline());
 }
 
+void SponzaTest::destroyRenderState(Application& app) {
+  // TODO: actually release resources, descriptor sets, etc?
+  this->_pSponzaModel.reset();
+  this->_pRenderPass.reset();
+}
+
 void SponzaTest::tick(Application& app, const FrameContext& frame) {
   this->_pCameraController->tick(frame.deltaTime);
   const Camera& camera = this->_pCameraController->getCamera();
@@ -83,20 +99,4 @@ void SponzaTest::draw(
     const FrameContext& frame) {
   this->_pRenderPass->begin(app, commandBuffer, frame)
       .draw(*this->_pSponzaModel);
-}
-
-void SponzaTest::shutdown(Application& app) {
-  this->_pCameraController.reset();
-
-  // TODO: actually release resources, descriptor sets, etc?
-  this->_pSponzaModel.reset();
-  this->_pRenderPass.reset();
-}
-
-void SponzaTest::notifyWindowSizeChange(uint32_t width, uint32_t height) {
-  this->_pCameraController->getCamera().setAspectRatio(
-      (float)width/(float)height);
-
-  // TODO: rebuild render state, swapchain images and depth resources are
-  // invalidated on window resize.
 }

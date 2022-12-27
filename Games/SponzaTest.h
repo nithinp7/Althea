@@ -17,15 +17,18 @@ public:
   SponzaTest();
   // virtual ~SponzaTest();
 
-  virtual void init(Application& app) override;
+  virtual void initGame(Application& app) override;
+  virtual void shutdownGame(Application& app) override;
+
+  void createRenderState(Application& app) override;
+  void destroyRenderState(Application& app) override;
+
   virtual void tick(Application& app, const FrameContext& frame) override;
   virtual void draw(
       Application& app, 
       VkCommandBuffer commandBuffer, 
       const FrameContext& frame) override;
-  virtual void shutdown(Application& app) override;
 
-  virtual void notifyWindowSizeChange(uint32_t width, uint32_t height) override;
 private:
   std::unique_ptr<CameraController> _pCameraController;
   std::unique_ptr<Model> _pSponzaModel;
