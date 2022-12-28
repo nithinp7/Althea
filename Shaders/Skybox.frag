@@ -1,9 +1,11 @@
 #version 450
 
-layout(location=0) in vec2 screenPos;
+layout(location=0) smooth in vec3 direction;
 
 layout(location=0) out vec4 color;
 
+layout(binding=1) uniform samplerCube skyboxTexture; 
+
 void main() {
-  color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+  color = texture(skyboxTexture, direction);
 }

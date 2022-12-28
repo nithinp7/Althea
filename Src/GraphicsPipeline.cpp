@@ -170,8 +170,8 @@ GraphicsPipeline::GraphicsPipeline(
   };
   
   rasterizerInfo.lineWidth = builder._lineWidth;
-  rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rasterizerInfo.cullMode = builder._cullMode;
+  rasterizerInfo.frontFace = builder._frontFace;
   rasterizerInfo.depthBiasEnable = VK_FALSE;
   rasterizerInfo.depthBiasConstantFactor = 0.0f;
   rasterizerInfo.depthBiasClamp = 0.0f;
@@ -438,6 +438,18 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDepthTesting(bool depthTest
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::enableDynamicFrontFace() {
   this->_dynamicStates.push_back(VK_DYNAMIC_STATE_FRONT_FACE);
+
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setFrontFace(VkFrontFace frontFace) {
+  this->_frontFace = frontFace;
+  
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setCullMode(VkCullModeFlags cullMode) {
+  this->_cullMode = cullMode;
 
   return *this;
 }

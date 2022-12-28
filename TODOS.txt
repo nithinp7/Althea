@@ -27,7 +27,10 @@ Short-term goals / logistics:
 -Cubemap
 -Unify Cubemap and Texture classes?
 -Cleanup / readability / organization pass of Application.cpp
+   -decouple ImageUtilities from Application (should not be hard)
 -dynamic primitive count (descriptor set allocator)
+-UBO abstraction 
+-batched UBO updates
 -Basic skybox 
 -Tentative architecture diagram / writeup
 -Simple scene graph / ECS system.

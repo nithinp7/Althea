@@ -139,6 +139,18 @@ public:
    */
   GraphicsPipelineBuilder& enableDynamicFrontFace();
 
+  /**
+   * @brief Set the front face.
+   * @return This builder. 
+   */
+  GraphicsPipelineBuilder& setFrontFace(VkFrontFace frontFace);
+
+  /**
+   * @brief Set the cull mode.
+   * @return This builder. 
+   */
+  GraphicsPipelineBuilder& setCullMode(VkCullModeFlags cullMode);
+
   // TODO: use actual dynamic descriptor allocator
   /**
    * @brief Set the max number of primitives that will use this pipeline. This will
@@ -162,6 +174,9 @@ private:
   
   VkVertexInputBindingDescription _bindingDescription;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
+
+  VkCullModeFlags _cullMode = VK_CULL_MODE_BACK_BIT;
+  VkFrontFace _frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
   PrimitiveType _primitiveType = PrimitiveType::TRIANGLES;
   float _lineWidth = 1.0f;
