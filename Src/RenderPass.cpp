@@ -14,8 +14,7 @@ Subpass::Subpass(
 RenderPass::RenderPass(
     const Application& app,
     std::vector<Attachment>&& attachments, 
-    std::vector<SubpassBuilder>&& subpassBuilders,
-    uint32_t primitiveCount) :
+    std::vector<SubpassBuilder>&& subpassBuilders) :
     _attachments(std::move(attachments)),
     _device(app.getDevice()) {
 
@@ -148,7 +147,7 @@ RenderPass::RenderPass(
        ++subpassIndex) {
     this->_subpasses.emplace_back(
         app,  
-        PipelineContext{this->_renderPass, subpassIndex, primitiveCount},
+        PipelineContext{this->_renderPass, subpassIndex},
         subpassBuilders[subpassIndex]);
   }
 

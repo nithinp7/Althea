@@ -7,6 +7,7 @@
 #include <CesiumGltf/ImageCesium.h>
 
 #include <memory>
+#include <gsl/span>
 
 namespace AltheaEngine {
 Texture::Texture(
@@ -110,8 +111,7 @@ void Texture::_initTexture(
   }
 
   app.createTextureImage(
-      (void*)image.pixelData.data(),
-      image.pixelData.size(),
+      gsl::span<const std::byte>(image.pixelData),
       image.width,
       image.height,
       VK_FORMAT_R8G8B8A8_SRGB,
@@ -119,7 +119,12 @@ void Texture::_initTexture(
       this->_textureImageMemory);
 
   this->_textureImageView = 
-      app.createImageView(this->_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+      app.createImageView(
+        this->_textureImage, 
+        VK_FORMAT_R8G8B8A8_SRGB, 
+        1, 
+        VK_IMAGE_VIEW_TYPE_2D, 
+        VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 Texture::~Texture() {

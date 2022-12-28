@@ -2,6 +2,7 @@
 
 #include "IGameInstance.h"
 #include "CameraController.h"
+#include "Cubemap.h"
 
 #include "RenderPass.h"
 #include "Model.h"
@@ -32,5 +33,6 @@ public:
 private:
   std::unique_ptr<CameraController> _pCameraController;
   std::unique_ptr<Model> _pSponzaModel;
+  std::unique_ptr<Cubemap> _pCubemap;
   std::unique_ptr<RenderPass> _pRenderPass;
 };

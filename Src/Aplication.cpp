@@ -588,7 +588,7 @@ void Application::createSwapChain() {
   swapChainImageViews.resize(swapChainImages.size());
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
     swapChainImageViews[i] = 
-        createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        createImageView(swapChainImages[i], swapChainImageFormat, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
 
@@ -659,6 +659,7 @@ void Application::createDepthResource() {
   createImage(
       swapChainExtent.width, 
       swapChainExtent.height, 
+      1,
       depthImageFormat, 
       VK_IMAGE_TILING_OPTIMAL, 
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
@@ -666,10 +667,16 @@ void Application::createDepthResource() {
       depthImage, 
       depthImageMemory);
   depthImageView = 
-      createImageView(depthImage, depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+      createImageView(
+        depthImage, 
+        depthImageFormat, 
+        1, 
+        VK_IMAGE_VIEW_TYPE_2D, 
+        VK_IMAGE_ASPECT_DEPTH_BIT);
   transitionImageLayout(
       depthImage, 
       depthImageFormat, 
+      1,
       VK_IMAGE_LAYOUT_UNDEFINED, 
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }

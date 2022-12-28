@@ -11,6 +11,8 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include <string>
+#include <array>
 
 using namespace AltheaEngine;
 
@@ -39,6 +41,20 @@ void SponzaTest::createRenderState(Application& app) {
         app,
         "Sponza.gltf");
 
+  const static std::array<std::string, 6> cubemapImagePaths = {
+    "../Content/Models/Skybox/front.jpg",
+    "../Content/Models/Skybox/back.jpg",
+    "../Content/Models/Skybox/top.jpg",
+    "../Content/Models/Skybox/bottom.jpg",
+    "../Content/Models/Skybox/right.jpg",
+    "../Content/Models/Skybox/left.jpg"
+  };
+
+  this->_pCubemap = 
+      std::make_unique<Cubemap>(
+        app,
+        cubemapImagePaths);
+
   ShaderManager& shaderManager = app.getShaderManager();
 
   // TODO: Default color and depth-stencil clear values for attachments?
@@ -53,33 +69,60 @@ void SponzaTest::createRenderState(Application& app) {
   };
 
   std::vector<SubpassBuilder> subpassBuilders;
-  SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
-  subpassBuilder.colorAttachments.push_back(0);
-  subpassBuilder.depthAttachment = 1;
 
-  Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
-  subpassBuilder.pipelineBuilder
-      .addVertexShader(shaderManager, "BasicGltf.vert")
-      .addFragmentShader(shaderManager, "BasicGltf.frag");
+  // SKYBOX PASS
+  {
+    SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
+    subpassBuilder.colorAttachments.push_back(0);
+    
+    uint32_t primitiveCount = 
+        static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
 
-  uint32_t primitiveCount = 
-      static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
+    Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
+    subpassBuilder.pipelineBuilder
+        .addTextureBinding()
+
+        .addVertexShader(shaderManager, "Skybox.vert")
+        .addFragmentShader(shaderManager, "Skybox.frag")
+
+        .setDepthTesting(false);
+
+        //.setPrimitiveCount(1);
+  }
+
+  // REGULAR PASS
+  {
+    SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
+    subpassBuilder.colorAttachments.push_back(0);
+    subpassBuilder.depthAttachment = 1;
+    
+    uint32_t primitiveCount = 
+        static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
+
+    Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
+    subpassBuilder.pipelineBuilder
+        .addVertexShader(shaderManager, "BasicGltf.vert")
+        .addFragmentShader(shaderManager, "BasicGltf.frag")
+        
+        .setPrimitiveCount(primitiveCount);
+  }
 
   this->_pRenderPass = 
       std::make_unique<RenderPass>(
         app, 
         std::move(attachments), 
-        std::move(subpassBuilders),
-        primitiveCount);
+        std::move(subpassBuilders));
 
+  // Assign descriptor sets for regular object pass
   this->_pSponzaModel->assignDescriptorSets(
       app, 
-      this->_pRenderPass->getSubpasses()[0].getPipeline());
+      this->_pRenderPass->getSubpasses()[1].getPipeline());
 }
 
 void SponzaTest::destroyRenderState(Application& app) {
   // TODO: actually release resources, descriptor sets, etc?
   this->_pSponzaModel.reset();
+  this->_pCubemap.reset();
   this->_pRenderPass.reset();
 }
 
@@ -93,10 +136,25 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
   this->_pSponzaModel->updateUniforms(view, projection, frame);
 }
 
+namespace {
+struct FullScreenTriangle {
+  void draw(
+      const VkCommandBuffer& commandBuffer, 
+      const VkPipelineLayout& pipelineLayout, 
+      const FrameContext& frame) const {
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+  }
+};
+} // namespace
+
 void SponzaTest::draw(
     Application& app, 
     VkCommandBuffer commandBuffer, 
     const FrameContext& frame) {
   this->_pRenderPass->begin(app, commandBuffer, frame)
+  // Draw skybox
+      .draw(FullScreenTriangle{})
+      .nextSubpass()
+  // Draw Sponza model
       .draw(*this->_pSponzaModel);
 }

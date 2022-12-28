@@ -17,7 +17,6 @@ class ShaderManager;
 struct PipelineContext {
   VkRenderPass renderPass;
   uint32_t subpassIndex;
-  uint32_t primitiveCount;
 };
 
 enum class VertexAttributeType {
@@ -139,6 +138,17 @@ public:
    * @return This builder.
    */
   GraphicsPipelineBuilder& enableDynamicFrontFace();
+
+  // TODO: use actual dynamic descriptor allocator
+  /**
+   * @brief Set the max number of primitives that will use this pipeline. This will
+   * be used to pre-allocate descriptor sets.
+   * 
+   * @param primitiveCount The max number of primitives that will be rendered with
+   * this pipeline.
+   * @return This builder.
+   */
+  GraphicsPipelineBuilder& setPrimitiveCount(uint32_t primitiveCount);
 private:
   friend class GraphicsPipeline;
   // Info needed to build the graphics pipeline
@@ -159,6 +169,9 @@ private:
   bool _depthTest = true;
 
   std::vector<VkDynamicState> _dynamicStates;
+
+  // TODO: descriptor allocator
+  uint32_t _primitiveCount;
 };
 
 class DescriptorAssignment;

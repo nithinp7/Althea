@@ -57,7 +57,7 @@ GraphicsPipeline::GraphicsPipeline(
     throw std::runtime_error("Failed to create descriptor set layout!");
   }
 
-  uint32_t descriptorSetCount = context.primitiveCount * app.getMaxFramesInFlight();
+  uint32_t descriptorSetCount = builder._primitiveCount * app.getMaxFramesInFlight();
 
   std::vector<VkDescriptorPoolSize> poolSizes;
   for (const VkDescriptorSetLayoutBinding& binding : 
@@ -438,6 +438,13 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDepthTesting(bool depthTest
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::enableDynamicFrontFace() {
   this->_dynamicStates.push_back(VK_DYNAMIC_STATE_FRONT_FACE);
+
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setPrimitiveCount(
+    uint32_t primitiveCount) {
+  this->_primitiveCount = primitiveCount;
 
   return *this;
 }

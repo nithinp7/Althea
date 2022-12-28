@@ -5,13 +5,14 @@
 
 namespace AltheaEngine {
 void Application::createTextureImage(
-    void* pSrc,
-    VkDeviceSize bufferSize,
+    gsl::span<const std::byte> buffer,
     uint32_t width,
     uint32_t height,
     VkFormat format,
     VkImage& image,
     VkDeviceMemory& imageMemory) const {
+
+  VkDeviceSize bufferSize = buffer.size();
 
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
@@ -24,12 +25,13 @@ void Application::createTextureImage(
 
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  std::memcpy(data, pSrc, bufferSize);
+  std::memcpy(data, buffer.data(), bufferSize);
   vkUnmapMemory(device, stagingBufferMemory);
 
   createImage(
     width,
     height,
+    1,
     format,
     VK_IMAGE_TILING_OPTIMAL,
     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -40,6 +42,7 @@ void Application::createTextureImage(
   transitionImageLayout(
     image,
     format,
+    1,
     VK_IMAGE_LAYOUT_UNDEFINED, 
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -47,11 +50,87 @@ void Application::createTextureImage(
     stagingBuffer,
     image,
     width,
-    height);
+    height,
+    1);
 
   transitionImageLayout(
     image,
     format,
+    1,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  vkDestroyBuffer(device, stagingBuffer, nullptr);
+  vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Application::createCubemapImage(
+    const std::array<gsl::span<const std::byte>, 6>& cubemapBuffers,
+    uint32_t width,
+    uint32_t height,
+    VkFormat format,
+    VkImage& image,
+    VkDeviceMemory& imageMemory) const {
+
+  VkDeviceSize layerSize = cubemapBuffers[0].size();
+  VkDeviceSize totalSize = 6 * layerSize;
+
+  // Verify all cubemap images have the same size
+  for (uint32_t i = 1; i < 6; ++i) {
+    if (layerSize != cubemapBuffers[i].size()) {
+      throw std::runtime_error("Inconsistent image sizes in cubemap");
+      return;
+    }
+  }
+
+  createImage(
+    width,
+    height,
+    6,
+    format,
+    VK_IMAGE_TILING_OPTIMAL,
+    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    image,
+    imageMemory,
+    VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+    createBuffer(
+        totalSize, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingBufferMemory);
+
+  void* data;
+  vkMapMemory(device, stagingBufferMemory, 0, totalSize, 0, &data);
+
+  for (uint32_t i = 0; i < 6; ++i) {
+    std::memcpy((std::byte*)data + i * layerSize, cubemapBuffers[i].data(), layerSize);
+  }
+
+  vkUnmapMemory(device, stagingBufferMemory);
+
+  transitionImageLayout(
+    image,
+    format,
+    6,
+    VK_IMAGE_LAYOUT_UNDEFINED, 
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+  copyBufferToImage(
+    stagingBuffer,
+    image,
+    width,
+    height,
+    6);
+
+  transitionImageLayout(
+    image,
+    format,
+    6,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -62,12 +141,14 @@ void Application::createTextureImage(
 void Application::createImage(
     uint32_t width,
     uint32_t height,
+    uint32_t layerCount,
     VkFormat format,
     VkImageTiling tiling,
     VkImageUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkImage& image,
-    VkDeviceMemory& imageMemory) const {
+    VkDeviceMemory& imageMemory,
+    VkImageCreateFlags createFlags) const {
 
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -78,14 +159,14 @@ void Application::createImage(
   
   // TODO: generate mip levels
   imageInfo.mipLevels = 1;
-  imageInfo.arrayLayers = 1;
+  imageInfo.arrayLayers = layerCount;
   imageInfo.format = format;
   imageInfo.tiling = tiling;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage = usage;
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-  imageInfo.flags = 0;
+  imageInfo.flags = createFlags;
 
   if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create image!");
@@ -112,12 +193,14 @@ void Application::createImage(
 VkImageView Application::createImageView(
     VkImage image,
     VkFormat format,
+    uint32_t layerCount,
+    VkImageViewType type,
     VkImageAspectFlags aspectFlags) const {
 
   VkImageViewCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   createInfo.image = image;
-  createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  createInfo.viewType = type;
   createInfo.format = format;
   createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
   createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -127,7 +210,7 @@ VkImageView Application::createImageView(
   createInfo.subresourceRange.baseMipLevel = 0;
   createInfo.subresourceRange.levelCount = 1;
   createInfo.subresourceRange.baseArrayLayer = 0;
-  createInfo.subresourceRange.layerCount = 1;
+  createInfo.subresourceRange.layerCount = layerCount;
 
   VkImageView imageView;
   if (vkCreateImageView(device, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
@@ -140,6 +223,7 @@ VkImageView Application::createImageView(
 void Application::transitionImageLayout(
     VkImage image, 
     VkFormat format, 
+    uint32_t layerCount,
     VkImageLayout oldLayout, 
     VkImageLayout newLayout) const {
   VkCommandBuffer commandBuffer = this->beginSingleTimeCommands();
@@ -158,7 +242,7 @@ void Application::transitionImageLayout(
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange.layerCount = layerCount;
 
   if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -207,7 +291,12 @@ void Application::transitionImageLayout(
   this->endSingleTimeCommands(commandBuffer);
 }
 
-void Application::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const {
+void Application::copyBufferToImage(
+    VkBuffer buffer, 
+    VkImage image, 
+    uint32_t width, 
+    uint32_t height,
+    uint32_t layerCount) const {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
   
   VkBufferImageCopy region{};
@@ -218,7 +307,7 @@ void Application::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t wid
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   region.imageSubresource.mipLevel = 0;
   region.imageSubresource.baseArrayLayer = 0;
-  region.imageSubresource.layerCount = 1;
+  region.imageSubresource.layerCount = layerCount;
 
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {width, height, 1};

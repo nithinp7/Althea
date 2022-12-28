@@ -82,8 +82,7 @@ public:
   RenderPass(
       const Application& app, 
       std::vector<Attachment>&& attachments, 
-      std::vector<SubpassBuilder>&& subpasses,
-      uint32_t primitiveCount);
+      std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
 
   ActiveRenderPass begin(

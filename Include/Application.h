@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vulkan/vulkan.h>
+#include <gsl/span>
 
 #include <cstdlib>
 #include <cstdint>
@@ -237,28 +238,50 @@ public:
       std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
 
   // Image Utilities
-  void createTextureImage(
-      void* pSrc,
-      VkDeviceSize bufferSize,
+  void createTextureImage(    
+      gsl::span<const std::byte> buffer,
       uint32_t width,
       uint32_t height,
       VkFormat format,
       VkImage& image,
       VkDeviceMemory& imageMemory) const;
+  void createCubemapImage(
+      const std::array<gsl::span<const std::byte>, 6>& cubemapBuffers,
+      uint32_t width,
+      uint32_t height,
+      VkFormat format,
+      VkImage& image,
+      VkDeviceMemory& imageMemory) const;
+  
   void createImage(
       uint32_t width,
       uint32_t height,
+      uint32_t layerCount,
       VkFormat format,
       VkImageTiling tiling,
       VkImageUsageFlags usage,
       VkMemoryPropertyFlags properties,
       VkImage& image,
-      VkDeviceMemory& imageMemory) const;
+      VkDeviceMemory& imageMemory,
+      VkImageCreateFlags createFlags = 0) const;
   VkImageView createImageView(
       VkImage image,
       VkFormat format,
+      uint32_t layerCount,
+      VkImageViewType type,
       VkImageAspectFlags aspectFlags) const;
-  void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
-  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
+
+  void transitionImageLayout(
+      VkImage image, 
+      VkFormat format, 
+      uint32_t layerCount,
+      VkImageLayout oldLayout, 
+      VkImageLayout newLayout) const;
+  void copyBufferToImage(
+      VkBuffer buffer, 
+      VkImage image, 
+      uint32_t width, 
+      uint32_t height,
+      uint32_t layerCount) const;
 };
 } // namespace AltheaEngine
