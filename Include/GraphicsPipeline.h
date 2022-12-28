@@ -84,22 +84,29 @@ public:
   GraphicsPipelineBuilder& addFragmentShader(ShaderManager& shaderManager, const std::string& shaderPath);
 
   /**
-   * @brief Set the vertex buffer binding.
+   * @brief Add a vertex input binding - can be a vertex buffer or instance buffer. Following calls to
+   * addVertexAttribute(...) will be associated with this binding until another call to this function
+   * is made to start a new vertex input.
    * 
-   * @tparam TVertex - The structure that will represent the vertex layout.
+   * @tparam TElementLayout - The structure that will represent the vertex input layout.
    * @return This builder.
    */
-  template <typename TVertex>
-  GraphicsPipelineBuilder& setVertexBufferBinding() {
-    this->_bindingDescription.binding = 0;
-    this->_bindingDescription.stride = sizeof(TVertex);
-    this->_bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
+  template <typename TElementLayout>
+  GraphicsPipelineBuilder& addVertexInputBinding(
+      VkVertexInputRate inputRate = VK_VERTEX_INPUT_RATE_VERTEX) {
+    uint32_t bindingIndex = 
+        static_cast<uint32_t>(this->_vertexInputBindings.size());
+    VkVertexInputBindingDescription& description = 
+        this->_vertexInputBindings.emplace_back();        
+    description.binding = bindingIndex;
+    description.stride = sizeof(TElementLayout);
+    description.inputRate = inputRate;
+    
     return *this;
   }
 
   /**
-   * @brief Add a vertex attribute to the vertex layout.
+   * @brief Add a vertex attribute to the vertex layout of the last-added vertex binding.
    * 
    * @param attributeType The type of attribute.
    * @param offset The offset of this attribute within the vertex layout in bytes.
@@ -172,7 +179,7 @@ private:
   bool _hasBoundConstants = false;
   std::optional<VkDescriptorPoolInlineUniformBlockCreateInfo> _inlineUniformBlockInfo;
   
-  VkVertexInputBindingDescription _bindingDescription;
+  std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
 
   VkCullModeFlags _cullMode = VK_CULL_MODE_BACK_BIT;

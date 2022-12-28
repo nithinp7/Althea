@@ -2,7 +2,7 @@
 
 #include "IGameInstance.h"
 #include "CameraController.h"
-#include "Cubemap.h"
+#include "Skybox.h"
 
 #include "RenderPass.h"
 #include "Model.h"
@@ -33,12 +33,8 @@ public:
 private:
   std::unique_ptr<CameraController> _pCameraController;
 
+  std::unique_ptr<Skybox> _pSkybox;
   std::unique_ptr<Model> _pSponzaModel;
-
-  std::unique_ptr<Cubemap> _pSkybox;
-  std::vector<VkDescriptorSet> _skyboxDescriptorSets;
-  std::vector<VkBuffer> _skyboxUniformBuffers;
-  std::vector<VkDeviceMemory> _skyboxUniformBuffersMemory;
 
   std::unique_ptr<RenderPass> _pRenderPass;
 };

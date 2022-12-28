@@ -124,8 +124,9 @@ GraphicsPipeline::GraphicsPipeline(
   
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.pVertexBindingDescriptions = &builder._bindingDescription;
+  vertexInputInfo.vertexBindingDescriptionCount = 
+      static_cast<uint32_t>(builder._vertexInputBindings.size());
+  vertexInputInfo.pVertexBindingDescriptions = builder._vertexInputBindings.data();
   vertexInputInfo.vertexAttributeDescriptionCount = 
       static_cast<uint32_t>(builder._attributeDescriptions.size());
   vertexInputInfo.pVertexAttributeDescriptions = 
@@ -387,6 +388,12 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
     VertexAttributeType attributeType, 
     uint32_t offset) {
+
+  // Check that this attribute corresponds to an actual vertex input binding.
+  if (this->_vertexInputBindings.empty()) {
+    throw std::runtime_error("Attempting to add vertex attribute without any vertex input bindings.");
+  }
+
   VkFormat format;
   switch(attributeType) {
     case VertexAttributeType::INT:
@@ -410,7 +417,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
       this->_attributeDescriptions.size());
   VkVertexInputAttributeDescription& attribute = 
       this->_attributeDescriptions.emplace_back();
-  attribute.binding = 0;
+  attribute.binding = 
+      static_cast<uint32_t>(this->_vertexInputBindings.size() - 1);
   attribute.location = attributeId;
   attribute.format = format;
   attribute.offset = offset;

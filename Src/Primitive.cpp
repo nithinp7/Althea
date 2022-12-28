@@ -54,11 +54,16 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder
       .setPrimitiveType(PrimitiveType::TRIANGLES)
 
-      .setVertexBufferBinding<Vertex>()
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, bitangent))      
-      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
+      // TODO:
+      // Make this binding --> attribute hierarchy more explicit e.g., 
+      // "addVertexInputBinding-->VertexInputBuilder" then
+      // then "VertexInputBuilder::addVertexAttribute(...)"
+      // then "VertexInputBuilder::finish() --> GraphicsPipelineBuilder&"
+      .addVertexInputBinding<Vertex>()
+        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))      
+        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))      
+        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, bitangent))      
+        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
 
   for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
     builder.addVertexAttribute(

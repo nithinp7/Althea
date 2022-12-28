@@ -37,11 +37,6 @@ void SponzaTest::createRenderState(Application& app) {
   this->_pCameraController->getCamera().setAspectRatio(
       (float)extent.width/(float)extent.height);
 
-  this->_pSponzaModel = 
-      std::make_unique<Model>(
-        app,
-        "Sponza.gltf");
-
   const static std::array<std::string, 6> skyboxImagePaths = {
     "../Content/Models/Skybox/right.jpg",
     "../Content/Models/Skybox/left.jpg",
@@ -52,15 +47,9 @@ void SponzaTest::createRenderState(Application& app) {
   };
 
   this->_pSkybox = 
-      std::make_unique<Cubemap>(
+      std::make_unique<Skybox>(
         app,
         skyboxImagePaths);
-
-  // Init uniform buffer memory for the skybox
-  app.createUniformBuffers(
-      sizeof(ModelViewProjection),
-      this->_skyboxUniformBuffers,
-      this->_skyboxUniformBuffersMemory);
 
   ShaderManager& shaderManager = app.getShaderManager();
 
@@ -82,18 +71,13 @@ void SponzaTest::createRenderState(Application& app) {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
     
-    subpassBuilder.pipelineBuilder
-        .addUniformBufferBinding()
-        .addTextureBinding()
-
-        .addVertexShader(shaderManager, "Skybox.vert")
-        .addFragmentShader(shaderManager, "Skybox.frag")
-
-        .setCullMode(VK_CULL_MODE_FRONT_BIT)
-        .setDepthTesting(false)
-
-        .setPrimitiveCount(1);
+    Skybox::buildPipeline(app, subpassBuilder.pipelineBuilder);
   }
+  
+  this->_pSponzaModel = 
+      std::make_unique<Model>(
+        app,
+        "Sponza.gltf");
 
   // REGULAR PASS
   {
@@ -120,13 +104,11 @@ void SponzaTest::createRenderState(Application& app) {
 
   std::vector<Subpass>& subpasses = this->_pRenderPass->getSubpasses();
 
+  // TODO: combine descriptor assignment with construction?
+  // Wait to create the objects until the corresponding pipeline is ready?
+  
   // Assign descriptor sets for skybox uniform updates
-  this->_skyboxDescriptorSets.resize(app.getMaxFramesInFlight());
-  for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-    subpasses[0].getPipeline().assignDescriptorSet(this->_skyboxDescriptorSets[i])
-        .bindUniformBufferDescriptor<ModelViewProjection>(this->_skyboxUniformBuffers[i])
-        .bindTextureDescriptor(this->_pSkybox->getImageView(), this->_pSkybox->getSampler());
-  }
+  this->_pSkybox->assignDescriptorSets(app, subpasses[0].getPipeline());
 
   // Assign descriptor sets for regular object pass
   this->_pSponzaModel->assignDescriptorSets(
@@ -136,17 +118,9 @@ void SponzaTest::createRenderState(Application& app) {
 
 void SponzaTest::destroyRenderState(Application& app) {
   // TODO: actually release resources, descriptor sets, etc?
-  this->_pSponzaModel.reset();
   this->_pSkybox.reset();
+  this->_pSponzaModel.reset();
   this->_pRenderPass.reset();
-  
-  for (VkBuffer& uniformBuffer : this->_skyboxUniformBuffers) {
-    vkDestroyBuffer(app.getDevice(), uniformBuffer, nullptr);
-  }
-
-  for (VkDeviceMemory& uniformBufferMemory : this->_skyboxUniformBuffersMemory) {
-    vkFreeMemory(app.getDevice(), uniformBufferMemory, nullptr);
-  }
 }
 
 void SponzaTest::tick(Application& app, const FrameContext& frame) {
@@ -156,49 +130,9 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
   const glm::mat4& projection = camera.getProjection();
   glm::mat4 view = camera.computeView();
 
+  this->_pSkybox->updateUniforms(view, projection, frame);
   this->_pSponzaModel->updateUniforms(view, projection, frame);
-
-  // Update skybox uniforms
-  ModelViewProjection mvp{};
-  mvp.model = glm::mat4(1.0f);
-  mvp.view = view;
-  mvp.projection = projection;
-
-  // TODO: add templated utility function for this? 
-  uint32_t currentFrame = frame.frameRingBufferIndex;
-  void* data;
-  vkMapMemory(
-      app.getDevice(), 
-      this->_skyboxUniformBuffersMemory[currentFrame], 
-      0,
-      sizeof(ModelViewProjection),
-      0,
-      &data);
-  std::memcpy(data, &mvp, sizeof(ModelViewProjection));
-  vkUnmapMemory(app.getDevice(), this->_skyboxUniformBuffersMemory[currentFrame]);
 }
-
-namespace {
-struct DrawSkybox {
-  void draw(
-      const VkCommandBuffer& commandBuffer, 
-      const VkPipelineLayout& pipelineLayout, 
-      const FrameContext& frame) const {
-    vkCmdBindDescriptorSets(
-        commandBuffer, 
-        VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        pipelineLayout, 
-        0, 
-        1, 
-        pCurrentDescriptorSet,
-        0,
-        nullptr);
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-  }
-
-  VkDescriptorSet* pCurrentDescriptorSet;
-};
-} // namespace
 
 void SponzaTest::draw(
     Application& app, 
@@ -206,7 +140,7 @@ void SponzaTest::draw(
     const FrameContext& frame) {
   this->_pRenderPass->begin(app, commandBuffer, frame)
   // Draw skybox
-      .draw(DrawSkybox{&this->_skyboxDescriptorSets[frame.frameRingBufferIndex]})
+      .draw(*this->_pSkybox)
       .nextSubpass()
   // Draw Sponza model
       .draw(*this->_pSponzaModel);
