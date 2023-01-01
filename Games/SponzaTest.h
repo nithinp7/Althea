@@ -6,6 +6,7 @@
 
 #include "RenderPass.h"
 #include "Model.h"
+#include "DescriptorSet.h"
 
 using namespace AltheaEngine;
 
@@ -33,8 +34,11 @@ public:
 private:
   std::unique_ptr<CameraController> _pCameraController;
 
+  std::unique_ptr<RenderPass> _pRenderPass;
+
   std::unique_ptr<Skybox> _pSkybox;
   std::unique_ptr<Model> _pSponzaModel;
 
-  std::unique_ptr<RenderPass> _pRenderPass;
+  std::string _currentShader = "BasicGltf";
+  bool _envMap = false;
 };

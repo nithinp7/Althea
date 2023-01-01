@@ -8,11 +8,13 @@
 
 #include <array>
 #include <string>
+#include <memory>
 
 namespace AltheaEngine {
 class Application;
-class GraphicsPipeline;
 class GraphicsPipelineBuilder;
+class DescriptorSet;
+class DescriptorSetAllocator;
 
 class Skybox {
 public:
@@ -20,10 +22,10 @@ public:
 
   Skybox(
       Application& app, 
-      const std::array<std::string, 6>& skyboxImagePaths);
+      const std::array<std::string, 6>& skyboxImagePaths,
+      DescriptorSetAllocator& materialAllocator);
   ~Skybox();
 
-  void assignDescriptorSets(Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
       const glm::mat4& view, 
       const glm::mat4& projection, 
@@ -32,12 +34,20 @@ public:
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
       const FrameContext& frame) const;
+  
+  const std::shared_ptr<Cubemap>& getCubemap() const {
+    return this->_pCubemap;
+  }
 private:
+  void _createMaterial(
+      Application& app, 
+      DescriptorSetAllocator& materialAllocator);
+
   VkDevice _device;
 
-  Cubemap _cubemap;
+  std::shared_ptr<Cubemap> _pCubemap;
 
-  std::vector<VkDescriptorSet> _descriptorSets;
+  std::vector<DescriptorSet> _descriptorSets;
   std::vector<VkBuffer> _uniformBuffers;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 };

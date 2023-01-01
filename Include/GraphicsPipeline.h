@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DescriptorSet.h"
+
 #include <vulkan/vulkan.h>
 
 #include <vector>
@@ -35,47 +37,6 @@ enum class PrimitiveType {
 
 class GraphicsPipelineBuilder {
 public:
-  /**
-   * @brief Add a texture binding to the descriptor set layout.
-   * 
-   * @param stageFlags The shader stages this binding should be accessible to.
-   * @return This builder.
-   */
-  GraphicsPipelineBuilder& addTextureBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
-  
-  /**
-   * @brief Add a uniform buffer binding to the descriptor set layout.
-   * 
-   * @param stageFlags The shader stages this binding should be accessible to.   
-   * @return This builder.
-   */
-  GraphicsPipelineBuilder& addUniformBufferBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
-  
-  /**
-   * @brief Add a constant, inline uniform buffer to the descriptor set layout.
-   * 
-   * @tparam TPrimitiveConstants - The structure that will be used to represent the
-   * inline constant uniform buffer.
-   * @param stageFlags The shader stages this binding should be accessible to.
-   * @return This builder.
-   */
-  template <typename TPrimitiveConstants>
-  GraphicsPipelineBuilder& addConstantsBufferBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
-    uint32_t bindingIndex = 
-        static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
-    VkDescriptorSetLayoutBinding& binding = 
-        this->_descriptorSetLayoutBindings.emplace_back();
-    binding.binding = bindingIndex;
-    binding.descriptorCount = sizeof(TPrimitiveConstants);
-    binding.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-    binding.pImmutableSamplers = nullptr;
-    binding.stageFlags = stageFlags;
-
-    this->_hasBoundConstants = true;
-
-    return *this;
-  }
-
   GraphicsPipelineBuilder& addComputeShader(ShaderManager& shaderManager, const std::string& shaderPath);
   GraphicsPipelineBuilder& addVertexShader(ShaderManager& shaderManager, const std::string& shaderPath);
   GraphicsPipelineBuilder& addTessellationControlShader(ShaderManager& shaderManager, const std::string& shaderPath);
@@ -158,27 +119,72 @@ public:
    */
   GraphicsPipelineBuilder& setCullMode(VkCullModeFlags cullMode);
 
-  // TODO: use actual dynamic descriptor allocator
   /**
-   * @brief Set the max number of primitives that will use this pipeline. This will
-   * be used to pre-allocate descriptor sets.
+   * @brief Set the size of material pools in the material descriptor set block 
+   * allocator. 
+   * 
+   * Small sizes may cause excessive allocation calls as the block count grows.
+   * On the other hand, if only a few materials will be needed, it may be better
+   * to allocate exactly that many by setting the pool size to the expected 
+   * material count.
    * 
    * @param primitiveCount The max number of primitives that will be rendered with
    * this pipeline.
    * @return This builder.
    */
-  GraphicsPipelineBuilder& setPrimitiveCount(uint32_t primitiveCount);
+  GraphicsPipelineBuilder& setMaterialPoolSize(uint32_t poolSize);
+
+  /**
+   * @brief Set the descriptor set for global resources. These will be made available
+   * in all shaders.
+   * 
+   * @param layout The resource layout of this descriptor set.
+   * @param descriptorSet The global descriptor set. 
+   * @return This builder.
+   */
+  GraphicsPipelineBuilder& setGlobalResources(
+      VkDescriptorSetLayout layout,
+      const std::shared_ptr<DescriptorSet>& pDescriptorSet);
+
+  /** TODO: Are these cases needed, or can we just do material vs global resoures?
+   * 
+   * @brief Set the descriptor set for render pass-wide resources. Such resources
+   * will be made available in all shaders within this render pass.
+   * 
+   * @param layout The resoure layout of this descriptor set.
+   * @param descriptorSet The render pass wide descriptor set.
+   * @return This builder. 
+   */
+  GraphicsPipelineBuilder& setRenderPassResources(
+      VkDescriptorSetLayout layout,
+      const std::shared_ptr<DescriptorSet>& pDescriptorSet);
+
+  /**
+   * @brief Builder for the subpass-wide descriptor set layout. The resources bound
+   * to the descriptor set with this layout will be available in shaders across all 
+   * objects rendered in this pipeline's subpass.
+   */
+  DescriptorSetLayoutBuilder subpassResourceLayoutBuilder;
+
+  /**
+   * @brief Builder for the per-object, material descriptor set layout. The resources
+   * bound to descriptor sets of this layout will be unique for each object rendered
+   * in this pipeline's subpass. 
+   */
+  DescriptorSetLayoutBuilder materialResourceLayoutBuilder;
+
 private:
   friend class GraphicsPipeline;
   // Info needed to build the graphics pipeline
 
   std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-
-  std::vector<VkDescriptorSetLayoutBinding> _descriptorSetLayoutBindings;
-
-  bool _hasBoundConstants = false;
-  std::optional<VkDescriptorPoolInlineUniformBlockCreateInfo> _inlineUniformBlockInfo;
   
+  std::optional<VkDescriptorSetLayout> _globalResourceLayout;
+  std::shared_ptr<DescriptorSet> _pGlobalResources;
+
+  std::optional<VkDescriptorSetLayout> _renderPassResourceLayout;
+  std::shared_ptr<DescriptorSet> _pRenderPassResources;
+
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
 
@@ -192,11 +198,8 @@ private:
 
   std::vector<VkDynamicState> _dynamicStates;
 
-  // TODO: descriptor allocator
-  uint32_t _primitiveCount;
+  uint32_t _materialPoolSize = 1000;
 };
-
-class DescriptorAssignment;
 
 class GraphicsPipeline {
 public:
@@ -204,11 +207,8 @@ public:
       const Application& app, 
       const PipelineContext& context, 
       const GraphicsPipelineBuilder& builder);
+  GraphicsPipeline(GraphicsPipeline&& rhs) = default;
   ~GraphicsPipeline();
-
-  DescriptorAssignment assignDescriptorSet(
-      VkDescriptorSet& targetDescriptorSet);
-  void returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet);
 
   void bindPipeline(const VkCommandBuffer& commandBuffer) const;
 
@@ -216,124 +216,36 @@ public:
     return this->_pipelineLayout;
   }
 
-  const VkPipeline& getVulkanPipeline() const {
+  const VkPipeline& getVkPipeline() const {
     return this->_pipeline;
   }
 
-private:
-  friend class DescriptorAssignment;
+  DescriptorAssignment beginBindSubpassResources();
 
+  DescriptorSetAllocator& getMaterialAllocator() {
+    return *this->_materialAllocator;
+  }
+
+  const DescriptorSet* getGlobalResources() const {
+    return this->_pGlobalResources.get();
+  }
+
+  const DescriptorSet* getRenderPassResources() const {
+    return this->_pRenderPassResources.get();
+  }
+
+private:
   VkDevice _device;
 
-  // Keep this around to check validity when binding resources to a 
-  // descriptor set.
-  std::vector<VkDescriptorSetLayoutBinding> _descriptorSetLayoutBindings;
+  std::shared_ptr<DescriptorSet> _pGlobalResources;
+  std::shared_ptr<DescriptorSet> _pRenderPassResources;
 
-  // TODO: dynamic descriptor allocator, currently all descriptors need
-  // to be created up front.
-  std::vector<VkDescriptorSet> _descriptorSets;
+  std::optional<DescriptorSetAllocator> _subpassResourcesAllocator;
+  std::optional<DescriptorSet> _subpassResources;
 
-  VkDescriptorSetLayout _descriptorSetLayout;
-  VkDescriptorPool _descriptorPool;
+  std::optional<DescriptorSetAllocator> _materialAllocator;
 
   VkPipelineLayout _pipelineLayout;
   VkPipeline _pipeline;
-};
-
-class DescriptorAssignment {
-public:
-  DescriptorAssignment(
-      GraphicsPipeline& pipeline, 
-      VkDescriptorSet& targetDescriptorSet);
-  ~DescriptorAssignment();
-
-  DescriptorAssignment& bindTextureDescriptor(
-      VkImageView imageView, VkSampler sampler);
-
-  template <typename TUniforms>
-  DescriptorAssignment& bindUniformBufferDescriptor(VkBuffer uniformBuffer) {
-    if ((size_t)this->_currentIndex >= 
-      this->_pipeline._descriptorSetLayoutBindings.size()) {
-      throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
-    }
-
-    if (this->_pipeline._descriptorSetLayoutBindings[this->_currentIndex].descriptorType !=
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-      throw std::runtime_error("Unexpected binding in descriptor set.");
-    }
-
-    this->_descriptorBufferInfos.push_back(std::make_unique<VkDescriptorBufferInfo>());
-    VkDescriptorBufferInfo& uniformBufferInfo = 
-        *this->_descriptorBufferInfos.back();
-    uniformBufferInfo.buffer = uniformBuffer;
-    uniformBufferInfo.offset = 0;
-    uniformBufferInfo.range = sizeof(TUniforms);
-
-    VkWriteDescriptorSet& descriptorWrite = 
-        this->_descriptorWrites[this->_currentIndex];
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = this->_targetDescriptorSet;
-    descriptorWrite.dstBinding = this->_currentIndex;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &uniformBufferInfo;
-    descriptorWrite.pImageInfo = nullptr;
-    descriptorWrite.pTexelBufferView = nullptr;
-
-    ++this->_currentIndex;
-    return *this;
-  }
-
-  template <typename TPrimitiveConstants>
-  DescriptorAssignment& bindInlineConstantDescriptors(
-      const TPrimitiveConstants* pConstants) {
-    if ((size_t)this->_currentIndex >= 
-        this->_pipeline._descriptorSetLayoutBindings.size()) {
-      throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
-    }
-
-    if (this->_pipeline._descriptorSetLayoutBindings[this->_currentIndex].descriptorType !=
-        VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) {
-      throw std::runtime_error("Unexpected binding in descriptor set.");
-    }
-        
-    this->_inlineConstantWrites.push_back(
-          std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
-    VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite = 
-        *this->_inlineConstantWrites.back();
-    inlineConstantsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
-    inlineConstantsWrite.dataSize = sizeof(TPrimitiveConstants);
-    inlineConstantsWrite.pData = pConstants;
-
-    VkWriteDescriptorSet& descriptorWrite = 
-        this->_descriptorWrites[this->_currentIndex];
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = this->_targetDescriptorSet;
-    descriptorWrite.dstBinding = this->_currentIndex;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
-    descriptorWrite.descriptorCount = sizeof(TPrimitiveConstants);
-    descriptorWrite.pBufferInfo = nullptr;
-    descriptorWrite.pImageInfo = nullptr;
-    descriptorWrite.pTexelBufferView = nullptr;
-    descriptorWrite.pNext = &inlineConstantsWrite;
-
-    ++this->_currentIndex;
-    return *this;
-  }
-  
-private:
-  uint32_t _currentIndex = 0;
-  GraphicsPipeline& _pipeline;
-  VkDescriptorSet& _targetDescriptorSet;
-
-  std::vector<VkWriteDescriptorSet> _descriptorWrites;
-  
-  // Temporary storage of info needed for descriptor writes
-  // TODO: Is there a better way to do this? It looks awkward
-  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>> _inlineConstantWrites;
-  std::vector<std::unique_ptr<VkDescriptorBufferInfo>> _descriptorBufferInfos;
-  std::vector<std::unique_ptr<VkDescriptorImageInfo>> _descriptorImageInfos;
 };
 } // namespace AltheaEngine

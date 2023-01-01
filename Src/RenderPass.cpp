@@ -11,6 +11,10 @@ Subpass::Subpass(
     const SubpassBuilder& builder) :
   _pipeline(app, context, builder.pipelineBuilder) {}
 
+DescriptorAssignment Subpass::beginBindSubpassResources() {
+  return this->_pipeline.beginBindSubpassResources();
+}
+
 RenderPass::RenderPass(
     const Application& app,
     std::vector<Attachment>&& attachments, 

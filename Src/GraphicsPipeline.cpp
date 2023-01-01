@@ -1,6 +1,7 @@
 #include "GraphicsPipeline.h"
 #include "Application.h"
 #include "ShaderManager.h"
+#include "DescriptorSet.h"
 
 namespace AltheaEngine {
 
@@ -10,7 +11,20 @@ GraphicsPipeline::GraphicsPipeline(
     const PipelineContext& context,
     const GraphicsPipelineBuilder& builder) : 
     _device(app.getDevice()),
-    _descriptorSetLayoutBindings(builder._descriptorSetLayoutBindings) {
+    _pGlobalResources(builder._pGlobalResources),
+    _pRenderPassResources(builder._pRenderPassResources) {
+
+  if (builder.subpassResourceLayoutBuilder.hasBindings()) {
+    this->_subpassResourcesAllocator.emplace(app, builder.subpassResourceLayoutBuilder, 1);
+    this->_subpassResources.emplace(this->_subpassResourcesAllocator->allocate());
+  }
+  
+  if (builder.materialResourceLayoutBuilder.hasBindings()) {
+    this->_materialAllocator.emplace(
+        app, 
+        builder.materialResourceLayoutBuilder, 
+        builder._materialPoolSize); 
+  }
 
   if (builder._shaderStages.empty()) {
     throw std::runtime_error("Attempting to build a graphics pipeline without any shader stages.");
@@ -40,74 +54,36 @@ GraphicsPipeline::GraphicsPipeline(
   viewportStateInfo.pScissors = &scissor;
 
 
-  // BINDINGS, DESCRIPTOR SETS, DESCRIPTOR POOLS, PIPELINE LAYOUT, ETC
-
-  VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
-  descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  descriptorSetLayoutInfo.bindingCount = 
-      static_cast<uint32_t>(builder._descriptorSetLayoutBindings.size());
-  descriptorSetLayoutInfo.pBindings = builder._descriptorSetLayoutBindings.data();
-
-  if (vkCreateDescriptorSetLayout(
-          this->_device, 
-          &descriptorSetLayoutInfo, 
-          nullptr, 
-          &this->_descriptorSetLayout) 
-        != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create descriptor set layout!");
-  }
-
-  uint32_t descriptorSetCount = builder._primitiveCount * app.getMaxFramesInFlight();
-
-  std::vector<VkDescriptorPoolSize> poolSizes;
-  for (const VkDescriptorSetLayoutBinding& binding : 
-       builder._descriptorSetLayoutBindings) {
-    VkDescriptorPoolSize& poolSize = poolSizes.emplace_back();
-    poolSize.type = binding.descriptorType;
-    poolSize.descriptorCount = descriptorSetCount * binding.descriptorCount;
-  }
+  // RESOURCE LAYOUTS / BINDINGS
   
-  VkDescriptorPoolCreateInfo poolInfo{};
-  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-  poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = descriptorSetCount;
-  
-  VkDescriptorPoolInlineUniformBlockCreateInfo inlineDescriptorPoolCreateInfo{};
-  if (builder._hasBoundConstants) {
-    inlineDescriptorPoolCreateInfo.sType = 
-        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO;
-    inlineDescriptorPoolCreateInfo.maxInlineUniformBlockBindings = 
-        descriptorSetCount;
-
-    poolInfo.pNext = &inlineDescriptorPoolCreateInfo;
+  // The descriptor sets will be as follows, skipping any that don't exist:
+  // 0: Global resources
+  // 1: Render pass wide resources 
+  // 2: Subpass wide resources // TODO necessary??
+  // 3: Per-object, material resources
+  std::vector<VkDescriptorSetLayout> layouts;
+  if (builder._globalResourceLayout) {
+    layouts.push_back(*builder._globalResourceLayout);
   }
 
-  if (vkCreateDescriptorPool(
-        this->_device, 
-        &poolInfo, 
-        nullptr, 
-        &this->_descriptorPool) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create descriptor pool!");
+  if (builder._renderPassResourceLayout) {
+    layouts.push_back(*builder._renderPassResourceLayout);
   }
 
-  // TODO: descriptor set allocator
-  std::vector<VkDescriptorSetLayout> layouts(descriptorSetCount, this->_descriptorSetLayout);
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = this->_descriptorPool;
-  allocInfo.descriptorSetCount = descriptorSetCount;
-  allocInfo.pSetLayouts = layouts.data();
+  if (this->_subpassResourcesAllocator) {
+    layouts.push_back(this->_subpassResourcesAllocator->getLayout());
+  }
 
-  this->_descriptorSets.resize(descriptorSetCount);
-  if (vkAllocateDescriptorSets(this->_device, &allocInfo, this->_descriptorSets.data()) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate descriptor sets!");
+  if (this->_materialAllocator) {
+    layouts.push_back(this->_materialAllocator->getLayout());
   }
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &this->_descriptorSetLayout;
+  pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+  pipelineLayoutInfo.pSetLayouts = layouts.data();
+
+  // TODO: Support push constants??
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -269,53 +245,20 @@ GraphicsPipeline::GraphicsPipeline(
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
-  vkDestroyDescriptorPool(this->_device, this->_descriptorPool, nullptr);
-  vkDestroyDescriptorSetLayout(this->_device, this->_descriptorSetLayout, nullptr);
   vkDestroyPipeline(this->_device, this->_pipeline, nullptr);
   vkDestroyPipelineLayout(this->_device, this->_pipelineLayout, nullptr);
-}
-
-DescriptorAssignment GraphicsPipeline::assignDescriptorSet(
-    VkDescriptorSet& targetDescriptorSet) {
-  return DescriptorAssignment(*this, targetDescriptorSet);
-}
-
-void GraphicsPipeline::returnDescriptorSet(VkDescriptorSet&& freedDescriptorSet) {
-  this->_descriptorSets.push_back(std::move(freedDescriptorSet));
 }
 
 void GraphicsPipeline::bindPipeline(const VkCommandBuffer& commandBuffer) const {
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTextureBinding(
-      VkShaderStageFlags stageFlags) {
-  uint32_t bindingIndex = 
-      static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
-  VkDescriptorSetLayoutBinding& binding = 
-      this->_descriptorSetLayoutBindings.emplace_back();
-  binding.binding = bindingIndex;
-  binding.descriptorCount = 1;
-  binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  binding.pImmutableSamplers = nullptr;
-  binding.stageFlags = stageFlags;
+DescriptorAssignment GraphicsPipeline::beginBindSubpassResources() {
+  if (!this->_subpassResources) {
+    throw std::runtime_error("Attempting to bind to subpass resources that have not been declared.");
+  }
 
-  return *this;
-}
-
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addUniformBufferBinding(
-      VkShaderStageFlags stageFlags) {
-  uint32_t bindingIndex = 
-      static_cast<uint32_t>(this->_descriptorSetLayoutBindings.size());
-  VkDescriptorSetLayoutBinding& binding = 
-      this->_descriptorSetLayoutBindings.emplace_back();
-  binding.binding = bindingIndex;
-  binding.descriptorCount = 1;
-  binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  binding.pImmutableSamplers = nullptr;
-  binding.stageFlags = stageFlags;
-
-  return *this;
+  return this->_subpassResources->assign();
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addComputeShader(
@@ -462,68 +405,28 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setCullMode(VkCullModeFlags cu
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::setPrimitiveCount(
-    uint32_t primitiveCount) {
-  this->_primitiveCount = primitiveCount;
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setMaterialPoolSize(
+    uint32_t poolSize) {
+  this->_materialPoolSize = poolSize;
 
   return *this;
 }
 
-DescriptorAssignment::DescriptorAssignment(
-    GraphicsPipeline& pipeline, 
-    VkDescriptorSet& targetDescriptorSet) :
-    _pipeline(pipeline),
-    _targetDescriptorSet(targetDescriptorSet) {
-  this->_descriptorWrites.resize(
-      this->_pipeline._descriptorSetLayoutBindings.size());
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setGlobalResources(
+    VkDescriptorSetLayout layout,
+    const std::shared_ptr<DescriptorSet>& pDescriptorSet) {
+  this->_globalResourceLayout = layout;
+  this->_pGlobalResources = pDescriptorSet;
 
-  this->_targetDescriptorSet = this->_pipeline._descriptorSets.back();
-  this->_pipeline._descriptorSets.pop_back();
+  return *this;
 }
 
-DescriptorAssignment::~DescriptorAssignment() {
-  // The descriptor writes for this descriptor set are commited when this 
-  // assignment object goes out of scope.
-  vkUpdateDescriptorSets(
-      this->_pipeline._device, 
-      static_cast<uint32_t>(this->_descriptorWrites.size()),
-      this->_descriptorWrites.data(),
-      0,
-      nullptr);
-}
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setRenderPassResources(
+    VkDescriptorSetLayout layout,
+    const std::shared_ptr<DescriptorSet>& pDescriptorSet) {
+  this->_renderPassResourceLayout = layout;
+  this->_pRenderPassResources = pDescriptorSet;
 
-DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
-    VkImageView imageView, VkSampler sampler) {
-  if ((size_t)this->_currentIndex >= 
-      this->_pipeline._descriptorSetLayoutBindings.size()) {
-    throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
-  }
-
-  if (this->_pipeline._descriptorSetLayoutBindings[this->_currentIndex].descriptorType !=
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
-    throw std::runtime_error("Unexpected binding in descriptor set.");
-  }
-
-  this->_descriptorImageInfos.push_back(std::make_unique<VkDescriptorImageInfo>());
-  VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
-
-  textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  textureImageInfo.imageView = imageView;
-  textureImageInfo.sampler = sampler;
-  
-  VkWriteDescriptorSet& descriptorWrite = 
-      this->_descriptorWrites[this->_currentIndex];
-  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrite.dstSet = this->_targetDescriptorSet;
-  descriptorWrite.dstBinding = this->_currentIndex;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = nullptr;
-  descriptorWrite.pImageInfo = &textureImageInfo;
-  descriptorWrite.pTexelBufferView = nullptr;
-
-  ++this->_currentIndex;
   return *this;
 }
 } // namespace AltheaEngine

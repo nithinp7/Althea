@@ -37,20 +37,6 @@ void SponzaTest::createRenderState(Application& app) {
   this->_pCameraController->getCamera().setAspectRatio(
       (float)extent.width/(float)extent.height);
 
-  const static std::array<std::string, 6> skyboxImagePaths = {
-    "../Content/Models/Skybox/right.jpg",
-    "../Content/Models/Skybox/left.jpg",
-    "../Content/Models/Skybox/top.jpg",
-    "../Content/Models/Skybox/bottom.jpg",
-    "../Content/Models/Skybox/front.jpg",
-    "../Content/Models/Skybox/back.jpg"
-  };
-
-  this->_pSkybox = 
-      std::make_unique<Skybox>(
-        app,
-        skyboxImagePaths);
-
   ShaderManager& shaderManager = app.getShaderManager();
 
   // TODO: Default color and depth-stencil clear values for attachments?
@@ -72,28 +58,30 @@ void SponzaTest::createRenderState(Application& app) {
     subpassBuilder.colorAttachments.push_back(0);
     
     Skybox::buildPipeline(app, subpassBuilder.pipelineBuilder);
+    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
   }
   
-  this->_pSponzaModel = 
-      std::make_unique<Model>(
-        app,
-        "Sponza.gltf");
-
   // REGULAR PASS
   {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
     subpassBuilder.depthAttachment = 1;
     
-    uint32_t primitiveCount = 
-        static_cast<uint32_t>(this->_pSponzaModel->getPrimitivesCount());
-
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
+    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
+    if (this->_envMap) {
+      // Add environment cubemap binding
+      subpassBuilder.pipelineBuilder.materialResourceLayoutBuilder
+          .addTextureBinding();
+    }
+
     subpassBuilder.pipelineBuilder
-        .addVertexShader(shaderManager, "BasicGltf.vert")
-        .addFragmentShader(shaderManager, "BasicGltf.frag")
-        
-        .setPrimitiveCount(primitiveCount);
+        .addVertexShader(
+          shaderManager, this->_currentShader + std::string(".vert"))
+        .addFragmentShader(
+          shaderManager, this->_currentShader + std::string(".frag"));
   }
 
   this->_pRenderPass = 
@@ -104,16 +92,26 @@ void SponzaTest::createRenderState(Application& app) {
 
   std::vector<Subpass>& subpasses = this->_pRenderPass->getSubpasses();
 
-  // TODO: combine descriptor assignment with construction?
-  // Wait to create the objects until the corresponding pipeline is ready?
-  
-  // Assign descriptor sets for skybox uniform updates
-  this->_pSkybox->assignDescriptorSets(app, subpasses[0].getPipeline());
+  const static std::array<std::string, 6> skyboxImagePaths = {
+    "../Content/Models/Skybox/right.jpg",
+    "../Content/Models/Skybox/left.jpg",
+    "../Content/Models/Skybox/top.jpg",
+    "../Content/Models/Skybox/bottom.jpg",
+    "../Content/Models/Skybox/front.jpg",
+    "../Content/Models/Skybox/back.jpg"
+  };
 
-  // Assign descriptor sets for regular object pass
-  this->_pSponzaModel->assignDescriptorSets(
-      app, 
-      subpasses[1].getPipeline());
+  this->_pSkybox = 
+      std::make_unique<Skybox>(
+        app,
+        skyboxImagePaths,
+        subpasses[0].getPipeline().getMaterialAllocator());
+
+  this->_pSponzaModel = 
+      std::make_unique<Model>(
+        app,
+        "Sponza.gltf",
+        subpasses[1].getPipeline().getMaterialAllocator());
 }
 
 void SponzaTest::destroyRenderState(Application& app) {

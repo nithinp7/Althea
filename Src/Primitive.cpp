@@ -5,6 +5,7 @@
 #include "DefaultTextures.h"
 #include "GeometryUtilities.h"
 #include "GraphicsPipeline.h"
+#include "DescriptorSet.h"
 
 #include <CesiumGltf/MeshPrimitive.h>
 #include <CesiumGltf/Model.h>
@@ -70,13 +71,13 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
         VertexAttributeType::VEC3, offsetof(Vertex, uvs[i])); 
   }     
   
-  builder
+  builder.enableDynamicFrontFace();
+  
+  builder.materialResourceLayoutBuilder
       .addUniformBufferBinding()
       .addConstantsBufferBinding<PrimitiveConstants>()
       .addTextureBinding()
-      .addTextureBinding()
-
-      .enableDynamicFrontFace();
+      .addTextureBinding();
 }
 
 template <typename TIndex>
@@ -211,7 +212,8 @@ Primitive::Primitive(
     const Application& app,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
-    const glm::mat4& nodeTransform) 
+    const glm::mat4& nodeTransform,
+    DescriptorSetAllocator& materialAllocator) 
   : _device(app.getDevice()),
     _relativeTransform(nodeTransform),
     _flipFrontFace(glm::determinant(nodeTransform) < 0.0f) {
@@ -424,24 +426,26 @@ Primitive::Primitive(
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
 
-  this->_descriptorSets.resize(app.getMaxFramesInFlight());
+  this->_createMaterial(app, materialAllocator);
 }
 
-void Primitive::assignDescriptorSets(
-    const Application& app, GraphicsPipeline& pipeline) {
+void Primitive::_createMaterial(
+    const Application& app, 
+    DescriptorSetAllocator& materialAllocator) {
   uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
-  this->_descriptorSets.resize(maxFramesInFlight);
+  this->_descriptorSets.reserve(maxFramesInFlight);
   for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
-    pipeline.assignDescriptorSet(this->_descriptorSets[i])
-        .bindUniformBufferDescriptor<ModelViewProjection>(this->_uniformBuffers[i])
-        .bindInlineConstantDescriptors(&this->_constants)
-        .bindTextureDescriptor(
-            this->_textureSlots.pBaseTexture->getImageView(),
-            this->_textureSlots.pBaseTexture->getSampler())
-        .bindTextureDescriptor(
-            this->_textureSlots.pNormalMapTexture->getImageView(),
-            this->_textureSlots.pNormalMapTexture->getSampler());
-  }
+    this->_descriptorSets.emplace_back(materialAllocator.allocate())
+        .assign()
+          .bindUniformBufferDescriptor<ModelViewProjection>(this->_uniformBuffers[i])
+          .bindInlineConstantDescriptors(&this->_constants)
+          .bindTextureDescriptor(
+              this->_textureSlots.pBaseTexture->getImageView(),
+              this->_textureSlots.pBaseTexture->getSampler())
+          .bindTextureDescriptor(
+              this->_textureSlots.pNormalMapTexture->getImageView(),
+              this->_textureSlots.pNormalMapTexture->getSampler());
+    }
 }
 
 void Primitive::updateUniforms(
@@ -474,7 +478,8 @@ void Primitive::draw(
       pipelineLayout, 
       0, 
       1, 
-      &this->_descriptorSets[frame.frameRingBufferIndex], 
+      &this->_descriptorSets[frame.frameRingBufferIndex]
+          .getVkDescriptorSet(), 
       0, 
       nullptr);
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);

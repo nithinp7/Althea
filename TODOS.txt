@@ -29,6 +29,7 @@ Short-term goals / logistics:
 -Cleanup / readability / organization pass of Application.cpp
    -decouple ImageUtilities from Application (should not be hard)
 -dynamic primitive count (descriptor set allocator)
+-stress test object count
 -UBO abstraction 
 -batched UBO updates
 -Basic skybox 

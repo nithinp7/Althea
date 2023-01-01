@@ -23,8 +23,9 @@ struct TextureInfo;
 
 namespace AltheaEngine {
 class Application;
-class GraphicsPipeline;
 class GraphicsPipelineBuilder;
+class DescriptorSet;
+class DescriptorSetAllocator;
 
 struct Vertex {
   glm::vec3 position{};
@@ -72,19 +73,19 @@ private:
   VkDeviceMemory _indexBufferMemory;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
   
-  std::vector<VkDescriptorSet> _descriptorSets;
+  std::vector<DescriptorSet> _descriptorSets;
 public:
   Primitive(
       const Application& app,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
-      const glm::mat4& nodeTransform);
+      const glm::mat4& nodeTransform,
+      DescriptorSetAllocator& materialAllocator);
   Primitive(const Primitive& rhs) = delete;
   Primitive& operator=(const Primitive& rhs) = delete;
   Primitive(Primitive&& rhs) = delete;
   ~Primitive();
 
-  void assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline);
   void updateUniforms(
       const glm::mat4& parentTransform, 
       const glm::mat4& view, 
@@ -94,5 +95,10 @@ public:
       const VkCommandBuffer& commandBuffer, 
       const VkPipelineLayout& pipelineLayout, 
       const FrameContext& frame) const;
+
+private: 
+  void _createMaterial(
+      const Application& app, 
+      DescriptorSetAllocator& materialAllocator);
 };
 } // namespace AltheaEngine

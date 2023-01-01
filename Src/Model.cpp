@@ -3,6 +3,7 @@
 #include "FileAssetAccessor.h"
 #include "TaskProcessor.h"
 #include "GraphicsPipeline.h"
+#include "DescriptorSet.h"
 
 #include "Utilities.h"
 #include <gsl/span>
@@ -136,7 +137,8 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
 
 Model::Model(
     const Application& app, 
-    const std::string& name) {
+    const std::string& name,
+    DescriptorSetAllocator& materialAllocator) {
   std::string path = "../Content/Models/" + name;
 
   // TODO: just for testing
@@ -180,18 +182,18 @@ Model::Model(
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform);
+        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform, materialAllocator);
       }
     }
   } else if (this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[0];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform);
+        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform, materialAllocator);
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_loadNode(app, this->_model, this->_model.nodes[0], transform);
+    this->_loadNode(app, this->_model, this->_model.nodes[0], transform, materialAllocator);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
@@ -199,7 +201,8 @@ Model::Model(
             app, 
             this->_model, 
             primitive,
-            transform));
+            transform,
+            materialAllocator));
       }
     }
   }
@@ -207,12 +210,6 @@ Model::Model(
 
 size_t Model::getPrimitivesCount() const {
   return this->_primitives.size();
-}
-
-void Model::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
-  for (std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
-    pPrimitive->assignDescriptorSets(app, pipeline);
-  }
 }
 
 void Model::updateUniforms(
@@ -236,7 +233,8 @@ void Model::_loadNode(
     const Application& app,
     const CesiumGltf::Model& model, 
     const CesiumGltf::Node& node, 
-    const glm::mat4& transform) {
+    const glm::mat4& transform,
+    DescriptorSetAllocator& materialAllocator) {
   static constexpr std::array<double, 16> identityMatrix = {
       1.0,
       0.0,
@@ -308,77 +306,15 @@ void Model::_loadNode(
         app, 
         this->_model, 
         primitive,
-        nodeTransform));
+        nodeTransform,
+        materialAllocator));
     }
   }
 
   for (int32_t childNodeId : node.children) {
     if (childNodeId >= 0 && childNodeId < model.nodes.size()) {
-      this->_loadNode(app, model, model.nodes[childNodeId], nodeTransform);
+      this->_loadNode(app, model, model.nodes[childNodeId], nodeTransform, materialAllocator);
     }
-  }
-}
-
-namespace {
-class ModelsConfigCategory : public ConfigCategory {
-private: 
-  std::string _graphicsPipelineName;
-public:
-  std::vector<std::string> modelNames;
-
-  ModelsConfigCategory(const std::string& graphicsPipelineName) 
-    : ConfigCategory("MODELS_LIST"),
-      _graphicsPipelineName(graphicsPipelineName) {}
-
-  void parseLine(const std::string& line) override {
-    size_t split = line.find(" ");
-    if (split != std::string::npos && 
-        line.substr(0, split) == this->_graphicsPipelineName) {
-      this->modelNames.push_back(line.substr(split + 1, line.size()));
-    }
-  }
-};
-} // namespace
-
-ModelManager::ModelManager(
-    const Application& app,
-    const std::string& graphicsPipelineName) {      
-  ModelsConfigCategory modelsList(graphicsPipelineName);
-  app.getConfigParser().parseCategory(modelsList);
-
-  this->_models.reserve(modelsList.modelNames.size());
-  for (const std::string& modelName : modelsList.modelNames) {
-    this->_models.push_back(std::make_unique<Model>(app, modelName));
-  }
-}
-
-size_t ModelManager::getPrimitivesCount() const {
-  size_t primitivesCount = 0;
-  for (const std::unique_ptr<Model>& pModel : this->_models) {
-    primitivesCount += pModel->getPrimitivesCount();
-  }
-  return primitivesCount;
-}
-
-void ModelManager::assignDescriptorSets(const Application& app, GraphicsPipeline& pipeline) {
-  for (std::unique_ptr<Model>& pModel : this->_models) {
-    pModel->assignDescriptorSets(app, pipeline);
-  }
-}
-
-void ModelManager::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
-  for (const std::unique_ptr<Model>& pModel : this->_models) {
-    pModel->updateUniforms(view, projection, frame);
-  }
-}
-
-void ModelManager::draw(
-    const VkCommandBuffer& commandBuffer,
-    const VkPipelineLayout& pipelineLayout, 
-    const FrameContext& frame) const {  
-  for (const std::unique_ptr<Model>& pModel : this->_models) {
-    pModel->draw(commandBuffer, pipelineLayout, frame);
   }
 }
 } // namespace AltheaEngine

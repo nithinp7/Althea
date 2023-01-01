@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GraphicsPipeline.h"
+#include "DescriptorSet.h"
 #include "FrameContext.h"
 
 #include <vulkan/vulkan.h>
@@ -64,7 +65,8 @@ public:
       const Application& app, 
       const PipelineContext& context, 
       const SubpassBuilder& builder);
-
+  Subpass(Subpass&& rhs) = default;
+  
   const GraphicsPipeline& getPipeline() const {
     return this->_pipeline;
   }
@@ -72,6 +74,13 @@ public:
   GraphicsPipeline& getPipeline() {
     return this->_pipeline;
   }
+  
+  /**
+   * @brief Begin binding subpass-wide resources.
+   * 
+   * @return The resource bindings builder. 
+   */
+  DescriptorAssignment beginBindSubpassResources();
 private:
   GraphicsPipeline _pipeline;
 };

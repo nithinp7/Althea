@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "GraphicsPipeline.h"
 #include "ShaderManager.h"
+#include "DescriptorSet.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -17,28 +18,32 @@ namespace AltheaEngine {
 /*static*/
 void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
   ShaderManager& shaderManager = app.getShaderManager();
-  builder
+  builder.materialResourceLayoutBuilder
       .addUniformBufferBinding()
-      .addTextureBinding()
+      .addTextureBinding();
 
+  builder
       .addVertexShader(shaderManager, "Skybox.vert")
       .addFragmentShader(shaderManager, "Skybox.frag")
 
       .setCullMode(VK_CULL_MODE_FRONT_BIT)
       .setDepthTesting(false)
 
-      .setPrimitiveCount(1);
+      .setMaterialPoolSize(1);
 }
 
 Skybox::Skybox(
     Application& app, 
-    const std::array<std::string, 6>& skyboxImagePaths) :
-    _device(app.getDevice()),
-    _cubemap(app, skyboxImagePaths) {
+    const std::array<std::string, 6>& skyboxImagePaths,
+    DescriptorSetAllocator& materialAllocator) :
+    _device(app.getDevice()) {
+  this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths);
   app.createUniformBuffers(
       sizeof(SkyboxUniforms),
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
+
+  this->_createMaterial(app, materialAllocator);
 }
 
 Skybox::~Skybox() {
@@ -51,15 +56,15 @@ Skybox::~Skybox() {
   }
 }
 
-// TODO: combine descriptor assignment with construction? Applies to Model too
-void Skybox::assignDescriptorSets(
+void Skybox::_createMaterial(
     Application& app, 
-    GraphicsPipeline& pipeline) {
-  this->_descriptorSets.resize(app.getMaxFramesInFlight());
-  for (uint32_t i = 0; i < this->_descriptorSets.size(); ++i) {
-    pipeline.assignDescriptorSet(this->_descriptorSets[i])
-        .bindUniformBufferDescriptor<SkyboxUniforms>(this->_uniformBuffers[i])
-        .bindTextureDescriptor(this->_cubemap.getImageView(), this->_cubemap.getSampler());
+    DescriptorSetAllocator& materialAllocator) {
+  for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
+    this->_descriptorSets.emplace_back(materialAllocator.allocate())
+        .assign()
+          .bindUniformBufferDescriptor<SkyboxUniforms>(this->_uniformBuffers[i])
+          .bindTextureDescriptor(
+              this->_pCubemap->getImageView(), this->_pCubemap->getSampler());
   }
 }
 
@@ -96,7 +101,8 @@ void Skybox::draw(
       pipelineLayout, 
       0, 
       1, 
-      &this->_descriptorSets[frame.frameRingBufferIndex],
+      &this->_descriptorSets[frame.frameRingBufferIndex]
+          .getVkDescriptorSet(),
       0,
       nullptr);
   vkCmdDraw(commandBuffer, 3, 1, 0, 0);
