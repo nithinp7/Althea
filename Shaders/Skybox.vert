@@ -2,7 +2,7 @@
 
 layout(location=0) smooth out vec3 direction;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(set=1, binding=0) uniform UniformBufferObject {
   mat4 inverseView;
   mat4 inverseProjection;
 } ubo;
