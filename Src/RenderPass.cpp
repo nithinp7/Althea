@@ -6,10 +6,10 @@
 
 namespace AltheaEngine {
 Subpass::Subpass(
-    const Application& app, 
-    const PipelineContext& context, 
-    const SubpassBuilder& builder) :
-  _pipeline(app, context, builder.pipelineBuilder) {}
+    const Application& app,
+    const PipelineContext& context,
+    const SubpassBuilder& builder)
+    : _pipeline(app, context, builder.pipelineBuilder) {}
 
 DescriptorAssignment Subpass::beginBindSubpassResources() {
   return this->_pipeline.beginBindSubpassResources();
@@ -17,10 +17,9 @@ DescriptorAssignment Subpass::beginBindSubpassResources() {
 
 RenderPass::RenderPass(
     const Application& app,
-    std::vector<Attachment>&& attachments, 
-    std::vector<SubpassBuilder>&& subpassBuilders) :
-    _attachments(std::move(attachments)),
-    _device(app.getDevice()) {
+    std::vector<Attachment>&& attachments,
+    std::vector<SubpassBuilder>&& subpassBuilders)
+    : _attachments(std::move(attachments)), _device(app.getDevice()) {
 
   // TODO: make this more readable
 
@@ -33,7 +32,8 @@ RenderPass::RenderPass(
 
     if (forPresent) {
       if (i > 0) {
-        throw std::runtime_error("Attachment for presentation must be the first attachment.");
+        throw std::runtime_error(
+            "Attachment for presentation must be the first attachment.");
       }
 
       this->_firstAttachmentFromSwapChain = true;
@@ -46,10 +46,9 @@ RenderPass::RenderPass(
     // context in the next TODO comment below.
     vkAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
-    vkAttachment.storeOp = 
-        attachment.internalUsageOnly ? 
-          VK_ATTACHMENT_STORE_OP_DONT_CARE :
-          VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachment.storeOp = attachment.internalUsageOnly
+                               ? VK_ATTACHMENT_STORE_OP_DONT_CARE
+                               : VK_ATTACHMENT_STORE_OP_STORE;
 
     vkAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -59,15 +58,14 @@ RenderPass::RenderPass(
     // previous frame buffers.
     vkAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    // If this attachment will be presented, the final layout should reflect that.
-    // Otherwise, the attachment may be used in subsequent render passes or used
-    // as a render target.
-    vkAttachment.finalLayout = 
-        forPresent ? 
-          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : 
-          attachment.type == AttachmentType::Depth ? 
-            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : 
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // If this attachment will be presented, the final layout should reflect
+    // that. Otherwise, the attachment may be used in subsequent render passes
+    // or used as a render target.
+    vkAttachment.finalLayout =
+        forPresent ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                   : attachment.type == AttachmentType::Depth
+                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   }
 
   std::vector<VkSubpassDescription> vkSubpasses;
@@ -76,32 +74,34 @@ RenderPass::RenderPass(
   subpassDependencies.resize(subpassBuilders.size());
 
   std::vector<std::vector<VkAttachmentReference>> subpassAttachmentReferences;
-  for (uint32_t subpassIndex = 0; 
-       subpassIndex < static_cast<uint32_t>(subpassBuilders.size()); 
+  for (uint32_t subpassIndex = 0;
+       subpassIndex < static_cast<uint32_t>(subpassBuilders.size());
        ++subpassIndex) {
 
     const SubpassBuilder& subpass = subpassBuilders[subpassIndex];
     VkSubpassDescription& vkSubpass = vkSubpasses[subpassIndex];
 
-    std::vector<VkAttachmentReference>& vkColorAttachments = 
+    std::vector<VkAttachmentReference>& vkColorAttachments =
         subpassAttachmentReferences.emplace_back();
     for (uint32_t attachmentIndex : subpass.colorAttachments) {
-      vkColorAttachments.push_back({attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+      vkColorAttachments.push_back(
+          {attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
     }
 
     std::optional<VkAttachmentReference> vkDepthAttachment = std::nullopt;
     if (subpass.depthAttachment) {
-      vkDepthAttachment = {*subpass.depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+      vkDepthAttachment = {
+          *subpass.depthAttachment,
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     }
 
     // TODO: Support other types of pipelines
     vkSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    vkSubpass.colorAttachmentCount = 
+    vkSubpass.colorAttachmentCount =
         static_cast<uint32_t>(vkColorAttachments.size());
     vkSubpass.pColorAttachments = vkColorAttachments.data();
-    vkSubpass.pDepthStencilAttachment = 
-        vkDepthAttachment ? 
-          &*vkDepthAttachment : nullptr;
+    vkSubpass.pDepthStencilAttachment =
+        vkDepthAttachment ? &*vkDepthAttachment : nullptr;
 
     VkPipelineStageFlags relevantStageFlags = 0;
     if (!subpass.colorAttachments.empty()) {
@@ -113,12 +113,14 @@ RenderPass::RenderPass(
     }
 
     VkSubpassDependency& dependency = subpassDependencies[subpassIndex];
-    dependency.srcSubpass = 
+    dependency.srcSubpass =
         (subpassIndex == 0) ? VK_SUBPASS_EXTERNAL : (subpassIndex - 1);
     dependency.dstSubpass = subpassIndex;
     dependency.srcStageMask = relevantStageFlags;
-    dependency.srcAccessMask = 
-        (subpassIndex == 0) ? 0 : subpassDependencies[subpassIndex-1].dstAccessMask;
+    dependency.srcAccessMask =
+        (subpassIndex == 0)
+            ? 0
+            : subpassDependencies[subpassIndex - 1].dstAccessMask;
     dependency.dstStageMask = relevantStageFlags;
 
     dependency.dstAccessMask = 0;
@@ -137,20 +139,24 @@ RenderPass::RenderPass(
   renderPassInfo.pAttachments = vkAttachments.data();
   renderPassInfo.subpassCount = static_cast<uint32_t>(vkSubpasses.size());
   renderPassInfo.pSubpasses = vkSubpasses.data();
-  renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
+  renderPassInfo.dependencyCount =
+      static_cast<uint32_t>(subpassDependencies.size());
   renderPassInfo.pDependencies = subpassDependencies.data();
 
-  if (vkCreateRenderPass(this->_device, &renderPassInfo, nullptr, &this->_renderPass) != VK_SUCCESS) {
+  if (vkCreateRenderPass(
+          this->_device,
+          &renderPassInfo,
+          nullptr,
+          &this->_renderPass) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create render pass!");
   }
 
-  // Create pipelines for all subpasses 
+  // Create pipelines for all subpasses
   this->_subpasses.reserve(subpassBuilders.size());
-  for (uint32_t subpassIndex = 0; 
-       subpassIndex < subpassBuilders.size();
+  for (uint32_t subpassIndex = 0; subpassIndex < subpassBuilders.size();
        ++subpassIndex) {
     this->_subpasses.emplace_back(
-        app,  
+        app,
         PipelineContext{this->_renderPass, subpassIndex},
         subpassBuilders[subpassIndex]);
   }
@@ -163,7 +169,7 @@ RenderPass::RenderPass(
     // This frame buffer will be used for presenting and the first attachment
     // will be from the swapchain. So we will need a different frame buffer for
     // each image in the swapchain.
-    const std::vector<VkImageView>& swapChainImageViews = 
+    const std::vector<VkImageView>& swapChainImageViews =
         app.getSwapChainImageViews();
     for (const VkImageView& swapChainImageView : swapChainImageViews) {
       this->_createFrameBuffer(extent, swapChainImageView);
@@ -199,7 +205,8 @@ void RenderPass::_createFrameBuffer(
   VkFramebufferCreateInfo framebufferInfo{};
   framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
   framebufferInfo.renderPass = this->_renderPass;
-  framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentImageViews.size());
+  framebufferInfo.attachmentCount =
+      static_cast<uint32_t>(attachmentImageViews.size());
   framebufferInfo.pAttachments = attachmentImageViews.data();
   framebufferInfo.width = extent.width;
   framebufferInfo.height = extent.height;
@@ -207,45 +214,44 @@ void RenderPass::_createFrameBuffer(
 
   VkFramebuffer& frameBuffer = this->_frameBuffers.emplace_back();
   if (vkCreateFramebuffer(
-        this->_device, 
-        &framebufferInfo, 
-        nullptr, 
-        &frameBuffer) != VK_SUCCESS) {
+          this->_device,
+          &framebufferInfo,
+          nullptr,
+          &frameBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create frame buffer!");
   }
 }
 
 ActiveRenderPass RenderPass::begin(
-    const Application& app, 
-    const VkCommandBuffer& commandBuffer, 
+    const Application& app,
+    const VkCommandBuffer& commandBuffer,
     const FrameContext& frame) {
-  return 
-      ActiveRenderPass(
-        *this, 
-        commandBuffer, 
-        frame, 
-        app.getSwapChainExtent());
+  return ActiveRenderPass(
+      *this,
+      commandBuffer,
+      frame,
+      app.getSwapChainExtent());
 }
 
 ActiveRenderPass::ActiveRenderPass(
-    const RenderPass& renderPass, 
+    const RenderPass& renderPass,
     const VkCommandBuffer& commandBuffer,
     const FrameContext& frame,
-    const VkExtent2D& extent) :
-    _currentSubpass(0),
-    _renderPass(renderPass),
-    _commandBuffer(commandBuffer),
-    _frame(frame) {
+    const VkExtent2D& extent)
+    : _currentSubpass(0),
+      _renderPass(renderPass),
+      _commandBuffer(commandBuffer),
+      _frame(frame) {
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = this->_renderPass._renderPass;
 
   if (this->_renderPass._firstAttachmentFromSwapChain) {
-    renderPassInfo.framebuffer = 
+    renderPassInfo.framebuffer =
         this->_renderPass._frameBuffers[this->_frame.swapChainImageIndex];
   }
-  
+
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = extent;
 
@@ -254,16 +260,16 @@ ActiveRenderPass::ActiveRenderPass(
     this->_clearValues[i] = this->_renderPass._attachments[i].clearValue;
   }
 
-  renderPassInfo.clearValueCount = 
+  renderPassInfo.clearValueCount =
       static_cast<uint32_t>(this->_clearValues.size());
   renderPassInfo.pClearValues = this->_clearValues.data();
 
-  const Subpass& currentSubpass = 
+  const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
-  
+
   // TODO: Support compute as well?
   vkCmdBeginRenderPass(
-      this->_commandBuffer, 
+      this->_commandBuffer,
       &renderPassInfo,
       VK_SUBPASS_CONTENTS_INLINE);
   currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
@@ -281,7 +287,7 @@ ActiveRenderPass& ActiveRenderPass::nextSubpass() {
 
   vkCmdNextSubpass(this->_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
-  const Subpass& currentSubpass = 
+  const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
   currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
 

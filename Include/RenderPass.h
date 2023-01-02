@@ -1,14 +1,15 @@
 #pragma once
 
-#include "GraphicsPipeline.h"
 #include "DescriptorSet.h"
 #include "FrameContext.h"
+#include "GraphicsPipeline.h"
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
-#include <optional>
 #include <cstdint>
+#include <optional>
+#include <vector>
+
 
 namespace AltheaEngine {
 class Application;
@@ -16,7 +17,7 @@ class Application;
 enum class AttachmentType {
   Color,
   Depth
-  //Stencil
+  // Stencil
 };
 
 struct Attachment {
@@ -26,19 +27,19 @@ struct Attachment {
   AttachmentType type;
 
   /**
-   * @brief The image format of this attachment. 
+   * @brief The image format of this attachment.
    */
   VkFormat format;
-  
+
   /**
    * @brief The clear color to use when loading this attachment.
    */
   VkClearValue clearValue;
 
   /**
-   * @brief The image required to construct the frame buffer for 
-   * this render pass. 
-   * 
+   * @brief The image required to construct the frame buffer for
+   * this render pass.
+   *
    * If this attachment will be used for presentation, leave this empty.
    * In that case, a frame buffer will be created for each swapchain image.
    */
@@ -46,7 +47,7 @@ struct Attachment {
 
   /**
    * @brief This attachment is only used inside this render pass and the results
-   * will not be used by subsequent uses of the image (e.g., depth attachment). 
+   * will not be used by subsequent uses of the image (e.g., depth attachment).
    */
   bool internalUsageOnly = false;
 };
@@ -62,25 +63,22 @@ struct SubpassBuilder {
 class Subpass {
 public:
   Subpass(
-      const Application& app, 
-      const PipelineContext& context, 
+      const Application& app,
+      const PipelineContext& context,
       const SubpassBuilder& builder);
   Subpass(Subpass&& rhs) = default;
-  
-  const GraphicsPipeline& getPipeline() const {
-    return this->_pipeline;
-  }
 
-  GraphicsPipeline& getPipeline() {
-    return this->_pipeline;
-  }
-  
+  const GraphicsPipeline& getPipeline() const { return this->_pipeline; }
+
+  GraphicsPipeline& getPipeline() { return this->_pipeline; }
+
   /**
    * @brief Begin binding subpass-wide resources.
-   * 
-   * @return The resource bindings builder. 
+   *
+   * @return The resource bindings builder.
    */
   DescriptorAssignment beginBindSubpassResources();
+
 private:
   GraphicsPipeline _pipeline;
 };
@@ -89,28 +87,25 @@ class ActiveRenderPass;
 class RenderPass {
 public:
   RenderPass(
-      const Application& app, 
-      std::vector<Attachment>&& attachments, 
+      const Application& app,
+      std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
 
   ActiveRenderPass begin(
-      const Application& app, 
-      const VkCommandBuffer& commandBuffer, 
+      const Application& app,
+      const VkCommandBuffer& commandBuffer,
       const FrameContext& frame);
 
-  const std::vector<Subpass>& getSubpasses() const {
-    return this->_subpasses;
-  }
+  const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
 
-  std::vector<Subpass>& getSubpasses() {
-    return this->_subpasses;
-  }
+  std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
+
 private:
   friend class ActiveRenderPass;
 
   void _createFrameBuffer(
-      const VkExtent2D& extent, 
+      const VkExtent2D& extent,
       const std::optional<VkImageView>& swapChainImageView);
 
   std::vector<Attachment> _attachments;
@@ -128,8 +123,8 @@ private:
 class ActiveRenderPass {
 public:
   ActiveRenderPass(
-      const RenderPass& renderPass, 
-      const VkCommandBuffer& commandBuffer, 
+      const RenderPass& renderPass,
+      const VkCommandBuffer& commandBuffer,
       const FrameContext& frame,
       const VkExtent2D& extent);
   ~ActiveRenderPass();
@@ -139,11 +134,11 @@ public:
   // TODO: create IDrawable interface instead?
   template <typename TDrawable>
   ActiveRenderPass& draw(const TDrawable& object) {
-    const Subpass& currentSubpass = 
+    const Subpass& currentSubpass =
         this->_renderPass._subpasses[this->_currentSubpass];
-    const VkPipelineLayout& pipelineLayout = 
+    const VkPipelineLayout& pipelineLayout =
         currentSubpass.getPipeline().getLayout();
-    
+
     object.draw(this->_commandBuffer, pipelineLayout, this->_frame);
 
     return *this;

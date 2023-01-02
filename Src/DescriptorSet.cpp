@@ -1,11 +1,13 @@
 #include "DescriptorSet.h"
+
 #include "Application.h"
 
-#include <stdexcept>
 #include <cassert>
+#include <stdexcept>
+
 
 namespace AltheaEngine {
-DescriptorSetLayoutBuilder& 
+DescriptorSetLayoutBuilder&
 DescriptorSetLayoutBuilder::addTextureBinding(VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
   VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
@@ -18,8 +20,8 @@ DescriptorSetLayoutBuilder::addTextureBinding(VkShaderStageFlags stageFlags) {
   return *this;
 }
 
-DescriptorSetLayoutBuilder& 
-DescriptorSetLayoutBuilder::addUniformBufferBinding(VkShaderStageFlags stageFlags) {
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addUniformBufferBinding(
+    VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
   VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
   binding.binding = bindingIndex;
@@ -31,11 +33,10 @@ DescriptorSetLayoutBuilder::addUniformBufferBinding(VkShaderStageFlags stageFlag
   return *this;
 }
 
-
-DescriptorSet::DescriptorSet(DescriptorSet&& rhs) noexcept :
-    _device(rhs._device),
-    _descriptorSet(rhs._descriptorSet),
-    _allocator(rhs._allocator) {
+DescriptorSet::DescriptorSet(DescriptorSet&& rhs) noexcept
+    : _device(rhs._device),
+      _descriptorSet(rhs._descriptorSet),
+      _allocator(rhs._allocator) {
   // Is this hacky? This prevents the moved-from object from
   // releasing the descriptor set handle.
   rhs._descriptorSet = VK_NULL_HANDLE;
@@ -48,10 +49,8 @@ DescriptorSet& DescriptorSet::operator=(DescriptorSet&& rhs) noexcept {
 DescriptorSet::DescriptorSet(
     VkDevice device,
     VkDescriptorSet descriptorSet,
-    DescriptorSetAllocator& allocator) :
-    _device(device),
-    _descriptorSet(descriptorSet),
-    _allocator(allocator) {}
+    DescriptorSetAllocator& allocator)
+    : _device(device), _descriptorSet(descriptorSet), _allocator(allocator) {}
 
 DescriptorSet::~DescriptorSet() {
   if (this->_descriptorSet != VK_NULL_HANDLE) {
@@ -60,35 +59,32 @@ DescriptorSet::~DescriptorSet() {
 }
 
 DescriptorAssignment DescriptorSet::assign() {
-  return 
-      DescriptorAssignment(
-        this->_device,
-        this->_descriptorSet, 
-        this->_allocator.getBindings());
+  return DescriptorAssignment(
+      this->_device,
+      this->_descriptorSet,
+      this->_allocator.getBindings());
 }
 
 DescriptorAssignment::DescriptorAssignment(
     VkDevice device,
     VkDescriptorSet descriptorSet,
-    const std::vector<VkDescriptorSetLayoutBinding>& bindings) :
-    _device(device),
-    _descriptorSet(descriptorSet),
-    _bindings(bindings) {
+    const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+    : _device(device), _descriptorSet(descriptorSet), _bindings(bindings) {
   this->_descriptorWrites.resize(this->_bindings.size());
 }
 
 // TODO: Use an explicit endBinding function instead of the destructor
 // since we cannot throw or assert in destructors.
 DescriptorAssignment::~DescriptorAssignment() {
-  // The descriptor writes for this descriptor set are commited when this 
+  // The descriptor writes for this descriptor set are commited when this
   // assignment object goes out of scope.
   // if (this->_currentIndex != this->_bindings.size()) {
-  //   // throw std::runtime_error("Attempting to finish descriptor assignment with the wrong number of bindings.");
-  //   assert(false);
+  //   // throw std::runtime_error("Attempting to finish descriptor assignment
+  //   with the wrong number of bindings."); assert(false);
   // }
 
   vkUpdateDescriptorSets(
-      this->_device, 
+      this->_device,
       static_cast<uint32_t>(this->_descriptorWrites.size()),
       this->_descriptorWrites.data(),
       0,
@@ -96,10 +92,11 @@ DescriptorAssignment::~DescriptorAssignment() {
 }
 
 DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
-    VkImageView imageView, VkSampler sampler) {
-  if ((size_t)this->_currentIndex >= 
-      this->_bindings.size()) {
-    throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
+    VkImageView imageView,
+    VkSampler sampler) {
+  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+    throw std::runtime_error(
+        "Exceeded expected number of bindings in descriptor set.");
   }
 
   if (this->_bindings[this->_currentIndex].descriptorType !=
@@ -107,14 +104,15 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
     throw std::runtime_error("Unexpected binding in descriptor set.");
   }
 
-  this->_descriptorImageInfos.push_back(std::make_unique<VkDescriptorImageInfo>());
+  this->_descriptorImageInfos.push_back(
+      std::make_unique<VkDescriptorImageInfo>());
   VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
 
   textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   textureImageInfo.imageView = imageView;
   textureImageInfo.sampler = sampler;
-  
-  VkWriteDescriptorSet& descriptorWrite = 
+
+  VkWriteDescriptorSet& descriptorWrite =
       this->_descriptorWrites[this->_currentIndex];
   descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   descriptorWrite.dstSet = this->_descriptorSet;
@@ -131,30 +129,29 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
 }
 
 DescriptorSetAllocator::DescriptorSetAllocator(
-    const Application& app, 
+    const Application& app,
     const DescriptorSetLayoutBuilder& layoutBuilder,
-    uint32_t setsPerPool) :
-    _device(app.getDevice()),
-    _setsPerPool(setsPerPool),
-    _hasInlineUniformBlock(layoutBuilder._hasInlineUniformBlock),
-    _bindings(layoutBuilder._bindings) {
-  
+    uint32_t setsPerPool)
+    : _device(app.getDevice()),
+      _setsPerPool(setsPerPool),
+      _hasInlineUniformBlock(layoutBuilder._hasInlineUniformBlock),
+      _bindings(layoutBuilder._bindings) {
+
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
-  descriptorSetLayoutInfo.sType = 
+  descriptorSetLayoutInfo.sType =
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  descriptorSetLayoutInfo.bindingCount = 
+  descriptorSetLayoutInfo.bindingCount =
       static_cast<uint32_t>(layoutBuilder._bindings.size());
   descriptorSetLayoutInfo.pBindings = layoutBuilder._bindings.data();
 
   if (vkCreateDescriptorSetLayout(
-          this->_device, 
-          &descriptorSetLayoutInfo, 
-          nullptr, 
-          &this->_layout) 
-        != VK_SUCCESS) {
+          this->_device,
+          &descriptorSetLayoutInfo,
+          nullptr,
+          &this->_layout) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create descriptor set layout!");
   }
-  
+
   // Create descriptor pool sizes according to the descriptor set layout.
   // This will be used later when creating new pools.
   for (const VkDescriptorSetLayoutBinding& binding : layoutBuilder._bindings) {
@@ -168,7 +165,8 @@ DescriptorSetAllocator::DescriptorSetAllocator(
 DescriptorSetAllocator::~DescriptorSetAllocator() {
   // if (this->_freeSets.size() != this->_pools.size() * this->_setsPerPool) {
   //   // TODO: It may be slightly harsh to throw an error here.
-  //   throw std::runtime_error("Attempting to destroy descriptor set allocator before freeing all descriptor sets!");
+  //   throw std::runtime_error("Attempting to destroy descriptor set allocator
+  //   before freeing all descriptor sets!");
   // }
 
   for (VkDescriptorPool pool : this->_pools) {
@@ -183,32 +181,31 @@ DescriptorSet DescriptorSetAllocator::allocate() {
     // No free sets available, create a new descriptor set pool.
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 
-        static_cast<uint32_t>(this->_poolSizes.size());
+    poolInfo.poolSizeCount = static_cast<uint32_t>(this->_poolSizes.size());
     poolInfo.pPoolSizes = this->_poolSizes.data();
     poolInfo.maxSets = this->_setsPerPool;
-    
-    VkDescriptorPoolInlineUniformBlockCreateInfo inlineDescriptorPoolCreateInfo{};
+
+    VkDescriptorPoolInlineUniformBlockCreateInfo
+        inlineDescriptorPoolCreateInfo{};
     if (this->_hasInlineUniformBlock) {
-      inlineDescriptorPoolCreateInfo.sType = 
+      inlineDescriptorPoolCreateInfo.sType =
           VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO;
-      inlineDescriptorPoolCreateInfo.maxInlineUniformBlockBindings = 
+      inlineDescriptorPoolCreateInfo.maxInlineUniformBlockBindings =
           this->_setsPerPool;
 
       poolInfo.pNext = &inlineDescriptorPoolCreateInfo;
     }
 
     VkDescriptorPool& pool = this->_pools.emplace_back();
-    if (vkCreateDescriptorPool(
-          this->_device, 
-          &poolInfo, 
-          nullptr, 
-          &pool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(this->_device, &poolInfo, nullptr, &pool) !=
+        VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool!");
     }
 
     // Allocate all the descriptor sets for the new pool.
-    std::vector<VkDescriptorSetLayout> layouts(this->_setsPerPool, this->_layout);
+    std::vector<VkDescriptorSetLayout> layouts(
+        this->_setsPerPool,
+        this->_layout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = pool;
@@ -218,9 +215,9 @@ DescriptorSet DescriptorSetAllocator::allocate() {
     size_t currentFreeSetsCount = this->_freeSets.size();
     this->_freeSets.resize(currentFreeSetsCount + this->_setsPerPool);
     if (vkAllocateDescriptorSets(
-          this->_device, 
-          &allocInfo, 
-          &this->_freeSets[currentFreeSetsCount]) != VK_SUCCESS) {
+            this->_device,
+            &allocInfo,
+            &this->_freeSets[currentFreeSetsCount]) != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate descriptor sets!");
     }
   }

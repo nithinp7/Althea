@@ -1,26 +1,26 @@
 #include "Model.h"
+
 #include "Application.h"
-#include "FileAssetAccessor.h"
-#include "TaskProcessor.h"
-#include "GraphicsPipeline.h"
 #include "DescriptorSet.h"
-
+#include "FileAssetAccessor.h"
+#include "GraphicsPipeline.h"
+#include "TaskProcessor.h"
 #include "Utilities.h"
-#include <gsl/span>
-
-#include <glm/gtc/quaternion.hpp>
 
 #include <CesiumAsync/AsyncSystem.h>
 #include <CesiumGltfReader/GltfReader.h>
-#include <memory>
-#include <array>
-
-#include <filesystem>
-
+#include <glm/gtc/quaternion.hpp>
+#include <gsl/span>
 #include <vulkan/vulkan.h>
 
+#include <array>
+#include <filesystem>
+#include <memory>
+
+
 namespace AltheaEngine {
-static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalData(
+static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult>
+resolveExternalData(
     CesiumAsync::AsyncSystem asyncSystem,
     const std::string& baseUrl,
     std::shared_ptr<CesiumAsync::IAssetAccessor> pAssetAccessor,
@@ -50,7 +50,8 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
     return asyncSystem.createResolvedFuture(std::move(result));
   }
 
-  auto pResult = std::make_unique<CesiumGltfReader::GltfReaderResult>(std::move(result));
+  auto pResult =
+      std::make_unique<CesiumGltfReader::GltfReaderResult>(std::move(result));
 
   struct ExternalBufferLoadResult {
     bool success = false;
@@ -70,11 +71,15 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
     if (buffer.uri && buffer.uri->substr(0, dataPrefixLength) != dataPrefix) {
       resolvedBuffers.push_back(
           pAssetAccessor
-              ->get(asyncSystem, basePath.parent_path().append(*buffer.uri).string(), {})
+              ->get(
+                  asyncSystem,
+                  basePath.parent_path().append(*buffer.uri).string(),
+                  {})
               .thenInWorkerThread(
-                  [pBuffer =
-                   &buffer](std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest) {
-                    const CesiumAsync::IAssetResponse* pResponse = pRequest->response();
+                  [pBuffer = &buffer](
+                      std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest) {
+                    const CesiumAsync::IAssetResponse* pResponse =
+                        pRequest->response();
 
                     std::string bufferUri = *pBuffer->uri;
 
@@ -95,12 +100,16 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
     if (image.uri && image.uri->substr(0, dataPrefixLength) != dataPrefix) {
       resolvedBuffers.push_back(
           pAssetAccessor
-              ->get(asyncSystem, basePath.parent_path().append(*image.uri).string(), {})
+              ->get(
+                  asyncSystem,
+                  basePath.parent_path().append(*image.uri).string(),
+                  {})
               .thenInWorkerThread(
                   [pImage = &image,
                    ktx2TranscodeTargets = options.ktx2TranscodeTargets](
                       std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest) {
-                    const CesiumAsync::IAssetResponse* pResponse = pRequest->response();
+                    const CesiumAsync::IAssetResponse* pResponse =
+                        pRequest->response();
 
                     std::string imageUri = *pImage->uri;
 
@@ -108,7 +117,9 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
                       pImage->uri = std::nullopt;
 
                       CesiumGltfReader::ImageReaderResult imageResult =
-                          CesiumGltfReader::GltfReader::readImage(pResponse->data(), ktx2TranscodeTargets);
+                          CesiumGltfReader::GltfReader::readImage(
+                              pResponse->data(),
+                              ktx2TranscodeTargets);
                       if (imageResult.image) {
                         pImage->cesium = std::move(*imageResult.image);
                         return ExternalBufferLoadResult{true, imageUri};
@@ -136,7 +147,7 @@ static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> resolveExternalDa
 }
 
 Model::Model(
-    const Application& app, 
+    const Application& app,
     const std::string& name,
     DescriptorSetAllocator& materialAllocator) {
   std::string path = "../Content/Models/" + name;
@@ -150,25 +161,24 @@ Model::Model(
   // TODO:
   // options.ktx2TranscodeTargets ...
   CesiumGltfReader::GltfReader reader;
-  CesiumGltfReader::GltfReaderResult result = 
-      reader.readGltf(
-        gsl::span<const std::byte>(
-          reinterpret_cast<const std::byte*>(modelFile.data()), 
+  CesiumGltfReader::GltfReaderResult result = reader.readGltf(
+      gsl::span<const std::byte>(
+          reinterpret_cast<const std::byte*>(modelFile.data()),
           modelFile.size()),
-        options);
-  
-  CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> futureResult = 
+      options);
+
+  CesiumAsync::Future<CesiumGltfReader::GltfReaderResult> futureResult =
       resolveExternalData(
-        async,
-        // this might not be a valid base url, may need to remove file name
-        path,
-        std::make_shared<FileAssetAccessor>(),
-        options,
-        std::move(result));
+          async,
+          // this might not be a valid base url, may need to remove file name
+          path,
+          std::make_shared<FileAssetAccessor>(),
+          options,
+          std::move(result));
 
   // All on main thread right now, but not safe in general.
   result = futureResult.wait();
-  
+
   if (!result.model) {
     return;
   }
@@ -178,28 +188,44 @@ Model::Model(
 
   glm::mat4 transform(1.0f);
 
-  if (this->_model.scene >= 0 && this->_model.scene < this->_model.scenes.size()) {
+  if (this->_model.scene >= 0 &&
+      this->_model.scene < this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform, materialAllocator);
+        this->_loadNode(
+            app,
+            this->_model,
+            this->_model.nodes[nodeId],
+            transform,
+            materialAllocator);
       }
     }
   } else if (this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[0];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(app, this->_model, this->_model.nodes[nodeId], transform, materialAllocator);
+        this->_loadNode(
+            app,
+            this->_model,
+            this->_model.nodes[nodeId],
+            transform,
+            materialAllocator);
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_loadNode(app, this->_model, this->_model.nodes[0], transform, materialAllocator);
+    this->_loadNode(
+        app,
+        this->_model,
+        this->_model.nodes[0],
+        transform,
+        materialAllocator);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
         this->_primitives.push_back(std::make_unique<Primitive>(
-            app, 
-            this->_model, 
+            app,
+            this->_model,
             primitive,
             transform,
             materialAllocator));
@@ -208,31 +234,34 @@ Model::Model(
   }
 }
 
-size_t Model::getPrimitivesCount() const {
-  return this->_primitives.size();
-}
+size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
 
 void Model::updateUniforms(
-    const glm::mat4& view, const glm::mat4& projection, const FrameContext& frame) const {
+    const glm::mat4& view,
+    const glm::mat4& projection,
+    const FrameContext& frame) const {
   for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
-    pPrimitive->updateUniforms(glm::mat4(1.0f), view, projection, frame.frameRingBufferIndex);
+    pPrimitive->updateUniforms(
+        glm::mat4(1.0f),
+        view,
+        projection,
+        frame.frameRingBufferIndex);
   }
 }
 
 void Model::draw(
-    const VkCommandBuffer& commandBuffer, 
+    const VkCommandBuffer& commandBuffer,
     const VkPipelineLayout& pipelineLayout,
     const FrameContext& frame) const {
-  for (const std::unique_ptr<Primitive>& pPrimitive : 
-       this->_primitives) {
+  for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
     pPrimitive->draw(commandBuffer, pipelineLayout, frame);
   }
 }
 
 void Model::_loadNode(
     const Application& app,
-    const CesiumGltf::Model& model, 
-    const CesiumGltf::Node& node, 
+    const CesiumGltf::Model& model,
+    const CesiumGltf::Node& node,
     const glm::mat4& transform,
     DescriptorSetAllocator& materialAllocator) {
   static constexpr std::array<double, 16> identityMatrix = {
@@ -264,10 +293,26 @@ void Model::_loadNode(
 
   if (matrix.size() == 16 && !isIdentityMatrix) {
     glm::mat4x4 nodeTransformGltf(
-        glm::vec4(static_cast<float>(matrix[0]), static_cast<float>(matrix[1]), static_cast<float>(matrix[2]), static_cast<float>(matrix[3])),
-        glm::vec4(static_cast<float>(matrix[4]), static_cast<float>(matrix[5]), static_cast<float>(matrix[6]), static_cast<float>(matrix[7])),
-        glm::vec4(static_cast<float>(matrix[8]), static_cast<float>(matrix[9]), static_cast<float>(matrix[10]), static_cast<float>(matrix[11])),
-        glm::vec4(static_cast<float>(matrix[12]), static_cast<float>(matrix[13]), static_cast<float>(matrix[14]), static_cast<float>(matrix[15])));
+        glm::vec4(
+            static_cast<float>(matrix[0]),
+            static_cast<float>(matrix[1]),
+            static_cast<float>(matrix[2]),
+            static_cast<float>(matrix[3])),
+        glm::vec4(
+            static_cast<float>(matrix[4]),
+            static_cast<float>(matrix[5]),
+            static_cast<float>(matrix[6]),
+            static_cast<float>(matrix[7])),
+        glm::vec4(
+            static_cast<float>(matrix[8]),
+            static_cast<float>(matrix[9]),
+            static_cast<float>(matrix[10]),
+            static_cast<float>(matrix[11])),
+        glm::vec4(
+            static_cast<float>(matrix[12]),
+            static_cast<float>(matrix[13]),
+            static_cast<float>(matrix[14]),
+            static_cast<float>(matrix[15])));
 
     nodeTransform = nodeTransform * nodeTransformGltf;
   } else {
@@ -303,17 +348,22 @@ void Model::_loadNode(
     const CesiumGltf::Mesh& mesh = model.meshes[node.mesh];
     for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
       this->_primitives.push_back(std::make_unique<Primitive>(
-        app, 
-        this->_model, 
-        primitive,
-        nodeTransform,
-        materialAllocator));
+          app,
+          this->_model,
+          primitive,
+          nodeTransform,
+          materialAllocator));
     }
   }
 
   for (int32_t childNodeId : node.children) {
     if (childNodeId >= 0 && childNodeId < model.nodes.size()) {
-      this->_loadNode(app, model, model.nodes[childNodeId], nodeTransform, materialAllocator);
+      this->_loadNode(
+          app,
+          model,
+          model.nodes[childNodeId],
+          nodeTransform,
+          materialAllocator);
     }
   }
 }

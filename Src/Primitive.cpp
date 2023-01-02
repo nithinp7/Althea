@@ -1,31 +1,35 @@
 #include "Primitive.h"
-#include "Utilities.h"
+
 #include "Application.h"
-#include "ModelViewProjection.h"
 #include "DefaultTextures.h"
+#include "DescriptorSet.h"
 #include "GeometryUtilities.h"
 #include "GraphicsPipeline.h"
-#include "DescriptorSet.h"
+#include "ModelViewProjection.h"
+#include "Utilities.h"
 
-#include <CesiumGltf/MeshPrimitive.h>
-#include <CesiumGltf/Model.h>
 #include <CesiumGltf/Accessor.h>
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/Material.h>
+#include <CesiumGltf/MeshPrimitive.h>
+#include <CesiumGltf/Model.h>
 #include <CesiumGltf/TextureInfo.h>
-
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <string>
+
 
 namespace AltheaEngine {
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     const CesiumGltf::Model& model,
     const std::optional<CesiumGltf::TextureInfo>& texture,
-    std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>& textureMap,
+    std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>&
+        textureMap,
     int32_t& textureCoordinateIndexConstant,
     size_t uvCount) {
-  if (texture && texture->index >= 0 && texture->index <= model.textures.size() && 
+  if (texture && texture->index >= 0 &&
+      texture->index <= model.textures.size() &&
       static_cast<int32_t>(texture->texCoord) < uvCount) {
     textureCoordinateIndexConstant = static_cast<int32_t>(texture->texCoord);
 
@@ -35,7 +39,9 @@ static std::shared_ptr<Texture> createTexture(
       return textureIt->second;
     }
 
-    auto result = textureMap.emplace(&gltfTexture, std::make_shared<Texture>(app, model, model.textures[texture->index]));
+    auto result = textureMap.emplace(
+        &gltfTexture,
+        std::make_shared<Texture>(app, model, model.textures[texture->index]));
     return result.first->second;
   }
 
@@ -45,7 +51,7 @@ static std::shared_ptr<Texture> createTexture(
 void TextureSlots::fillEmptyWithDefaults() {
   if (!this->pBaseTexture)
     this->pBaseTexture = GWhiteTexture1x1;
-  
+
   if (!this->pNormalMapTexture)
     this->pNormalMapTexture = GNormalTexture1x1;
 }
@@ -56,25 +62,27 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
       .setPrimitiveType(PrimitiveType::TRIANGLES)
 
       // TODO:
-      // Make this binding --> attribute hierarchy more explicit e.g., 
+      // Make this binding --> attribute hierarchy more explicit e.g.,
       // "addVertexInputBinding-->VertexInputBuilder" then
       // then "VertexInputBuilder::addVertexAttribute(...)"
       // then "VertexInputBuilder::finish() --> GraphicsPipelineBuilder&"
       .addVertexInputBinding<Vertex>()
-        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))      
-        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))      
-        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, bitangent))      
-        .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))
+      .addVertexAttribute(
+          VertexAttributeType::VEC3,
+          offsetof(Vertex, bitangent))
+      .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, normal));
 
   for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
     builder.addVertexAttribute(
-        VertexAttributeType::VEC3, offsetof(Vertex, uvs[i])); 
-  }     
-  
+        VertexAttributeType::VEC3,
+        offsetof(Vertex, uvs[i]));
+  }
+
   builder.enableDynamicFrontFace();
-  
-  builder.materialResourceLayoutBuilder
-      .addUniformBufferBinding()
+
+  builder.materialResourceLayoutBuilder.addUniformBufferBinding()
       .addConstantsBufferBinding<PrimitiveConstants>()
       .addTextureBinding()
       .addTextureBinding();
@@ -82,7 +90,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
 
 template <typename TIndex>
 static void copyIndices(
-    std::vector<uint32_t>& indicesOut, 
+    std::vector<uint32_t>& indicesOut,
     const CesiumGltf::AccessorView<TIndex>& indexAccessor) {
   assert(indexAccessor.status() == CesiumGltf::AccessorViewStatus::Valid);
 
@@ -94,7 +102,7 @@ static void copyIndices(
 
 template <typename TIndex>
 static std::vector<Vertex> duplicateVertices(
-    const CesiumGltf::AccessorView<glm::vec3>& verticesView, 
+    const CesiumGltf::AccessorView<glm::vec3>& verticesView,
     const CesiumGltf::AccessorView<TIndex>& indicesView,
     const CesiumGltf::AccessorView<glm::vec3>& normAccessor,
     const CesiumGltf::AccessorView<glm::vec4>& tangAccessor,
@@ -103,8 +111,10 @@ static std::vector<Vertex> duplicateVertices(
   std::vector<Vertex> result;
   result.resize(indicesView.size());
 
-  bool hasNormals = normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
-  bool hasTangents = tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasNormals =
+      normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasTangents =
+      tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
 
   for (int64_t i = 0; i < indicesView.size(); ++i) {
     Vertex& vertex = result[i];
@@ -116,9 +126,10 @@ static std::vector<Vertex> duplicateVertices(
       if (hasTangents) {
         const glm::vec4& tangent = tangAccessor[srcVertexIndex];
         vertex.tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
-        vertex.bitangent = tangent.w * glm::cross(vertex.normal, vertex.tangent);
+        vertex.bitangent =
+            tangent.w * glm::cross(vertex.normal, vertex.tangent);
       }
-    } 
+    }
 
     for (uint32_t j = 0; j < uvCount; ++j) {
       vertex.uvs[j] = uvAccessors[j][srcVertexIndex];
@@ -149,21 +160,24 @@ static std::vector<Vertex> createAndCopyVertices(
   std::vector<Vertex> vertices;
   vertices.resize(verticesAccessor.size());
 
-  bool hasNormals = normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
-  bool hasTangents = tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasNormals =
+      normAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
+  bool hasTangents =
+      tangAccessor.status() == CesiumGltf::AccessorViewStatus::Valid;
 
   for (int64_t i = 0; i < verticesAccessor.size(); ++i) {
     Vertex& vertex = vertices[i];
     vertex.position = verticesAccessor[i];
-    
+
     if (hasNormals) {
       vertex.normal = normAccessor[i];
       if (hasTangents) {
         const glm::vec4& tangent = tangAccessor[i];
         vertex.tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
-        vertex.bitangent = tangent.w * glm::cross(vertex.normal, vertex.tangent);
+        vertex.bitangent =
+            tangent.w * glm::cross(vertex.normal, vertex.tangent);
       }
-    } 
+    }
 
     for (uint32_t j = 0; j < uvCount; ++j) {
       vertex.uvs[j] = uvAccessors[j][i];
@@ -175,48 +189,47 @@ static std::vector<Vertex> createAndCopyVertices(
 
 template <typename TIndex>
 static void initVerticesAndIndices(
-    std::vector<Vertex>& vertices, 
-    std::vector<uint32_t>& indices, 
-    const CesiumGltf::AccessorView<glm::vec3>& verticesAccessor, 
-    const CesiumGltf::AccessorView<TIndex>& indicesAccessor, 
+    std::vector<Vertex>& vertices,
+    std::vector<uint32_t>& indices,
+    const CesiumGltf::AccessorView<glm::vec3>& verticesAccessor,
+    const CesiumGltf::AccessorView<TIndex>& indicesAccessor,
     const CesiumGltf::AccessorView<glm::vec3>& normAccessor,
     const CesiumGltf::AccessorView<glm::vec4>& tangAccessor,
     const CesiumGltf::AccessorView<glm::vec2> uvAccessors[MAX_UV_COORDS],
     uint32_t uvCount,
     bool shouldDuplicateVertices) {
   if (shouldDuplicateVertices) {
-    vertices = 
-        duplicateVertices(
-          verticesAccessor, 
-          indicesAccessor,
-          normAccessor,
-          tangAccessor,
-          uvAccessors,
-          uvCount);
+    vertices = duplicateVertices(
+        verticesAccessor,
+        indicesAccessor,
+        normAccessor,
+        tangAccessor,
+        uvAccessors,
+        uvCount);
     indices = createDummyIndices(static_cast<uint32_t>(indicesAccessor.size()));
   } else {
-    vertices = 
-        createAndCopyVertices(
-          verticesAccessor,
-          normAccessor,
-          tangAccessor,
-          uvAccessors,
-          uvCount);
+    vertices = createAndCopyVertices(
+        verticesAccessor,
+        normAccessor,
+        tangAccessor,
+        uvAccessors,
+        uvCount);
     copyIndices(indices, indicesAccessor);
   }
 }
 
-typedef std::unordered_map<std::string, int32_t>::const_iterator AttributeIterator;
+typedef std::unordered_map<std::string, int32_t>::const_iterator
+    AttributeIterator;
 
 Primitive::Primitive(
     const Application& app,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
     const glm::mat4& nodeTransform,
-    DescriptorSetAllocator& materialAllocator) 
-  : _device(app.getDevice()),
-    _relativeTransform(nodeTransform),
-    _flipFrontFace(glm::determinant(nodeTransform) < 0.0f) {
+    DescriptorSetAllocator& materialAllocator)
+    : _device(app.getDevice()),
+      _relativeTransform(nodeTransform),
+      _flipFrontFace(glm::determinant(nodeTransform) < 0.0f) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
@@ -255,12 +268,11 @@ Primitive::Primitive(
       hasTangents = true;
     }
   }
-  
+
   uint32_t uvCount = 0;
   std::array<AttributeIterator, MAX_UV_COORDS> uvIterators;
   for (size_t i = 0; i < MAX_UV_COORDS; ++i) {
-    uvIterators[i] = 
-        primitive.attributes.find("TEXCOORD_" + std::to_string(i));
+    uvIterators[i] = primitive.attributes.find("TEXCOORD_" + std::to_string(i));
     if (uvIterators[i] == primitive.attributes.end()) {
       break;
     }
@@ -270,41 +282,43 @@ Primitive::Primitive(
 
   CesiumGltf::AccessorView<glm::vec2> uvViews[MAX_UV_COORDS];
   for (uint32_t i = 0; i < uvCount; ++i) {
-    uvViews[i] = CesiumGltf::AccessorView<glm::vec2>(model, uvIterators[i]->second);
+    uvViews[i] =
+        CesiumGltf::AccessorView<glm::vec2>(model, uvIterators[i]->second);
     if (uvViews[i].status() != CesiumGltf::AccessorViewStatus::Valid ||
         static_cast<size_t>(uvViews[i].size()) < vertexCount) {
       return;
     }
   }
 
-  // If the normal map exists, we might need its UV coordinates for tangent-space
-  // generation later.
+  // If the normal map exists, we might need its UV coordinates for
+  // tangent-space generation later.
   uint32_t normalMapUvIndex = 0;
 
-  // TODO: texture map could exist on a model level, to allow for shared texture 
+  // TODO: texture map could exist on a model level, to allow for shared texture
   // resource across primitives
-  std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>> textureMap;
+  std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>
+      textureMap;
   if (primitive.material >= 0 && primitive.material < model.materials.size()) {
     const CesiumGltf::Material& material = model.materials[primitive.material];
     if (material.pbrMetallicRoughness) {
-      const CesiumGltf::MaterialPBRMetallicRoughness& pbr = 
+      const CesiumGltf::MaterialPBRMetallicRoughness& pbr =
           *material.pbrMetallicRoughness;
       this->_textureSlots.pBaseTexture = createTexture(
-          app, 
-          model, 
-          pbr.baseColorTexture, 
-          textureMap, 
-          this->_constants.baseTextureCoordinateIndex, 
+          app,
+          model,
+          pbr.baseColorTexture,
+          textureMap,
+          this->_constants.baseTextureCoordinateIndex,
           uvCount);
-      // TODO: pbr.baseColorFactor 
+      // TODO: pbr.baseColorFactor
     }
 
     this->_textureSlots.pNormalMapTexture = createTexture(
-        app, 
-        model, 
-        material.normalTexture, 
-        textureMap, 
-        this->_constants.normalMapTextureCoordinateIndex, 
+        app,
+        model,
+        material.normalTexture,
+        textureMap,
+        this->_constants.normalMapTextureCoordinateIndex,
         uvCount);
 
     if (material.normalTexture) {
@@ -318,17 +332,21 @@ Primitive::Primitive(
   bool needsTangents = hasNormalMap || hasTangents; // || alwaysWantTangents;
   bool duplicateVertices = !hasNormals || (needsTangents && !hasTangents);
 
-  // Create and copy over the vertex and index buffers, duplicate vertices if necessary.
-  bool validIndices = primitive.indices >= 0 && primitive.indices < model.accessors.size();
+  // Create and copy over the vertex and index buffers, duplicate vertices if
+  // necessary.
+  bool validIndices =
+      primitive.indices >= 0 && primitive.indices < model.accessors.size();
   if (validIndices) {
-    const CesiumGltf::Accessor& indexAccessorGltf = model.accessors[primitive.indices];
-    if (indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::BYTE) {
+    const CesiumGltf::Accessor& indexAccessorGltf =
+        model.accessors[primitive.indices];
+    if (indexAccessorGltf.componentType ==
+        CesiumGltf::Accessor::ComponentType::BYTE) {
       CesiumGltf::AccessorView<int8_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices, 
-          this->_indices, 
-          posView, 
-          indexAccessor, 
+          this->_vertices,
+          this->_indices,
+          posView,
+          indexAccessor,
           normView,
           tangView,
           uvViews,
@@ -339,23 +357,24 @@ Primitive::Primitive(
         CesiumGltf::Accessor::ComponentType::UNSIGNED_BYTE) {
       CesiumGltf::AccessorView<uint8_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices, 
-          this->_indices, 
-          posView, 
-          indexAccessor, 
+          this->_vertices,
+          this->_indices,
+          posView,
+          indexAccessor,
           normView,
           tangView,
           uvViews,
           uvCount,
           duplicateVertices);
     } else if (
-        indexAccessorGltf.componentType == CesiumGltf::Accessor::ComponentType::SHORT) {
+        indexAccessorGltf.componentType ==
+        CesiumGltf::Accessor::ComponentType::SHORT) {
       CesiumGltf::AccessorView<int16_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices, 
-          this->_indices, 
-          posView, 
-          indexAccessor, 
+          this->_vertices,
+          this->_indices,
+          posView,
+          indexAccessor,
           normView,
           tangView,
           uvViews,
@@ -364,12 +383,14 @@ Primitive::Primitive(
     } else if (
         indexAccessorGltf.componentType ==
         CesiumGltf::Accessor::ComponentType::UNSIGNED_SHORT) {
-      CesiumGltf::AccessorView<uint16_t> indexAccessor(model, primitive.indices);
+      CesiumGltf::AccessorView<uint16_t> indexAccessor(
+          model,
+          primitive.indices);
       initVerticesAndIndices(
-          this->_vertices, 
-          this->_indices, 
-          posView, 
-          indexAccessor, 
+          this->_vertices,
+          this->_indices,
+          posView,
+          indexAccessor,
           normView,
           tangView,
           uvViews,
@@ -378,12 +399,14 @@ Primitive::Primitive(
     } else if (
         indexAccessorGltf.componentType ==
         CesiumGltf::Accessor::ComponentType::UNSIGNED_INT) {
-      CesiumGltf::AccessorView<uint32_t> indexAccessor(model, primitive.indices);
+      CesiumGltf::AccessorView<uint32_t> indexAccessor(
+          model,
+          primitive.indices);
       initVerticesAndIndices(
-          this->_vertices, 
-          this->_indices, 
-          posView, 
-          indexAccessor, 
+          this->_vertices,
+          this->_indices,
+          posView,
+          indexAccessor,
           normView,
           tangView,
           uvViews,
@@ -394,10 +417,11 @@ Primitive::Primitive(
     }
   }
 
-  // Assume the vertex buffer is a regular triangle mesh if the 
+  // Assume the vertex buffer is a regular triangle mesh if the
   // index buffer is invalid.
   if (!validIndices) {
-    this->_vertices = createAndCopyVertices(posView, normView, tangView, uvViews, uvCount);
+    this->_vertices =
+        createAndCopyVertices(posView, normView, tangView, uvViews, uvCount);
     this->_indices = createDummyIndices(static_cast<uint32_t>(vertexCount));
   }
 
@@ -412,7 +436,7 @@ Primitive::Primitive(
   const VkExtent2D& extent = app.getSwapChainExtent();
 
   app.createVertexBuffer(
-      (const void*)this->_vertices.data(), 
+      (const void*)this->_vertices.data(),
       sizeof(Vertex) * this->_vertices.size(),
       this->_vertexBuffer,
       this->_vertexBufferMemory);
@@ -430,28 +454,29 @@ Primitive::Primitive(
 }
 
 void Primitive::_createMaterial(
-    const Application& app, 
+    const Application& app,
     DescriptorSetAllocator& materialAllocator) {
   uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
   this->_descriptorSets.reserve(maxFramesInFlight);
   for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
     this->_descriptorSets.emplace_back(materialAllocator.allocate())
         .assign()
-          .bindUniformBufferDescriptor<ModelViewProjection>(this->_uniformBuffers[i])
-          .bindInlineConstantDescriptors(&this->_constants)
-          .bindTextureDescriptor(
-              this->_textureSlots.pBaseTexture->getImageView(),
-              this->_textureSlots.pBaseTexture->getSampler())
-          .bindTextureDescriptor(
-              this->_textureSlots.pNormalMapTexture->getImageView(),
-              this->_textureSlots.pNormalMapTexture->getSampler());
-    }
+        .bindUniformBufferDescriptor<ModelViewProjection>(
+            this->_uniformBuffers[i])
+        .bindInlineConstantDescriptors(&this->_constants)
+        .bindTextureDescriptor(
+            this->_textureSlots.pBaseTexture->getImageView(),
+            this->_textureSlots.pBaseTexture->getSampler())
+        .bindTextureDescriptor(
+            this->_textureSlots.pNormalMapTexture->getImageView(),
+            this->_textureSlots.pNormalMapTexture->getSampler());
+  }
 }
 
 void Primitive::updateUniforms(
     const glm::mat4& parentTransform,
-    const glm::mat4& view, 
-    const glm::mat4& projection, 
+    const glm::mat4& view,
+    const glm::mat4& projection,
     uint32_t currentFrame) const {
   ModelViewProjection mvp{};
   mvp.model = parentTransform * this->_relativeTransform;
@@ -459,30 +484,48 @@ void Primitive::updateUniforms(
   mvp.projection = projection;
 
   void* data;
-  vkMapMemory(this->_device, this->_uniformBuffersMemory[currentFrame], 0, sizeof(ModelViewProjection), 0, &data);
+  vkMapMemory(
+      this->_device,
+      this->_uniformBuffersMemory[currentFrame],
+      0,
+      sizeof(ModelViewProjection),
+      0,
+      &data);
   memcpy(data, &mvp, sizeof(ModelViewProjection));
   vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
 }
 
 void Primitive::draw(
-    const VkCommandBuffer& commandBuffer, 
-    const VkPipelineLayout& pipelineLayout, 
+    const VkCommandBuffer& commandBuffer,
+    const VkPipelineLayout& pipelineLayout,
     const FrameContext& frame) const {
   VkDeviceSize offset = 0;
-  vkCmdSetFrontFace(commandBuffer, this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE);
+  vkCmdSetFrontFace(
+      commandBuffer,
+      this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
+                           : VK_FRONT_FACE_COUNTER_CLOCKWISE);
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
-  vkCmdBindIndexBuffer(commandBuffer, this->_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  vkCmdBindIndexBuffer(
+      commandBuffer,
+      this->_indexBuffer,
+      0,
+      VK_INDEX_TYPE_UINT32);
   vkCmdBindDescriptorSets(
-      commandBuffer, 
-      VK_PIPELINE_BIND_POINT_GRAPHICS, 
-      pipelineLayout, 
-      0, 
-      1, 
-      &this->_descriptorSets[frame.frameRingBufferIndex]
-          .getVkDescriptorSet(), 
-      0, 
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      pipelineLayout,
+      0,
+      1,
+      &this->_descriptorSets[frame.frameRingBufferIndex].getVkDescriptorSet(),
+      0,
       nullptr);
-  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(this->_indices.size()), 1, 0, 0, 0);
+  vkCmdDrawIndexed(
+      commandBuffer,
+      static_cast<uint32_t>(this->_indices.size()),
+      1,
+      0,
+      0,
+      0);
 }
 
 Primitive::~Primitive() {

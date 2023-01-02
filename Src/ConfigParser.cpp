@@ -4,10 +4,8 @@
 #include <utility>
 
 namespace AltheaEngine {
-ConfigCategory::ConfigCategory(
-    const std::string& name) 
-  : _name(name)  {}
-  
+ConfigCategory::ConfigCategory(const std::string& name) : _name(name) {}
+
 ConfigParser::ConfigParser(const std::string& configFilePath) {
   std::ifstream infile(configFilePath);
   std::string line;
@@ -17,8 +15,7 @@ ConfigParser::ConfigParser(const std::string& configFilePath) {
 }
 
 void ConfigParser::parseCategory(ConfigCategory& category) const {
-  for (auto lineIt = this->_lines.begin(); 
-       lineIt != this->_lines.end(); 
+  for (auto lineIt = this->_lines.begin(); lineIt != this->_lines.end();
        ++lineIt) {
     if (category._name == *lineIt) {
       ++lineIt;

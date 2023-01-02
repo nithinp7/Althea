@@ -1,12 +1,12 @@
 #pragma once
 
-#include "IGameInstance.h"
 #include "CameraController.h"
+#include "DescriptorSet.h"
+#include "IGameInstance.h"
+#include "Model.h"
+#include "RenderPass.h"
 #include "Skybox.h"
 
-#include "RenderPass.h"
-#include "Model.h"
-#include "DescriptorSet.h"
 
 using namespace AltheaEngine;
 
@@ -27,8 +27,8 @@ public:
 
   virtual void tick(Application& app, const FrameContext& frame) override;
   virtual void draw(
-      Application& app, 
-      VkCommandBuffer commandBuffer, 
+      Application& app,
+      VkCommandBuffer commandBuffer,
       const FrameContext& frame) override;
 
 private:

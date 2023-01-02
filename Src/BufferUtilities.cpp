@@ -1,8 +1,10 @@
 
 #include "Application.h"
+
 #include <vulkan/vulkan.h>
 
 #include <stdexcept>
+
 
 namespace AltheaEngine {
 // Buffer related implementations for the Application class
@@ -13,7 +15,8 @@ uint32_t Application::findMemoryType(
   vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags &
+                                    properties) == properties) {
       return i;
     }
   }
@@ -29,19 +32,19 @@ void Application::copyBuffer(
     VkDeviceSize size) const {
 
   VkCommandBuffer commandBuffer = this->beginSingleTimeCommands();
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = 0;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  VkBufferCopy copyRegion{};
+  copyRegion.srcOffset = 0;
+  copyRegion.dstOffset = 0;
+  copyRegion.size = size;
+  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
   this->endSingleTimeCommands(commandBuffer);
 }
 
 void Application::createBuffer(
-    VkDeviceSize size, 
-    VkBufferUsageFlags usage, 
-    VkMemoryPropertyFlags properties, 
-    VkBuffer& buffer, 
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
     VkDeviceMemory& bufferMemory) const {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -59,10 +62,11 @@ void Application::createBuffer(
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = 
+  allocInfo.memoryTypeIndex =
       findMemoryType(memRequirements.memoryTypeBits, properties);
 
-  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) !=
+      VK_SUCCESS) {
     throw std::runtime_error("Failed to allocate buffer memory!");
   }
 
@@ -80,22 +84,23 @@ void Application::createVertexBuffer(
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
   createBuffer(
-      bufferSize, 
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-      stagingBuffer, 
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      stagingBuffer,
       stagingBufferMemory);
 
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, pSrc, (size_t) bufferSize);
+  memcpy(data, pSrc, (size_t)bufferSize);
   vkUnmapMemory(device, stagingBufferMemory);
 
   createBuffer(
-      bufferSize, 
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-      vertexBuffer, 
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      vertexBuffer,
       vertexBufferMemory);
 
   copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
@@ -113,24 +118,25 @@ void Application::createIndexBuffer(
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
   createBuffer(
-      bufferSize, 
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-      stagingBuffer, 
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      stagingBuffer,
       stagingBufferMemory);
 
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, pSrc, (size_t) bufferSize);
+  memcpy(data, pSrc, (size_t)bufferSize);
   vkUnmapMemory(device, stagingBufferMemory);
 
   createBuffer(
-      bufferSize, 
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-      indexBuffer, 
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      indexBuffer,
       indexBufferMemory);
-  
+
   copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
   vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -148,9 +154,10 @@ void Application::createUniformBuffers(
     createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         uniformBuffers[i],
         uniformBuffersMemory[i]);
   }
 }
-}
+} // namespace AltheaEngine

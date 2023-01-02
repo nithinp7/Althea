@@ -13,11 +13,11 @@ public:
 
   virtual void createRenderState(Application& app) = 0;
   virtual void destroyRenderState(Application& app) = 0;
-  
+
   virtual void tick(Application& app, const FrameContext& frame) = 0;
   virtual void draw(
-      Application& app, 
-      VkCommandBuffer commandBuffer, 
+      Application& app,
+      VkCommandBuffer commandBuffer,
       const FrameContext& frame) = 0;
 };
 } // namespace AltheaEngine

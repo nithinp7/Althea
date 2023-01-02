@@ -10,6 +10,7 @@ private:
   uint16_t _statusCode;
   CesiumAsync::HttpHeaders _headers;
   std::vector<char> _data;
+
 public:
   FileResponse(std::vector<char>&& data);
 
@@ -40,8 +41,11 @@ private:
   std::string _method;
   CesiumAsync::HttpHeaders _headers;
   std::shared_ptr<FileResponse> _pResponse;
+
 public:
-  FileRequest(const std::string& url, std::shared_ptr<FileResponse>&& pResponse);
+  FileRequest(
+      const std::string& url,
+      std::shared_ptr<FileResponse>&& pResponse);
 
   /**
    * @brief Gets the request's method. This method may be called from any
@@ -74,7 +78,6 @@ public:
       const std::string& url,
       const std::vector<THeader>& headers = {}) override;
 
-  
   /**
    * @brief Starts a new request to the given URL, using the provided HTTP verb
    * and the provided content payload.

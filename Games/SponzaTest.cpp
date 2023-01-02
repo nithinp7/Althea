@@ -3,17 +3,18 @@
 #include "Application.h"
 #include "Camera.h"
 #include "GraphicsPipeline.h"
-#include "Primitive.h"
 #include "ModelViewProjection.h"
+#include "Primitive.h"
 
-#include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
-#include <memory>
-#include <vector>
-#include <cstdint>
-#include <string>
 #include <array>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 
 using namespace AltheaEngine;
 
@@ -21,11 +22,10 @@ SponzaTest::SponzaTest() {}
 
 void SponzaTest::initGame(Application& app) {
   const VkExtent2D& windowDims = app.getSwapChainExtent();
-  this->_pCameraController = 
-      std::make_unique<CameraController>(
-        app.getInputManager(), 
-        90.0f,
-        (float)windowDims.width/(float)windowDims.height);
+  this->_pCameraController = std::make_unique<CameraController>(
+      app.getInputManager(),
+      90.0f,
+      (float)windowDims.width / (float)windowDims.height);
 }
 
 void SponzaTest::shutdownGame(Application& app) {
@@ -35,7 +35,7 @@ void SponzaTest::shutdownGame(Application& app) {
 void SponzaTest::createRenderState(Application& app) {
   const VkExtent2D& extent = app.getSwapChainExtent();
   this->_pCameraController->getCamera().setAspectRatio(
-      (float)extent.width/(float)extent.height);
+      (float)extent.width / (float)extent.height);
 
   ShaderManager& shaderManager = app.getShaderManager();
 
@@ -46,9 +46,16 @@ void SponzaTest::createRenderState(Application& app) {
   depthClear.depthStencil = {1.0f, 0};
 
   std::vector<Attachment> attachments = {
-    {AttachmentType::Color, app.getSwapChainImageFormat(), colorClear, std::nullopt, false},
-    {AttachmentType::Depth, app.getDepthImageFormat(), depthClear, app.getDepthImageView(), true}
-  };
+      {AttachmentType::Color,
+       app.getSwapChainImageFormat(),
+       colorClear,
+       std::nullopt,
+       false},
+      {AttachmentType::Depth,
+       app.getDepthImageFormat(),
+       depthClear,
+       app.getDepthImageView(),
+       true}};
 
   std::vector<SubpassBuilder> subpassBuilders;
 
@@ -56,21 +63,25 @@ void SponzaTest::createRenderState(Application& app) {
   {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
-    
+
     Skybox::buildPipeline(app, subpassBuilder.pipelineBuilder);
-    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
-    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(),
+    // this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(),
+    // this->_pEmptySet);
   }
-  
+
   // REGULAR PASS
   {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
     subpassBuilder.depthAttachment = 1;
-    
+
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
-    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
-    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(), this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(),
+    // this->_pEmptySet);
+    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(),
+    // this->_pEmptySet);
     if (this->_envMap) {
       // Add environment cubemap binding
       subpassBuilder.pipelineBuilder.materialResourceLayoutBuilder
@@ -79,39 +90,37 @@ void SponzaTest::createRenderState(Application& app) {
 
     subpassBuilder.pipelineBuilder
         .addVertexShader(
-          shaderManager, this->_currentShader + std::string(".vert"))
+            shaderManager,
+            this->_currentShader + std::string(".vert"))
         .addFragmentShader(
-          shaderManager, this->_currentShader + std::string(".frag"));
+            shaderManager,
+            this->_currentShader + std::string(".frag"));
   }
 
-  this->_pRenderPass = 
-      std::make_unique<RenderPass>(
-        app, 
-        std::move(attachments), 
-        std::move(subpassBuilders));
+  this->_pRenderPass = std::make_unique<RenderPass>(
+      app,
+      std::move(attachments),
+      std::move(subpassBuilders));
 
   std::vector<Subpass>& subpasses = this->_pRenderPass->getSubpasses();
 
   const static std::array<std::string, 6> skyboxImagePaths = {
-    "../Content/Models/Skybox/right.jpg",
-    "../Content/Models/Skybox/left.jpg",
-    "../Content/Models/Skybox/top.jpg",
-    "../Content/Models/Skybox/bottom.jpg",
-    "../Content/Models/Skybox/front.jpg",
-    "../Content/Models/Skybox/back.jpg"
-  };
+      "../Content/Models/Skybox/right.jpg",
+      "../Content/Models/Skybox/left.jpg",
+      "../Content/Models/Skybox/top.jpg",
+      "../Content/Models/Skybox/bottom.jpg",
+      "../Content/Models/Skybox/front.jpg",
+      "../Content/Models/Skybox/back.jpg"};
 
-  this->_pSkybox = 
-      std::make_unique<Skybox>(
-        app,
-        skyboxImagePaths,
-        subpasses[0].getPipeline().getMaterialAllocator());
+  this->_pSkybox = std::make_unique<Skybox>(
+      app,
+      skyboxImagePaths,
+      subpasses[0].getPipeline().getMaterialAllocator());
 
-  this->_pSponzaModel = 
-      std::make_unique<Model>(
-        app,
-        "Sponza.gltf",
-        subpasses[1].getPipeline().getMaterialAllocator());
+  this->_pSponzaModel = std::make_unique<Model>(
+      app,
+      "Sponza.gltf",
+      subpasses[1].getPipeline().getMaterialAllocator());
 }
 
 void SponzaTest::destroyRenderState(Application& app) {
@@ -133,13 +142,14 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
 }
 
 void SponzaTest::draw(
-    Application& app, 
-    VkCommandBuffer commandBuffer, 
+    Application& app,
+    VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
-  this->_pRenderPass->begin(app, commandBuffer, frame)
-  // Draw skybox
+  this->_pRenderPass
+      ->begin(app, commandBuffer, frame)
+      // Draw skybox
       .draw(*this->_pSkybox)
       .nextSubpass()
-  // Draw Sponza model
+      // Draw Sponza model
       .draw(*this->_pSponzaModel);
 }

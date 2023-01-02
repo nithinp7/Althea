@@ -8,4 +8,3 @@ public:
   void startTask(std::function<void()> f) override;
 };
 } // namespace AltheaEngine
-

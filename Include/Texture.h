@@ -13,7 +13,7 @@ struct Sampler;
 
 namespace AltheaEngine {
 class Texture {
-public: 
+public:
   Texture(
       const Application& app,
       const CesiumGltf::Model& model,
@@ -27,17 +27,14 @@ public:
   Texture(Texture&& rhs) = delete;
   ~Texture();
 
-  VkImageView getImageView() const {
-    return this->_textureImageView;
-  }
+  VkImageView getImageView() const { return this->_textureImageView; }
 
-  VkSampler getSampler() const {
-    return this->_textureSampler;
-  }
+  VkSampler getSampler() const { return this->_textureSampler; }
+
 private:
   void _initTexture(
-      const Application& app, 
-      const CesiumGltf::ImageCesium& image, 
+      const Application& app,
+      const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler);
 
   VkDevice _device;

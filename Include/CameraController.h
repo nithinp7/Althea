@@ -8,18 +8,17 @@
 namespace AltheaEngine {
 class CameraController {
 public:
-  CameraController(InputManager& inputManager, float fovDegrees, float aspectRatio);
+  CameraController(
+      InputManager& inputManager,
+      float fovDegrees,
+      float aspectRatio);
   ~CameraController();
-  
+
   void tick(float deltaTime);
 
-  const Camera& getCamera() const {
-    return this->_camera;
-  }
+  const Camera& getCamera() const { return this->_camera; }
 
-  Camera& getCamera() {
-    return this->_camera;
-  }
+  Camera& getCamera() { return this->_camera; }
 
 private:
   // Mouse updates, using normalized screen coordinates.
@@ -38,8 +37,8 @@ private:
   float _targetSpeed = 5.0f;
 
   // We manually track the camera yaw so we can track winding.
-  // This lets us unambiguously know the direction we should rotate the 
-  // camera during large mouse movements (larger than 180 degrees before the 
+  // This lets us unambiguously know the direction we should rotate the
+  // camera during large mouse movements (larger than 180 degrees before the
   // feedback controller can catch up).
   float _yaw = 0.0f;
 
@@ -51,8 +50,8 @@ private:
   float _targetPitch = 0.0f;
   float _targetYaw = 0.0f;
 
-  float _yawMultiplier = 0.5f;//0.25f;
-  float _pitchMultiplier = 1.0f;//0.25f;
+  float _yawMultiplier = 0.5f;   // 0.25f;
+  float _pitchMultiplier = 1.0f; // 0.25f;
 
   Camera _camera;
 };

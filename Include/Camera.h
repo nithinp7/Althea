@@ -12,17 +12,13 @@ public:
   void setPosition(const glm::vec3& position);
   void setRotation(float yawDegrees, float pitchDegrees);
 
-  const glm::mat4& getTransform() const {
-    return this->_transform;
-  }
+  const glm::mat4& getTransform() const { return this->_transform; }
 
   float computeYawDegrees() const;
   float computePitchDegrees() const;
   glm::mat4 computeView() const;
 
-  const glm::mat4& getProjection() const {
-    return this->_projection;
-  }
+  const glm::mat4& getProjection() const { return this->_projection; }
 
 private:
   void _recomputeProjection();

@@ -14,40 +14,38 @@ class DescriptorAssignment;
 class DescriptorSetLayoutBuilder {
 public:
   DescriptorSetLayoutBuilder() {}
- 
+
   /**
    * @brief Add a texture binding to the descriptor set layout.
-   * 
+   *
    * @param stageFlags The shader stages this binding should be accessible to.
    * @return This builder.
    */
   DescriptorSetLayoutBuilder& addTextureBinding(
-        VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
-  
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
+
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
-   * 
-   * @param stageFlags The shader stages this binding should be accessible to.   
+   *
+   * @param stageFlags The shader stages this binding should be accessible to.
    * @return This builder.
    */
-  DescriptorSetLayoutBuilder& addUniformBufferBinding(
-        VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
-  
+  DescriptorSetLayoutBuilder&
+  addUniformBufferBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
+
   /**
    * @brief Add a constant, inline uniform buffer to the descriptor set layout.
-   * 
-   * @tparam TPrimitiveConstants - The structure that will be used to represent the
-   * inline constant uniform buffer.
+   *
+   * @tparam TPrimitiveConstants - The structure that will be used to represent
+   * the inline constant uniform buffer.
    * @param stageFlags The shader stages this binding should be accessible to.
    * @return This builder.
    */
   template <typename TPrimitiveConstants>
   DescriptorSetLayoutBuilder& addConstantsBufferBinding(
-        VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
-    uint32_t bindingIndex = 
-        static_cast<uint32_t>(this->_bindings.size());
-    VkDescriptorSetLayoutBinding& binding = 
-        this->_bindings.emplace_back();
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
+    uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+    VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
     binding.binding = bindingIndex;
     binding.descriptorCount = sizeof(TPrimitiveConstants);
     binding.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
@@ -59,9 +57,7 @@ public:
     return *this;
   }
 
-  bool hasBindings() const {
-    return !this->_bindings.empty();
-  }
+  bool hasBindings() const { return !this->_bindings.empty(); }
 
 private:
   friend class DescriptorSetAllocator;
@@ -97,7 +93,6 @@ private:
   DescriptorSetAllocator& _allocator;
 };
 
-
 class DescriptorAssignment {
 private:
   friend class DescriptorSet;
@@ -106,18 +101,18 @@ private:
       VkDevice device,
       VkDescriptorSet descriptorSet,
       const std::vector<VkDescriptorSetLayoutBinding>& bindings);
-  
+
 public:
   ~DescriptorAssignment();
 
-  DescriptorAssignment& bindTextureDescriptor(
-      VkImageView imageView, VkSampler sampler);
+  DescriptorAssignment&
+  bindTextureDescriptor(VkImageView imageView, VkSampler sampler);
 
   template <typename TUniforms>
   DescriptorAssignment& bindUniformBufferDescriptor(VkBuffer uniformBuffer) {
-    if ((size_t)this->_currentIndex >= 
-      this->_bindings.size()) {
-      throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
+    if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+      throw std::runtime_error(
+          "Exceeded expected number of bindings in descriptor set.");
     }
 
     if (this->_bindings[this->_currentIndex].descriptorType !=
@@ -125,14 +120,15 @@ public:
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
 
-    this->_descriptorBufferInfos.push_back(std::make_unique<VkDescriptorBufferInfo>());
-    VkDescriptorBufferInfo& uniformBufferInfo = 
+    this->_descriptorBufferInfos.push_back(
+        std::make_unique<VkDescriptorBufferInfo>());
+    VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
     uniformBufferInfo.buffer = uniformBuffer;
     uniformBufferInfo.offset = 0;
     uniformBufferInfo.range = sizeof(TUniforms);
 
-    VkWriteDescriptorSet& descriptorWrite = 
+    VkWriteDescriptorSet& descriptorWrite =
         this->_descriptorWrites[this->_currentIndex];
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.dstSet = this->_descriptorSet;
@@ -149,27 +145,28 @@ public:
   }
 
   template <typename TPrimitiveConstants>
-  DescriptorAssignment& bindInlineConstantDescriptors(
-      const TPrimitiveConstants* pConstants) {
-    if ((size_t)this->_currentIndex >= 
-        this->_bindings.size()) {
-      throw std::runtime_error("Exceeded expected number of bindings in descriptor set.");
+  DescriptorAssignment&
+  bindInlineConstantDescriptors(const TPrimitiveConstants* pConstants) {
+    if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+      throw std::runtime_error(
+          "Exceeded expected number of bindings in descriptor set.");
     }
 
     if (this->_bindings[this->_currentIndex].descriptorType !=
         VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) {
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
-        
+
     this->_inlineConstantWrites.push_back(
-          std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
-    VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite = 
+        std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
+    VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite =
         *this->_inlineConstantWrites.back();
-    inlineConstantsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
+    inlineConstantsWrite.sType =
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
     inlineConstantsWrite.dataSize = sizeof(TPrimitiveConstants);
     inlineConstantsWrite.pData = pConstants;
 
-    VkWriteDescriptorSet& descriptorWrite = 
+    VkWriteDescriptorSet& descriptorWrite =
         this->_descriptorWrites[this->_currentIndex];
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.dstSet = this->_descriptorSet;
@@ -185,28 +182,28 @@ public:
     ++this->_currentIndex;
     return *this;
   }
-  
+
 private:
   uint32_t _currentIndex = 0;
-  
+
   VkDevice _device;
   VkDescriptorSet _descriptorSet;
   const std::vector<VkDescriptorSetLayoutBinding>& _bindings;
 
   std::vector<VkWriteDescriptorSet> _descriptorWrites;
-  
+
   // Temporary storage of info needed for descriptor writes
   // TODO: Is there a better way to do this? It looks awkward
-  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>> _inlineConstantWrites;
+  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>>
+      _inlineConstantWrites;
   std::vector<std::unique_ptr<VkDescriptorBufferInfo>> _descriptorBufferInfos;
   std::vector<std::unique_ptr<VkDescriptorImageInfo>> _descriptorImageInfos;
 };
 
-
 // NOTE: In Vulkan there are no such things as "descriptor set pools", only
 // "descriptor pools". For simplicity, we maintain descriptor set pools of
 // fixed layouts. Each unique layout will correspond to a unique descriptor
-// set allocator, which will block allocate from a descriptor "set" pool 
+// set allocator, which will block allocate from a descriptor "set" pool
 // (a descriptor pool that is only used for one specific layout).
 
 class DescriptorSetAllocator {
@@ -220,9 +217,7 @@ public:
   DescriptorSet allocate();
   void free(VkDescriptorSet descriptorSet);
 
-  VkDescriptorSetLayout getLayout() const {
-    return this->_layout;
-  }
+  VkDescriptorSetLayout getLayout() const { return this->_layout; }
 
   const std::vector<VkDescriptorSetLayoutBinding>& getBindings() const {
     return this->_bindings;
@@ -237,15 +232,15 @@ private:
   VkDescriptorSetLayout _layout;
   bool _hasInlineUniformBlock = false;
 
-  // Keep this around to check validity when binding resources to a 
+  // Keep this around to check validity when binding resources to a
   // descriptor set.
   std::vector<VkDescriptorSetLayoutBinding> _bindings;
 
-  // When creating a new pool with _setsPerPool count of descriptor sets, 
-  // _poolSizes will indicate how many descriptors should be allocated for 
+  // When creating a new pool with _setsPerPool count of descriptor sets,
+  // _poolSizes will indicate how many descriptors should be allocated for
   // each binding.
   std::vector<VkDescriptorPoolSize> _poolSizes;
-  
+
   std::vector<VkDescriptorPool> _pools;
   std::vector<VkDescriptorSet> _freeSets;
 };

@@ -1,16 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <optional>
-
 #include <vulkan/vulkan.h>
 
+#include <optional>
+#include <string>
+#include <vector>
+
+
 namespace AltheaEngine {
-class Utilities
-{
+class Utilities {
 public:
   static std::vector<char> readFile(const std::string& filename);
 };
 } // namespace AltheaEngine
-

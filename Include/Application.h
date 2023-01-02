@@ -1,23 +1,22 @@
 #pragma once
 
-#include "ConfigParser.h"
-#include "InputManager.h"
 #include "CameraController.h"
-#include "ShaderManager.h"
+#include "ConfigParser.h"
 #include "FrameContext.h"
+#include "InputManager.h"
+#include "ShaderManager.h"
+
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-#include <vulkan/vulkan.h>
 #include <gsl/span>
+#include <vulkan/vulkan.h>
 
-#include <cstdlib>
 #include <cstdint>
-#include <vector> 
-#include <optional>
-
+#include <cstdlib>
 #include <memory>
+#include <optional>
+#include <vector>
 
 namespace AltheaEngine {
 class IGameInstance;
@@ -26,8 +25,7 @@ class Application {
 public:
   Application();
 
-  template <typename TGameInstance>
-  void createGame() {
+  template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();
   }
 
@@ -45,13 +43,11 @@ private:
   double lastFrameTime = 0.0f;
 
   const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-  };
+      "VK_LAYER_KHRONOS_validation"};
 
   const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME
-  };
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+      VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME};
 
 #ifdef NDEBUG
   const bool enableValidationLayers = false;
@@ -90,7 +86,7 @@ private:
   std::vector<VkSemaphore> imageAvailableSemaphores;
   std::vector<VkSemaphore> renderFinishedSemaphores;
   std::vector<VkFence> inFlightFences;
-  
+
   bool framebufferResized = false;
 
   uint32_t currentFrame = 0;
@@ -100,7 +96,7 @@ private:
 
   InputManager* pInputManager;
   bool shouldClose = false;
-  
+
   void initWindow();
   void initVulkan();
   void mainLoop();
@@ -114,7 +110,7 @@ private:
 
     bool isComplete() const;
   };
-  
+
   struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -129,11 +125,18 @@ private:
   bool isDeviceSuitable(const VkPhysicalDevice& device) const;
   void pickPhysicalDevice();
   void createLogicalDevice();
-  SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const;
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
-  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
-  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+  SwapChainSupportDetails
+  querySwapChainSupport(const VkPhysicalDevice& device) const;
+  VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+      const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
+  VkPresentModeKHR chooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR>& availablePresentModes) const;
+  VkExtent2D
+  chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
+  VkFormat findSupportedFormat(
+      const std::vector<VkFormat>& candidates,
+      VkImageTiling tiling,
+      VkFormatFeatureFlags features);
   VkFormat findDepthFormat();
 
   void createSwapChain();
@@ -146,63 +149,44 @@ private:
   void createCommandBuffers();
   void createSyncObjects();
 
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame);
+  void
+  recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame);
 
 public:
   // Getters
-  const VkDevice& getDevice() const {
-    return device;
-  }
+  const VkDevice& getDevice() const { return device; }
 
-  const VkPhysicalDevice& getPhysicalDevice() const {
-    return physicalDevice;
-  }
+  const VkPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
 
   const VkPhysicalDeviceProperties& getPhysicalDeviceProperties() const {
     return physicalDeviceProperties;
   }
 
-  const VkCommandPool& getCommandPool() const {
-    return commandPool;
-  }
+  const VkCommandPool& getCommandPool() const { return commandPool; }
 
-  const VkExtent2D& getSwapChainExtent() const {
-    return swapChainExtent;
-  }
+  const VkExtent2D& getSwapChainExtent() const { return swapChainExtent; }
 
   const VkFormat& getSwapChainImageFormat() const {
     return swapChainImageFormat;
-  } 
+  }
 
   const std::vector<VkImageView>& getSwapChainImageViews() const {
     return swapChainImageViews;
   }
-  
-  const VkFormat& getDepthImageFormat() const {
-    return depthImageFormat;
-  } 
 
-  const VkImageView& getDepthImageView() const {
-    return depthImageView;
-  }
+  const VkFormat& getDepthImageFormat() const { return depthImageFormat; }
+
+  const VkImageView& getDepthImageView() const { return depthImageView; }
 
   bool hasStencilComponent() const;
 
-  const ConfigParser& getConfigParser() const {
-    return configParser;
-  }
+  const ConfigParser& getConfigParser() const { return configParser; }
 
-  ShaderManager& getShaderManager() {
-    return *pShaderManager.get();
-  }
+  ShaderManager& getShaderManager() { return *pShaderManager.get(); }
 
-  InputManager& getInputManager() {
-    return *pInputManager;
-  }
+  InputManager& getInputManager() { return *pInputManager; }
 
-  uint32_t getMaxFramesInFlight() const {
-    return MAX_FRAMES_IN_FLIGHT;
-  }
+  uint32_t getMaxFramesInFlight() const { return MAX_FRAMES_IN_FLIGHT; }
 
   // Command Utilities
   VkCommandBuffer beginSingleTimeCommands() const;
@@ -217,10 +201,10 @@ public:
       const VkBuffer& dstBuffer,
       VkDeviceSize size) const;
   void createBuffer(
-      VkDeviceSize size, 
-      VkBufferUsageFlags usage, 
-      VkMemoryPropertyFlags properties, 
-      VkBuffer& buffer, 
+      VkDeviceSize size,
+      VkBufferUsageFlags usage,
+      VkMemoryPropertyFlags properties,
+      VkBuffer& buffer,
       VkDeviceMemory& bufferMemory) const;
   void createVertexBuffer(
       const void* pSrc,
@@ -238,7 +222,7 @@ public:
       std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
 
   // Image Utilities
-  void createTextureImage(    
+  void createTextureImage(
       gsl::span<const std::byte> buffer,
       uint32_t width,
       uint32_t height,
@@ -252,7 +236,7 @@ public:
       VkFormat format,
       VkImage& image,
       VkDeviceMemory& imageMemory) const;
-  
+
   void createImage(
       uint32_t width,
       uint32_t height,
@@ -272,15 +256,15 @@ public:
       VkImageAspectFlags aspectFlags) const;
 
   void transitionImageLayout(
-      VkImage image, 
-      VkFormat format, 
+      VkImage image,
+      VkFormat format,
       uint32_t layerCount,
-      VkImageLayout oldLayout, 
+      VkImageLayout oldLayout,
       VkImageLayout newLayout) const;
   void copyBufferToImage(
-      VkBuffer buffer, 
-      VkImage image, 
-      uint32_t width, 
+      VkBuffer buffer,
+      VkImage image,
+      uint32_t width,
       uint32_t height,
       uint32_t layerCount) const;
 };

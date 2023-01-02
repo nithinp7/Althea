@@ -12,24 +12,20 @@ class Application;
 class Cubemap {
 public:
   Cubemap(Application& app, const std::array<std::string, 6>& cubemapPaths);
-  Cubemap(Application& app, const std::array<CesiumGltf::ImageCesium, 6>& images);
+  Cubemap(
+      Application& app,
+      const std::array<CesiumGltf::ImageCesium, 6>& images);
   ~Cubemap();
 
-  VkImage getImage() const {
-    return this->_image;
-  }
+  VkImage getImage() const { return this->_image; }
 
-  VkImageView getImageView() const {
-    return this->_imageView;
-  }
+  VkImageView getImageView() const { return this->_imageView; }
 
-  VkSampler getSampler() const {
-    return this->_imageSampler;
-  }
+  VkSampler getSampler() const { return this->_imageSampler; }
 
 private:
   void _initCubemap(
-      Application& app, 
+      Application& app,
       const std::array<CesiumGltf::ImageCesium, 6>& images);
 
   VkDevice _device;
@@ -40,4 +36,4 @@ private:
   VkImageView _imageView;
   VkSampler _imageSampler;
 };
-} // AltheaEngine
+} // namespace AltheaEngine

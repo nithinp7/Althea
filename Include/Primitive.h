@@ -2,17 +2,16 @@
 
 #include "Texture.h"
 
-#include <array>
-#include <vector>
-
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 #include <vulkan/vulkan.h>
 
+#include <array>
 #include <cstdint>
-
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
+#include <vector>
+
 
 namespace CesiumGltf {
 struct Model;
@@ -49,7 +48,7 @@ struct TextureSlots {
 };
 
 class Primitive {
-public: 
+public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
 
 private:
@@ -72,8 +71,9 @@ private:
   VkDeviceMemory _vertexBufferMemory;
   VkDeviceMemory _indexBufferMemory;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
-  
+
   std::vector<DescriptorSet> _descriptorSets;
+
 public:
   Primitive(
       const Application& app,
@@ -87,18 +87,18 @@ public:
   ~Primitive();
 
   void updateUniforms(
-      const glm::mat4& parentTransform, 
-      const glm::mat4& view, 
-      const glm::mat4& projection, 
+      const glm::mat4& parentTransform,
+      const glm::mat4& view,
+      const glm::mat4& projection,
       uint32_t currentFrame) const;
   void draw(
-      const VkCommandBuffer& commandBuffer, 
-      const VkPipelineLayout& pipelineLayout, 
+      const VkCommandBuffer& commandBuffer,
+      const VkPipelineLayout& pipelineLayout,
       const FrameContext& frame) const;
 
-private: 
+private:
   void _createMaterial(
-      const Application& app, 
+      const Application& app,
       DescriptorSetAllocator& materialAllocator);
 };
 } // namespace AltheaEngine

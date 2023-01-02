@@ -1,7 +1,8 @@
 #include "Application.h"
+#include "SponzaTest.h"
+
 #include <iostream>
 
-#include "SponzaTest.h"
 
 using namespace AltheaEngine;
 
@@ -11,8 +12,7 @@ int main() {
 
   try {
     app.run();
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
   }

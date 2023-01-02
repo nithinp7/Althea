@@ -1,10 +1,12 @@
 #include "Skybox.h"
+
 #include "Application.h"
+#include "DescriptorSet.h"
 #include "GraphicsPipeline.h"
 #include "ShaderManager.h"
-#include "DescriptorSet.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
+
 
 namespace {
 struct SkyboxUniforms {
@@ -18,12 +20,10 @@ namespace AltheaEngine {
 /*static*/
 void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
   ShaderManager& shaderManager = app.getShaderManager();
-  builder.materialResourceLayoutBuilder
-      .addUniformBufferBinding()
+  builder.materialResourceLayoutBuilder.addUniformBufferBinding()
       .addTextureBinding();
 
-  builder
-      .addVertexShader(shaderManager, "Skybox.vert")
+  builder.addVertexShader(shaderManager, "Skybox.vert")
       .addFragmentShader(shaderManager, "Skybox.frag")
 
       .setCullMode(VK_CULL_MODE_FRONT_BIT)
@@ -33,10 +33,10 @@ void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
 }
 
 Skybox::Skybox(
-    Application& app, 
+    Application& app,
     const std::array<std::string, 6>& skyboxImagePaths,
-    DescriptorSetAllocator& materialAllocator) :
-    _device(app.getDevice()) {
+    DescriptorSetAllocator& materialAllocator)
+    : _device(app.getDevice()) {
   this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths);
   app.createUniformBuffers(
       sizeof(SkyboxUniforms),
@@ -57,20 +57,21 @@ Skybox::~Skybox() {
 }
 
 void Skybox::_createMaterial(
-    Application& app, 
+    Application& app,
     DescriptorSetAllocator& materialAllocator) {
   for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
     this->_descriptorSets.emplace_back(materialAllocator.allocate())
         .assign()
-          .bindUniformBufferDescriptor<SkyboxUniforms>(this->_uniformBuffers[i])
-          .bindTextureDescriptor(
-              this->_pCubemap->getImageView(), this->_pCubemap->getSampler());
+        .bindUniformBufferDescriptor<SkyboxUniforms>(this->_uniformBuffers[i])
+        .bindTextureDescriptor(
+            this->_pCubemap->getImageView(),
+            this->_pCubemap->getSampler());
   }
 }
 
 void Skybox::updateUniforms(
-    const glm::mat4& view, 
-    const glm::mat4& projection, 
+    const glm::mat4& view,
+    const glm::mat4& projection,
     const FrameContext& frame) const {
   SkyboxUniforms uniforms;
   uniforms.inverseView = glm::inverse(view);
@@ -81,8 +82,8 @@ void Skybox::updateUniforms(
   uint32_t currentFrame = frame.frameRingBufferIndex;
   void* data;
   vkMapMemory(
-      this->_device, 
-      this->_uniformBuffersMemory[currentFrame], 
+      this->_device,
+      this->_uniformBuffersMemory[currentFrame],
       0,
       sizeof(SkyboxUniforms),
       0,
@@ -92,17 +93,16 @@ void Skybox::updateUniforms(
 }
 
 void Skybox::draw(
-    const VkCommandBuffer& commandBuffer, 
-    const VkPipelineLayout& pipelineLayout, 
+    const VkCommandBuffer& commandBuffer,
+    const VkPipelineLayout& pipelineLayout,
     const FrameContext& frame) const {
   vkCmdBindDescriptorSets(
-      commandBuffer, 
-      VK_PIPELINE_BIND_POINT_GRAPHICS, 
-      pipelineLayout, 
-      0, 
-      1, 
-      &this->_descriptorSets[frame.frameRingBufferIndex]
-          .getVkDescriptorSet(),
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      pipelineLayout,
+      0,
+      1,
+      &this->_descriptorSets[frame.frameRingBufferIndex].getVkDescriptorSet(),
       0,
       nullptr);
   vkCmdDraw(commandBuffer, 3, 1, 0, 0);
