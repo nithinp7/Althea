@@ -7,21 +7,47 @@
 namespace AltheaEngine {
 Subpass::Subpass(
     const Application& app,
-    const PipelineContext& context,
+    VkRenderPass renderPass,
+    const std::shared_ptr<PerFrameResources>& pGlobalResources,
+    const std::optional<PerFrameResources>& renderPassResources,
+    uint32_t subpassIndex,
     const SubpassBuilder& builder)
-    : _pipeline(app, context, builder.pipelineBuilder) {}
-
-DescriptorAssignment Subpass::beginBindSubpassResources() {
-  return this->_pipeline.beginBindSubpassResources();
-}
+    : _subpassResources(
+          builder.subpassResourcesBuilder.hasBindings()
+              ? std::make_optional<PerFrameResources>(
+                    app,
+                    builder.subpassResourcesBuilder)
+              : std::nullopt),
+      _pipeline(
+          app,
+          PipelineContext{
+              renderPass,
+              pGlobalResources
+                  ? std::make_optional(pGlobalResources->getLayout())
+                  : std::nullopt,
+              renderPassResources
+                  ? std::make_optional(renderPassResources->getLayout())
+                  : std::nullopt,
+              this->_subpassResources
+                  ? std::make_optional(this->_subpassResources->getLayout())
+                  : std::nullopt,
+              subpassIndex},
+          builder.pipelineBuilder) {}
 
 RenderPass::RenderPass(
     const Application& app,
+    const std::shared_ptr<PerFrameResources>& pGlobalResources,
+    const DescriptorSetLayoutBuilder& renderPassResourceLayoutBuilder,
     std::vector<Attachment>&& attachments,
     std::vector<SubpassBuilder>&& subpassBuilders)
-    : _attachments(std::move(attachments)), _device(app.getDevice()) {
+    : _attachments(std::move(attachments)),
+      _device(app.getDevice()),
+      _pGlobalResources(pGlobalResources) {
 
-  // TODO: make this more readable
+  // Create render pass level resources.
+  if (renderPassResourceLayoutBuilder.hasBindings()) {
+    this->_renderPassResources.emplace(app, renderPassResourceLayoutBuilder);
+  }
 
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
@@ -63,9 +89,9 @@ RenderPass::RenderPass(
     // or used as a render target.
     vkAttachment.finalLayout =
         forPresent ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-                   : attachment.type == AttachmentType::Depth
-                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-                         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        : attachment.type == AttachmentType::Depth
+            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   }
 
   std::vector<VkSubpassDescription> vkSubpasses;
@@ -157,7 +183,10 @@ RenderPass::RenderPass(
        ++subpassIndex) {
     this->_subpasses.emplace_back(
         app,
-        PipelineContext{this->_renderPass, subpassIndex},
+        this->_renderPass,
+        this->_pGlobalResources,
+        this->_renderPassResources,
+        subpassIndex,
         subpassBuilders[subpassIndex]);
   }
 
@@ -229,19 +258,36 @@ ActiveRenderPass RenderPass::begin(
   return ActiveRenderPass(
       *this,
       commandBuffer,
+      this->_pGlobalResources.get(),
       frame,
       app.getSwapChainExtent());
 }
 
+
 ActiveRenderPass::ActiveRenderPass(
     const RenderPass& renderPass,
     const VkCommandBuffer& commandBuffer,
+    const PerFrameResources* pGlobalResources,
     const FrameContext& frame,
     const VkExtent2D& extent)
     : _currentSubpass(0),
       _renderPass(renderPass),
       _commandBuffer(commandBuffer),
       _frame(frame) {
+
+  this->_drawContext.commandBuffer = commandBuffer;
+
+  if (pGlobalResources) {
+    this->_drawContext.globalResources =
+        pGlobalResources->getCurrentDescriptorSet(frame);
+  }
+
+  if (renderPass.getRenderPassResources()) {
+    this->_drawContext.renderPassResources =
+        renderPass.getRenderPassResources()->getCurrentDescriptorSet(frame);
+  }
+
+  this->_drawContext.frame = frame;
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -267,6 +313,14 @@ ActiveRenderPass::ActiveRenderPass(
   const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
 
+  if (currentSubpass.getSubpassResources()) {
+    this->_drawContext.subpassResource =
+        currentSubpass.getSubpassResources()->getCurrentDescriptorSet(frame);
+  }
+
+  this->_drawContext.pipelineLayout = 
+      currentSubpass.getPipeline().getLayout();
+
   // TODO: Support compute as well?
   vkCmdBeginRenderPass(
       this->_commandBuffer,
@@ -290,6 +344,14 @@ ActiveRenderPass& ActiveRenderPass::nextSubpass() {
   const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
   currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
+
+  if (currentSubpass.getSubpassResources()) {
+    this->_drawContext.subpassResource =
+        currentSubpass.getSubpassResources()->getCurrentDescriptorSet(
+            this->_frame);
+  }
+
+  this->_drawContext.pipelineLayout = currentSubpass.getPipeline().getLayout();
 
   return *this;
 }

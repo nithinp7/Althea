@@ -11,18 +11,7 @@ GraphicsPipeline::GraphicsPipeline(
     const Application& app,
     const PipelineContext& context,
     const GraphicsPipelineBuilder& builder)
-    : _device(app.getDevice()),
-      _pGlobalResources(builder._pGlobalResources),
-      _pRenderPassResources(builder._pRenderPassResources) {
-
-  if (builder.subpassResourceLayoutBuilder.hasBindings()) {
-    this->_subpassResourcesAllocator.emplace(
-        app,
-        builder.subpassResourceLayoutBuilder,
-        1);
-    this->_subpassResources.emplace(
-        this->_subpassResourcesAllocator->allocate());
-  }
+    : _device(app.getDevice()) {
 
   if (builder.materialResourceLayoutBuilder.hasBindings()) {
     this->_materialAllocator.emplace(
@@ -67,16 +56,16 @@ GraphicsPipeline::GraphicsPipeline(
   // 2: Subpass wide resources // TODO necessary??
   // 3: Per-object, material resources
   std::vector<VkDescriptorSetLayout> layouts;
-  if (builder._globalResourceLayout) {
-    layouts.push_back(*builder._globalResourceLayout);
+  if (context.globalResourcesLayout) {
+    layouts.push_back(*context.globalResourcesLayout);
   }
 
-  if (builder._renderPassResourceLayout) {
-    layouts.push_back(*builder._renderPassResourceLayout);
+  if (context.renderPassResourcesLayout) {
+    layouts.push_back(*context.renderPassResourcesLayout);
   }
 
-  if (this->_subpassResourcesAllocator) {
-    layouts.push_back(this->_subpassResourcesAllocator->getLayout());
+  if (context.subpassResourcesLayout) {
+    layouts.push_back(*context.subpassResourcesLayout);
   }
 
   if (this->_materialAllocator) {
@@ -268,15 +257,6 @@ void GraphicsPipeline::bindPipeline(
       this->_pipeline);
 }
 
-DescriptorAssignment GraphicsPipeline::beginBindSubpassResources() {
-  if (!this->_subpassResources) {
-    throw std::runtime_error(
-        "Attempting to bind to subpass resources that have not been declared.");
-  }
-
-  return this->_subpassResources->assign();
-}
-
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addComputeShader(
     ShaderManager& shaderManager,
     const std::string& shaderPath) {
@@ -434,22 +414,4 @@ GraphicsPipelineBuilder::setMaterialPoolSize(uint32_t poolSize) {
 
   return *this;
 }
-
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::setGlobalResources(
-    VkDescriptorSetLayout layout,
-    const std::shared_ptr<DescriptorSet>& pDescriptorSet) {
-  this->_globalResourceLayout = layout;
-  this->_pGlobalResources = pDescriptorSet;
-
-  return *this;
-}
-
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::setRenderPassResources(
-    VkDescriptorSetLayout layout,
-    const std::shared_ptr<DescriptorSet>& pDescriptorSet) {
-  this->_renderPassResourceLayout = layout;
-  this->_pRenderPassResources = pDescriptorSet;
-
-  return *this;
-}
-} // namespace AltheaEngine
+} // namespace AltheaEngineF

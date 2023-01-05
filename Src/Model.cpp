@@ -249,12 +249,9 @@ void Model::updateUniforms(
   }
 }
 
-void Model::draw(
-    const VkCommandBuffer& commandBuffer,
-    const VkPipelineLayout& pipelineLayout,
-    const FrameContext& frame) const {
+void Model::draw(const DrawContext& context) const {
   for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
-    pPrimitive->draw(commandBuffer, pipelineLayout, frame);
+    pPrimitive->draw(context);
   }
 }
 

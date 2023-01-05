@@ -3,13 +3,15 @@
 #include "DescriptorSet.h"
 #include "FrameContext.h"
 #include "GraphicsPipeline.h"
+#include "PerFrameResources.h"
+#include "DrawContext.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
 #include <optional>
 #include <vector>
-
+#include <memory>
 
 namespace AltheaEngine {
 class Application;
@@ -57,6 +59,8 @@ struct SubpassBuilder {
   std::vector<uint32_t> colorAttachments;
   std::optional<uint32_t> depthAttachment;
 
+  DescriptorSetLayoutBuilder subpassResourcesBuilder;
+
   GraphicsPipelineBuilder pipelineBuilder;
 };
 
@@ -64,7 +68,10 @@ class Subpass {
 public:
   Subpass(
       const Application& app,
-      const PipelineContext& context,
+      VkRenderPass renderPass,
+      const std::shared_ptr<PerFrameResources>& pGlobalResources,
+      const std::optional<PerFrameResources>& renderPassResources,
+      uint32_t subpassIndex,
       const SubpassBuilder& builder);
   Subpass(Subpass&& rhs) = default;
 
@@ -72,14 +79,17 @@ public:
 
   GraphicsPipeline& getPipeline() { return this->_pipeline; }
 
-  /**
-   * @brief Begin binding subpass-wide resources.
-   *
-   * @return The resource bindings builder.
-   */
-  DescriptorAssignment beginBindSubpassResources();
+  std::optional<PerFrameResources>& getSubpassResources() {
+    return this->_subpassResources;
+  }
+
+  const std::optional<PerFrameResources>& getSubpassResources() const {
+    return this->_subpassResources;
+  }
 
 private:
+  std::optional<PerFrameResources> _subpassResources;
+
   GraphicsPipeline _pipeline;
 };
 
@@ -88,6 +98,8 @@ class RenderPass {
 public:
   RenderPass(
       const Application& app,
+      const std::shared_ptr<PerFrameResources>& pGlobalResources,
+      const DescriptorSetLayoutBuilder& renderPassResourcesLayoutBuilder,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
@@ -96,9 +108,16 @@ public:
       const Application& app,
       const VkCommandBuffer& commandBuffer,
       const FrameContext& frame);
+  
+  std::optional<PerFrameResources>& getRenderPassResources() {
+    return this->_renderPassResources;
+  }
+
+  const std::optional<PerFrameResources>& getRenderPassResources() const {
+    return this->_renderPassResources;
+  }
 
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
-
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
 
 private:
@@ -107,6 +126,9 @@ private:
   void _createFrameBuffer(
       const VkExtent2D& extent,
       const std::optional<VkImageView>& swapChainImageView);
+
+  std::shared_ptr<PerFrameResources> _pGlobalResources;
+  std::optional<PerFrameResources> _renderPassResources;
 
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;
@@ -125,6 +147,7 @@ public:
   ActiveRenderPass(
       const RenderPass& renderPass,
       const VkCommandBuffer& commandBuffer,
+      const PerFrameResources* pGlobalResources,
       const FrameContext& frame,
       const VkExtent2D& extent);
   ~ActiveRenderPass();
@@ -134,12 +157,8 @@ public:
   // TODO: create IDrawable interface instead?
   template <typename TDrawable>
   ActiveRenderPass& draw(const TDrawable& object) {
-    const Subpass& currentSubpass =
-        this->_renderPass._subpasses[this->_currentSubpass];
-    const VkPipelineLayout& pipelineLayout =
-        currentSubpass.getPipeline().getLayout();
-
-    object.draw(this->_commandBuffer, pipelineLayout, this->_frame);
+    const DrawContext& context = this->_drawContext;
+    object.draw(context);
 
     return *this;
   }
@@ -152,5 +171,7 @@ private:
   const FrameContext& _frame;
 
   std::vector<VkClearValue> _clearValues;
+
+  DrawContext _drawContext;
 };
 } // namespace AltheaEngine

@@ -2,6 +2,7 @@
 
 #include "CameraController.h"
 #include "DescriptorSet.h"
+#include "PerFrameResources.h"
 #include "IGameInstance.h"
 #include "Model.h"
 #include "RenderPass.h"
@@ -32,6 +33,8 @@ public:
       const FrameContext& frame) override;
 
 private:
+  std::shared_ptr<PerFrameResources> _pGlobalResources;
+
   std::unique_ptr<CameraController> _pCameraController;
 
   std::unique_ptr<RenderPass> _pRenderPass;

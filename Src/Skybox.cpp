@@ -2,11 +2,11 @@
 
 #include "Application.h"
 #include "DescriptorSet.h"
+#include "ResourcesAssignment.h"
 #include "GraphicsPipeline.h"
 #include "ShaderManager.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
-
 
 namespace {
 struct SkyboxUniforms {
@@ -20,8 +20,7 @@ namespace AltheaEngine {
 /*static*/
 void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
   ShaderManager& shaderManager = app.getShaderManager();
-  builder.materialResourceLayoutBuilder.addUniformBufferBinding()
-      .addTextureBinding();
+  builder.materialResourceLayoutBuilder.addUniformBufferBinding();
 
   builder.addVertexShader(shaderManager, "Skybox.vert")
       .addFragmentShader(shaderManager, "Skybox.frag")
@@ -36,14 +35,17 @@ Skybox::Skybox(
     Application& app,
     const std::array<std::string, 6>& skyboxImagePaths,
     DescriptorSetAllocator& materialAllocator)
-    : _device(app.getDevice()) {
+    : _device(app.getDevice()),
+      _pMaterial(std::make_unique<Material>(app, materialAllocator)) {
   this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths);
   app.createUniformBuffers(
       sizeof(SkyboxUniforms),
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
 
-  this->_createMaterial(app, materialAllocator);
+  // TODO: These uniforms should be global too
+  this->_pMaterial->assign()
+      .bindUniformBuffer<SkyboxUniforms>(this->_uniformBuffers);
 }
 
 Skybox::~Skybox() {
@@ -53,19 +55,6 @@ Skybox::~Skybox() {
 
   for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
     vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
-  }
-}
-
-void Skybox::_createMaterial(
-    Application& app,
-    DescriptorSetAllocator& materialAllocator) {
-  for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-    this->_descriptorSets.emplace_back(materialAllocator.allocate())
-        .assign()
-        .bindUniformBufferDescriptor<SkyboxUniforms>(this->_uniformBuffers[i])
-        .bindTextureDescriptor(
-            this->_pCubemap->getImageView(),
-            this->_pCubemap->getSampler());
   }
 }
 
@@ -92,19 +81,8 @@ void Skybox::updateUniforms(
   vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
 }
 
-void Skybox::draw(
-    const VkCommandBuffer& commandBuffer,
-    const VkPipelineLayout& pipelineLayout,
-    const FrameContext& frame) const {
-  vkCmdBindDescriptorSets(
-      commandBuffer,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipelineLayout,
-      0,
-      1,
-      &this->_descriptorSets[frame.frameRingBufferIndex].getVkDescriptorSet(),
-      0,
-      nullptr);
-  vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+void Skybox::draw(const DrawContext& context) const {
+  context.bindDescriptorSets(this->_pMaterial);
+  vkCmdDraw(context.commandBuffer, 3, 1, 0, 0);
 }
 } // namespace AltheaEngine

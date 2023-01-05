@@ -73,22 +73,31 @@ DescriptorAssignment::DescriptorAssignment(
   this->_descriptorWrites.resize(this->_bindings.size());
 }
 
+DescriptorAssignment::DescriptorAssignment(DescriptorAssignment&& rhs) :
+    _currentIndex(rhs._currentIndex),
+    _device(rhs._device),
+    _descriptorSet(rhs._descriptorSet),
+    _bindings(rhs._bindings),
+    _descriptorWrites(std::move(rhs._descriptorWrites)),
+    _inlineConstantWrites(std::move(rhs._inlineConstantWrites)),
+    _descriptorBufferInfos(std::move(rhs._descriptorBufferInfos)),
+    _descriptorImageInfos(std::move(rhs._descriptorImageInfos)) {
+  rhs._descriptorWrites.clear();
+}
+
 // TODO: Use an explicit endBinding function instead of the destructor
 // since we cannot throw or assert in destructors.
 DescriptorAssignment::~DescriptorAssignment() {
   // The descriptor writes for this descriptor set are commited when this
   // assignment object goes out of scope.
-  // if (this->_currentIndex != this->_bindings.size()) {
-  //   // throw std::runtime_error("Attempting to finish descriptor assignment
-  //   with the wrong number of bindings."); assert(false);
-  // }
-
-  vkUpdateDescriptorSets(
-      this->_device,
-      static_cast<uint32_t>(this->_descriptorWrites.size()),
-      this->_descriptorWrites.data(),
-      0,
-      nullptr);
+  if (!this->_descriptorWrites.empty()) {
+    vkUpdateDescriptorSets(
+        this->_device,
+        static_cast<uint32_t>(this->_descriptorWrites.size()),
+        this->_descriptorWrites.data(),
+        0,
+        nullptr);
+  }
 }
 
 DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(

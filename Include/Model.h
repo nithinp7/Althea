@@ -2,6 +2,7 @@
 
 #include "ConfigParser.h"
 #include "FrameContext.h"
+#include "DrawContext.h"
 #include "Primitive.h"
 
 #include <CesiumGltf/Model.h>
@@ -34,10 +35,7 @@ public:
       const glm::mat4& view,
       const glm::mat4& projection,
       const FrameContext& frame) const;
-  void draw(
-      const VkCommandBuffer& commandBuffer,
-      const VkPipelineLayout& pipelineLayout,
-      const FrameContext& frame) const;
+  void draw(const DrawContext& context) const;
 
 private:
   CesiumGltf::Model _model;

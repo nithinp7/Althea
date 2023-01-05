@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DescriptorSet.h"
+#include "PerFrameResources.h"
 
 #include <vulkan/vulkan.h>
 
@@ -11,13 +12,15 @@
 #include <string>
 #include <vector>
 
-
 namespace AltheaEngine {
 class Application;
 class ShaderManager;
 
 struct PipelineContext {
   VkRenderPass renderPass;
+  std::optional<VkDescriptorSetLayout> globalResourcesLayout;
+  std::optional<VkDescriptorSetLayout> renderPassResourcesLayout;
+  std::optional<VkDescriptorSetLayout> subpassResourcesLayout;
   uint32_t subpassIndex;
 };
 
@@ -140,39 +143,6 @@ public:
   GraphicsPipelineBuilder& setMaterialPoolSize(uint32_t poolSize);
 
   /**
-   * @brief Set the descriptor set for global resources. These will be made
-   * available in all shaders.
-   *
-   * @param layout The resource layout of this descriptor set.
-   * @param descriptorSet The global descriptor set.
-   * @return This builder.
-   */
-  GraphicsPipelineBuilder& setGlobalResources(
-      VkDescriptorSetLayout layout,
-      const std::shared_ptr<DescriptorSet>& pDescriptorSet);
-
-  /** TODO: Are these cases needed, or can we just do material vs global
-   * resoures?
-   *
-   * @brief Set the descriptor set for render pass-wide resources. Such
-   * resources will be made available in all shaders within this render pass.
-   *
-   * @param layout The resoure layout of this descriptor set.
-   * @param descriptorSet The render pass wide descriptor set.
-   * @return This builder.
-   */
-  GraphicsPipelineBuilder& setRenderPassResources(
-      VkDescriptorSetLayout layout,
-      const std::shared_ptr<DescriptorSet>& pDescriptorSet);
-
-  /**
-   * @brief Builder for the subpass-wide descriptor set layout. The resources
-   * bound to the descriptor set with this layout will be available in shaders
-   * across all objects rendered in this pipeline's subpass.
-   */
-  DescriptorSetLayoutBuilder subpassResourceLayoutBuilder;
-
-  /**
    * @brief Builder for the per-object, material descriptor set layout. The
    * resources bound to descriptor sets of this layout will be unique for each
    * object rendered in this pipeline's subpass.
@@ -184,12 +154,6 @@ private:
   // Info needed to build the graphics pipeline
 
   std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-
-  std::optional<VkDescriptorSetLayout> _globalResourceLayout;
-  std::shared_ptr<DescriptorSet> _pGlobalResources;
-
-  std::optional<VkDescriptorSetLayout> _renderPassResourceLayout;
-  std::shared_ptr<DescriptorSet> _pRenderPassResources;
 
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
@@ -222,28 +186,12 @@ public:
 
   const VkPipeline& getVkPipeline() const { return this->_pipeline; }
 
-  DescriptorAssignment beginBindSubpassResources();
-
   DescriptorSetAllocator& getMaterialAllocator() {
     return *this->_materialAllocator;
   }
 
-  const DescriptorSet* getGlobalResources() const {
-    return this->_pGlobalResources.get();
-  }
-
-  const DescriptorSet* getRenderPassResources() const {
-    return this->_pRenderPassResources.get();
-  }
-
 private:
   VkDevice _device;
-
-  std::shared_ptr<DescriptorSet> _pGlobalResources;
-  std::shared_ptr<DescriptorSet> _pRenderPassResources;
-
-  std::optional<DescriptorSetAllocator> _subpassResourcesAllocator;
-  std::optional<DescriptorSet> _subpassResources;
 
   std::optional<DescriptorSetAllocator> _materialAllocator;
 

@@ -2,9 +2,12 @@
 
 #include "Application.h"
 #include "Camera.h"
+#include "DescriptorSet.h"
 #include "GraphicsPipeline.h"
 #include "ModelViewProjection.h"
 #include "Primitive.h"
+
+#include "Cubemap.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -14,7 +17,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 
 using namespace AltheaEngine;
 
@@ -57,18 +59,23 @@ void SponzaTest::createRenderState(Application& app) {
        app.getDepthImageView(),
        true}};
 
+  
+  // Global resources
+  DescriptorSetLayoutBuilder globalResourceLayout;
+  // Add slot for skybox cubemap.
+  globalResourceLayout.addTextureBinding();
+
+  this->_pGlobalResources = std::make_shared<PerFrameResources>(
+      app,
+      globalResourceLayout);
+
   std::vector<SubpassBuilder> subpassBuilders;
 
   // SKYBOX PASS
   {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
-
     Skybox::buildPipeline(app, subpassBuilder.pipelineBuilder);
-    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(),
-    // this->_pEmptySet);
-    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(),
-    // this->_pEmptySet);
   }
 
   // REGULAR PASS
@@ -78,27 +85,20 @@ void SponzaTest::createRenderState(Application& app) {
     subpassBuilder.depthAttachment = 1;
 
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
-    // subpassBuilder.pipelineBuilder.setGlobalResources(this->_pEmptyAllocator->getLayout(),
-    // this->_pEmptySet);
-    // subpassBuilder.pipelineBuilder.setRenderPassResources(this->_pEmptyAllocator->getLayout(),
-    // this->_pEmptySet);
-    if (this->_envMap) {
-      // Add environment cubemap binding
-      subpassBuilder.pipelineBuilder.materialResourceLayoutBuilder
-          .addTextureBinding();
-    }
 
     subpassBuilder.pipelineBuilder
         .addVertexShader(
             shaderManager,
-            this->_currentShader + std::string(".vert"))
+            "GltfEnvMap.vert")
         .addFragmentShader(
             shaderManager,
-            this->_currentShader + std::string(".frag"));
+            "GltfEnvMap.frag");
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(
       app,
+      this->_pGlobalResources,
+      DescriptorSetLayoutBuilder{},
       std::move(attachments),
       std::move(subpassBuilders));
 
@@ -121,6 +121,11 @@ void SponzaTest::createRenderState(Application& app) {
       app,
       "Sponza.gltf",
       subpasses[1].getPipeline().getMaterialAllocator());
+
+  // Bind the skybox cubemap as a global resource
+  const std::shared_ptr<Cubemap>& pCubemap = this->_pSkybox->getCubemap();
+  this->_pGlobalResources->assign()
+      .bindTexture(pCubemap->getImageView(), pCubemap->getSampler());
 }
 
 void SponzaTest::destroyRenderState(Application& app) {
@@ -128,6 +133,7 @@ void SponzaTest::destroyRenderState(Application& app) {
   this->_pSkybox.reset();
   this->_pSponzaModel.reset();
   this->_pRenderPass.reset();
+  this->_pGlobalResources.reset();
 }
 
 void SponzaTest::tick(Application& app, const FrameContext& frame) {
@@ -145,6 +151,18 @@ void SponzaTest::draw(
     Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
+
+  // TODO:::
+  // DrawBuilder / DrawContext?? {
+  //   cmdBuffer,
+  //   globalResource, -->
+  //   renderPassResource,  --> combineSets function?
+  //   subpassResource, -->
+  //   materialResource, ->
+  //   pipelineLayout,
+  //   frameContext,
+  //   ve
+  // }
   this->_pRenderPass
       ->begin(app, commandBuffer, frame)
       // Draw skybox

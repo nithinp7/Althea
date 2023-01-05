@@ -229,7 +229,8 @@ Primitive::Primitive(
     DescriptorSetAllocator& materialAllocator)
     : _device(app.getDevice()),
       _relativeTransform(nodeTransform),
-      _flipFrontFace(glm::determinant(nodeTransform) < 0.0f) {
+      _flipFrontFace(glm::determinant(nodeTransform) < 0.0f),
+      _pMaterial(std::make_unique<Material>(app, materialAllocator)) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
@@ -450,27 +451,16 @@ Primitive::Primitive(
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
 
-  this->_createMaterial(app, materialAllocator);
-}
-
-void Primitive::_createMaterial(
-    const Application& app,
-    DescriptorSetAllocator& materialAllocator) {
-  uint32_t maxFramesInFlight = app.getMaxFramesInFlight();
-  this->_descriptorSets.reserve(maxFramesInFlight);
-  for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
-    this->_descriptorSets.emplace_back(materialAllocator.allocate())
-        .assign()
-        .bindUniformBufferDescriptor<ModelViewProjection>(
-            this->_uniformBuffers[i])
-        .bindInlineConstantDescriptors(&this->_constants)
-        .bindTextureDescriptor(
-            this->_textureSlots.pBaseTexture->getImageView(),
-            this->_textureSlots.pBaseTexture->getSampler())
-        .bindTextureDescriptor(
-            this->_textureSlots.pNormalMapTexture->getImageView(),
-            this->_textureSlots.pNormalMapTexture->getSampler());
-  }
+  this->_pMaterial->assign()
+      .bindUniformBuffer<ModelViewProjection>(
+          this->_uniformBuffers)
+      .bindInlineConstants(&this->_constants)
+      .bindTexture(
+          this->_textureSlots.pBaseTexture->getImageView(),
+          this->_textureSlots.pBaseTexture->getSampler())
+      .bindTexture(
+          this->_textureSlots.pNormalMapTexture->getImageView(),
+          this->_textureSlots.pNormalMapTexture->getSampler());
 }
 
 void Primitive::updateUniforms(
@@ -495,32 +485,23 @@ void Primitive::updateUniforms(
   vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
 }
 
-void Primitive::draw(
-    const VkCommandBuffer& commandBuffer,
-    const VkPipelineLayout& pipelineLayout,
-    const FrameContext& frame) const {
+void Primitive::draw(const DrawContext& context) const {
   VkDeviceSize offset = 0;
   vkCmdSetFrontFace(
-      commandBuffer,
+      context.commandBuffer,
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
+  vkCmdBindVertexBuffers(context.commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
   vkCmdBindIndexBuffer(
-      commandBuffer,
+      context.commandBuffer,
       this->_indexBuffer,
       0,
       VK_INDEX_TYPE_UINT32);
-  vkCmdBindDescriptorSets(
-      commandBuffer,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipelineLayout,
-      0,
-      1,
-      &this->_descriptorSets[frame.frameRingBufferIndex].getVkDescriptorSet(),
-      0,
-      nullptr);
+  
+  context.bindDescriptorSets(this->_pMaterial);
+
   vkCmdDrawIndexed(
-      commandBuffer,
+      context.commandBuffer,
       static_cast<uint32_t>(this->_indices.size()),
       1,
       0,

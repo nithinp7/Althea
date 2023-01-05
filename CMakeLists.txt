@@ -85,7 +85,7 @@ add_custom_target(
   DEPENDS ${COPIED_FILES})
 add_dependencies(${PROJECT_NAME} CopiedFiles)
 
-find_package(Vulkan REQUIRED FATAL_ERROR) # error
+find_package(Vulkan REQUIRED) # error
 
 add_subdirectory(Extern/glm)
 add_subdirectory(Extern/glfw)

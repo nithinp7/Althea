@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Texture.h"
+#include "DrawContext.h"
+#include "Material.h"
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
@@ -72,7 +74,7 @@ private:
   VkDeviceMemory _indexBufferMemory;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 
-  std::vector<DescriptorSet> _descriptorSets;
+  std::unique_ptr<Material> _pMaterial;
 
 public:
   Primitive(
@@ -91,14 +93,6 @@ public:
       const glm::mat4& view,
       const glm::mat4& projection,
       uint32_t currentFrame) const;
-  void draw(
-      const VkCommandBuffer& commandBuffer,
-      const VkPipelineLayout& pipelineLayout,
-      const FrameContext& frame) const;
-
-private:
-  void _createMaterial(
-      const Application& app,
-      DescriptorSetAllocator& materialAllocator);
+  void draw(const DrawContext& context) const;
 };
 } // namespace AltheaEngine

@@ -94,15 +94,15 @@ private:
 };
 
 class DescriptorAssignment {
-private:
-  friend class DescriptorSet;
-
+public:
   DescriptorAssignment(
       VkDevice device,
       VkDescriptorSet descriptorSet,
       const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+  DescriptorAssignment(DescriptorAssignment&& rhs);
+  DescriptorAssignment(const DescriptorAssignment& rhs) = delete;
+  // DescriptorAssignment& operator=(const DescriptorAssignment& rhs) = delete;
 
-public:
   ~DescriptorAssignment();
 
   DescriptorAssignment&

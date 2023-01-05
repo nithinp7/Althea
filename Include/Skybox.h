@@ -2,6 +2,8 @@
 
 #include "Cubemap.h"
 #include "FrameContext.h"
+#include "DrawContext.h"
+#include "Material.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -10,11 +12,9 @@
 #include <memory>
 #include <string>
 
-
 namespace AltheaEngine {
 class Application;
 class GraphicsPipelineBuilder;
-class DescriptorSet;
 class DescriptorSetAllocator;
 
 class Skybox {
@@ -31,22 +31,17 @@ public:
       const glm::mat4& view,
       const glm::mat4& projection,
       const FrameContext& frame) const;
-  void draw(
-      const VkCommandBuffer& commandBuffer,
-      const VkPipelineLayout& pipelineLayout,
-      const FrameContext& frame) const;
+  void draw(const DrawContext& context) const;
 
   const std::shared_ptr<Cubemap>& getCubemap() const { return this->_pCubemap; }
 
 private:
-  void
-  _createMaterial(Application& app, DescriptorSetAllocator& materialAllocator);
-
   VkDevice _device;
 
   std::shared_ptr<Cubemap> _pCubemap;
 
-  std::vector<DescriptorSet> _descriptorSets;
+  std::unique_ptr<Material> _pMaterial;
+
   std::vector<VkBuffer> _uniformBuffers;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 };
