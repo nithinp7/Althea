@@ -2,15 +2,44 @@
 
 ### Nithin Pranesh
 
-Althea is a glTF-based, Vulkan rendering engine that I have been building in my spare time. The progress so far and the tentative roadmap are discussed below.
+Althea is a glTF-based, rendering engine built on Vulkan that I have been building in my spare time. The goal of this project is to create an intuitive, user-facing rendering API at a reasonable abstraction level, while still leveraging high-performance, state-of-the-art techniques under-the-hood. The progress so far and the tentative roadmap are discussed below.
+
+### Progress
+#### Core Renderer
+- [x] Vulkan backend to initialize device, manage the swapchain, synchronize a double-buffered render-loop, etc.
+- [x] Simple API to create vertex inputs and specify their vertex layouts. 
+- [x] Resource layout API, abstracting away descriptor set management / allocation etc. Currently textures, UBOs, and inline constant buffers can be specified in the layout and bound ("assigned" to descriptor sets under-the-hood). Resources can be global, render pass wide, subpass wide, or they can be material (per-object) resources.
+- [x] Pipeline building API, abstracting away tons of boilerplate involved in explicitly setting up PSOs.
+- [x] Similar builder-pattern APIs for constructing render passes, subpasses, 
+- [x] Shader management
+- [x] Cubemap and texture management
+
+#### Model Loading
+- [x] Basic glTF loading, including normals, tangents, UVs, base color textures, and normal maps. Cesium Native is used for parsing the glTFs.
+- [x] Integrate MikkTSpace for generating tangents when missing from the glTF.
+
+#### Miscellaneous
+- [x] Flexible, listener-based, input-management system built on top of GLFW.
+- [x] Velocity feedback-based camera controller.
+- [x] Integrated clang-format.
+
+#### Implementations
+- [x] Skybox and environment mapped reflections
+- [x] Normal mapping
 
 ### Roadmap
-#### Features
+#### Renderer Features
+- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors). 
 - [ ] Lighting model
 - [ ] Mipmaps
+- [ ] LODs
 - [ ] PBR (with image-based reflections)
 - [ ] Deferred rendering setup
 - [ ] Scenegraph / Entity Component System
+
+#### Vulkan Backend
+- [ ] API to leverage compute pipeline.
+- [ ] API to leverage raytrace pipeline.
 
 #### Behind the scenes
 - [ ] Better Vulkan memory management (currently done in quite a naive way)
@@ -18,7 +47,7 @@ Althea is a glTF-based, Vulkan rendering engine that I have been building in my 
 - [ ] Multi-threaded rendering / job system
 - [ ] Async model loading / uploading, eventually geometry "streaming"
 
-#### Editor features
+#### Editor Features
 - [ ] Basic Imgui-based editor capabilities (e.g., transform gizmos, load models etc.)
 - [ ] Shader hot-reloading
 - [ ] Shader variants
@@ -29,7 +58,10 @@ Althea is a glTF-based, Vulkan rendering engine that I have been building in my 
 - [ ] Integrate unit-testing framework, write unit tests
 - [ ] Organize code into renderer backend, frontend, editor, etc.
 
-More information to come!!
+#### Way Out Ideas!
+- [ ] Integrate full 3D Tiles streaming support with Cesium Native
+- [ ] Experiment with bindless, GPU-driven pipelines, and mesh shaders.
+- [ ] Experiment with 3D Tiles and such GPU-driven approaches (e.g., compute-based LOD selection, residency management, culling, and multi-draw indirect). 
 
 ### Setup Instructions (Only supports Windows for now)
 - `git clone git@github.com:nithinp7/Althea --recursive`
