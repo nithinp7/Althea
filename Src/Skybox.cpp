@@ -2,8 +2,8 @@
 
 #include "Application.h"
 #include "DescriptorSet.h"
-#include "ResourcesAssignment.h"
 #include "GraphicsPipeline.h"
+#include "ResourcesAssignment.h"
 #include "ShaderManager.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
@@ -34,18 +34,19 @@ void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
 Skybox::Skybox(
     Application& app,
     const std::array<std::string, 6>& skyboxImagePaths,
+    bool srgb,
     DescriptorSetAllocator& materialAllocator)
     : _device(app.getDevice()),
       _pMaterial(std::make_unique<Material>(app, materialAllocator)) {
-  this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths);
+  this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths, srgb);
   app.createUniformBuffers(
       sizeof(SkyboxUniforms),
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
 
   // TODO: These uniforms should be global too
-  this->_pMaterial->assign()
-      .bindUniformBuffer<SkyboxUniforms>(this->_uniformBuffers);
+  this->_pMaterial->assign().bindUniformBuffer<SkyboxUniforms>(
+      this->_uniformBuffers);
 }
 
 Skybox::~Skybox() {

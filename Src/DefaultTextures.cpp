@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-
 using namespace CesiumGltf;
 using namespace CesiumGltfReader;
 
@@ -62,11 +61,11 @@ void initDefaultTextures(const Application& app) {
   sampler.wrapT = Sampler::WrapT::CLAMP_TO_EDGE;
 
   GNormalTexture1x1 =
-      std::make_shared<Texture>(app, *normalResult.image, sampler);
+      std::make_shared<Texture>(app, *normalResult.image, sampler, false);
   GGreenTexture1x1 =
-      std::make_shared<Texture>(app, *greenResult.image, sampler);
+      std::make_shared<Texture>(app, *greenResult.image, sampler, false);
   GWhiteTexture1x1 =
-      std::make_shared<Texture>(app, *whiteResult.image, sampler);
+      std::make_shared<Texture>(app, *whiteResult.image, sampler, false);
 }
 
 void destroyDefaultTextures() {

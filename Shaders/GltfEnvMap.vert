@@ -10,7 +10,7 @@ layout(location=4) in vec2 uvs[4];
 
 layout(location=0) out vec2 baseColorUV;
 layout(location=1) out vec2 normalMapUV;
-layout(location=2) out vec4 debugColor;
+layout(location=2) out float normalScale;
 layout(location=3) out mat3 vertTbn;
 layout(location=6) out vec3 direction;
 
@@ -21,21 +21,23 @@ layout(set=1, binding=0) uniform UniformBufferObject {
 } ubo;
 
 layout(set=1, binding=1) uniform ConstantBufferObject {
-  vec4 testColor;
   int baseTextureCoordinateIndex;
   int normalMapTextureCoordinateIndex;
+  float normalScale;
 } constants;
 
 void main() {
+  // TODO: Do this on CPU?
   mat4 invView = inverse(ubo.view);
-  mat4 invProj = inverse(ubo.proj);
+  vec3 cameraPos = invView[3].xyz;
 
-  vec4 pos = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
-  direction = mat3(invView) * (invProj * pos).xyz;
-  
-  gl_Position = pos;
+  vec4 worldPos = ubo.model * vec4(position, 1.0);
+
+  direction = worldPos.xyz - cameraPos;
+
+  gl_Position = ubo.proj * ubo.view * worldPos;
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];
-  debugColor = constants.testColor;
+  normalScale = constants.normalScale;
   vertTbn = mat3(ubo.model) * tbn;
 }

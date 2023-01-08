@@ -17,11 +17,13 @@ public:
   Texture(
       const Application& app,
       const CesiumGltf::Model& model,
-      const CesiumGltf::Texture& texture);
+      const CesiumGltf::Texture& texture,
+      bool srgb);
   Texture(
       const Application& app,
       const CesiumGltf::ImageCesium& image,
-      const CesiumGltf::Sampler& sampler);
+      const CesiumGltf::Sampler& sampler,
+      bool srgb);
   Texture(const Texture& rhs) = delete;
   Texture& operator=(const Texture& rhs) = delete;
   Texture(Texture&& rhs) = delete;
@@ -35,7 +37,8 @@ private:
   void _initTexture(
       const Application& app,
       const CesiumGltf::ImageCesium& image,
-      const CesiumGltf::Sampler& sampler);
+      const CesiumGltf::Sampler& sampler,
+      bool srgb);
 
   VkDevice _device;
 

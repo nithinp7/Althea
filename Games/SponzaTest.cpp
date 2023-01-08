@@ -2,12 +2,11 @@
 
 #include "Application.h"
 #include "Camera.h"
+#include "Cubemap.h"
 #include "DescriptorSet.h"
 #include "GraphicsPipeline.h"
 #include "ModelViewProjection.h"
 #include "Primitive.h"
-
-#include "Cubemap.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -59,15 +58,13 @@ void SponzaTest::createRenderState(Application& app) {
        app.getDepthImageView(),
        true}};
 
-  
   // Global resources
   DescriptorSetLayoutBuilder globalResourceLayout;
   // Add slot for skybox cubemap.
   globalResourceLayout.addTextureBinding();
 
-  this->_pGlobalResources = std::make_shared<PerFrameResources>(
-      app,
-      globalResourceLayout);
+  this->_pGlobalResources =
+      std::make_shared<PerFrameResources>(app, globalResourceLayout);
 
   std::vector<SubpassBuilder> subpassBuilders;
 
@@ -87,12 +84,8 @@ void SponzaTest::createRenderState(Application& app) {
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
     subpassBuilder.pipelineBuilder
-        .addVertexShader(
-            shaderManager,
-            "GltfEnvMap.vert")
-        .addFragmentShader(
-            shaderManager,
-            "GltfEnvMap.frag");
+        .addVertexShader(shaderManager, "GltfEnvMap.vert")
+        .addFragmentShader(shaderManager, "GltfEnvMap.frag");
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(
@@ -115,17 +108,19 @@ void SponzaTest::createRenderState(Application& app) {
   this->_pSkybox = std::make_unique<Skybox>(
       app,
       skyboxImagePaths,
+      true,
       subpasses[0].getPipeline().getMaterialAllocator());
 
   this->_pSponzaModel = std::make_unique<Model>(
       app,
-      "Sponza.gltf",
+      "Sponza/glTF/Sponza.gltf",
       subpasses[1].getPipeline().getMaterialAllocator());
 
   // Bind the skybox cubemap as a global resource
   const std::shared_ptr<Cubemap>& pCubemap = this->_pSkybox->getCubemap();
-  this->_pGlobalResources->assign()
-      .bindTexture(pCubemap->getImageView(), pCubemap->getSampler());
+  this->_pGlobalResources->assign().bindTexture(
+      pCubemap->getImageView(),
+      pCubemap->getSampler());
 }
 
 void SponzaTest::destroyRenderState(Application& app) {

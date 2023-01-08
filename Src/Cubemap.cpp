@@ -9,11 +9,11 @@
 
 #include <stdexcept>
 
-
 namespace AltheaEngine {
 Cubemap::Cubemap(
     Application& app,
-    const std::array<std::string, 6>& cubemapPaths)
+    const std::array<std::string, 6>& cubemapPaths,
+    bool srgb)
     : _device(app.getDevice()) {
   std::array<CesiumGltf::ImageCesium, 6> cubemapImages;
   for (uint32_t i = 0; i < 6; ++i) {
@@ -31,14 +31,15 @@ Cubemap::Cubemap(
     cubemapImages[i] = std::move(*result.image);
   }
 
-  this->_initCubemap(app, cubemapImages);
+  this->_initCubemap(app, cubemapImages, srgb);
 }
 
 Cubemap::Cubemap(
     Application& app,
-    const std::array<CesiumGltf::ImageCesium, 6>& images)
+    const std::array<CesiumGltf::ImageCesium, 6>& images,
+    bool srgb)
     : _device(app.getDevice()) {
-  this->_initCubemap(app, images);
+  this->_initCubemap(app, images, srgb);
 }
 
 Cubemap::~Cubemap() {
@@ -51,7 +52,8 @@ Cubemap::~Cubemap() {
 
 void Cubemap::_initCubemap(
     Application& app,
-    const std::array<CesiumGltf::ImageCesium, 6>& cubemapImages) {
+    const std::array<CesiumGltf::ImageCesium, 6>& cubemapImages,
+    bool srgb) {
   // TODO: determine order expected by vulkan
   // Front, Back, Up, Down, Left Right?
 
@@ -95,13 +97,13 @@ void Cubemap::_initCubemap(
       cubemapBuffers,
       cubemapImages[0].width,
       cubemapImages[0].height,
-      VK_FORMAT_R8G8B8A8_SRGB,
+      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       this->_image,
       this->_imageMemory);
 
   this->_imageView = app.createImageView(
       this->_image,
-      VK_FORMAT_R8G8B8A8_SRGB,
+      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       6,
       VK_IMAGE_VIEW_TYPE_CUBE,
       VK_IMAGE_ASPECT_COLOR_BIT);

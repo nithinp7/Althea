@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Cubemap.h"
-#include "FrameContext.h"
 #include "DrawContext.h"
+#include "FrameContext.h"
 #include "Material.h"
 
 #include <glm/glm.hpp>
@@ -24,6 +24,7 @@ public:
   Skybox(
       Application& app,
       const std::array<std::string, 6>& skyboxImagePaths,
+      bool srgb,
       DescriptorSetAllocator& materialAllocator);
   ~Skybox();
 

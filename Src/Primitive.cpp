@@ -27,7 +27,8 @@ static std::shared_ptr<Texture> createTexture(
     std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>&
         textureMap,
     int32_t& textureCoordinateIndexConstant,
-    size_t uvCount) {
+    size_t uvCount,
+    bool srgb) {
   if (texture && texture->index >= 0 &&
       texture->index <= model.textures.size() &&
       static_cast<int32_t>(texture->texCoord) < uvCount) {
@@ -41,7 +42,7 @@ static std::shared_ptr<Texture> createTexture(
 
     auto result = textureMap.emplace(
         &gltfTexture,
-        std::make_shared<Texture>(app, model, model.textures[texture->index]));
+        std::make_shared<Texture>(app, model, model.textures[texture->index], srgb));
     return result.first->second;
   }
 
@@ -76,7 +77,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
 
   for (uint32_t i = 0; i < MAX_UV_COORDS; ++i) {
     builder.addVertexAttribute(
-        VertexAttributeType::VEC3,
+        VertexAttributeType::VEC2,
         offsetof(Vertex, uvs[i]));
   }
 
@@ -229,7 +230,7 @@ Primitive::Primitive(
     DescriptorSetAllocator& materialAllocator)
     : _device(app.getDevice()),
       _relativeTransform(nodeTransform),
-      _flipFrontFace(glm::determinant(nodeTransform) < 0.0f),
+      _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _pMaterial(std::make_unique<Material>(app, materialAllocator)) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
@@ -310,7 +311,8 @@ Primitive::Primitive(
           pbr.baseColorTexture,
           textureMap,
           this->_constants.baseTextureCoordinateIndex,
-          uvCount);
+          uvCount,
+          true);
       // TODO: pbr.baseColorFactor
     }
 
@@ -320,11 +322,14 @@ Primitive::Primitive(
         material.normalTexture,
         textureMap,
         this->_constants.normalMapTextureCoordinateIndex,
-        uvCount);
+        uvCount,
+        false);
 
     if (material.normalTexture) {
       hasNormalMap = true;
       normalMapUvIndex = this->_constants.normalMapTextureCoordinateIndex;
+      this->_constants.normalScale = 
+          static_cast<float>(material.normalTexture->scale);
     }
   }
 

@@ -11,10 +11,14 @@ class Application;
 
 class Cubemap {
 public:
-  Cubemap(Application& app, const std::array<std::string, 6>& cubemapPaths);
   Cubemap(
       Application& app,
-      const std::array<CesiumGltf::ImageCesium, 6>& images);
+      const std::array<std::string, 6>& cubemapPaths,
+      bool srgb);
+  Cubemap(
+      Application& app,
+      const std::array<CesiumGltf::ImageCesium, 6>& images,
+      bool srgb);
   ~Cubemap();
 
   VkImage getImage() const { return this->_image; }
@@ -26,7 +30,8 @@ public:
 private:
   void _initCubemap(
       Application& app,
-      const std::array<CesiumGltf::ImageCesium, 6>& images);
+      const std::array<CesiumGltf::ImageCesium, 6>& images,
+      bool srgb);
 
   VkDevice _device;
 
