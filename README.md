@@ -1,10 +1,10 @@
-## Althea Renderer
+# Althea Renderer
 
 ### Nithin Pranesh
 
 Althea is a glTF-based, rendering engine built on Vulkan that I have been building in my spare time. The goal of this project is to create an intuitive, user-facing rendering API at a reasonable abstraction level, while still leveraging high-performance, state-of-the-art techniques under-the-hood. The progress so far and the tentative roadmap are discussed below.
 
-### Progress
+## Progress
 #### Core Renderer
 - [x] Vulkan backend to initialize device, manage the swapchain, synchronize a double-buffered render-loop, etc.
 - [x] Simple API to create vertex inputs and specify their vertex layouts. 
@@ -27,7 +27,15 @@ Althea is a glTF-based, rendering engine built on Vulkan that I have been buildi
 - [x] Skybox and environment mapped reflections
 - [x] Normal mapping
 
-### Roadmap
+##### The Sponza lion statue with environment mapping and normal mapping.
+![](https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png)
+
+##### A curtain in the Sponza scene with environment mapping and normal mapping.
+![](https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png)
+
+More pictures to come soon!
+
+## Roadmap
 #### Renderer Features
 - [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors). 
 - [ ] Lighting model
