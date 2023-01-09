@@ -18,7 +18,6 @@
 
 #include <string>
 
-
 namespace AltheaEngine {
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
@@ -42,7 +41,11 @@ static std::shared_ptr<Texture> createTexture(
 
     auto result = textureMap.emplace(
         &gltfTexture,
-        std::make_shared<Texture>(app, model, model.textures[texture->index], srgb));
+        std::make_shared<Texture>(
+            app,
+            model,
+            model.textures[texture->index],
+            srgb));
     return result.first->second;
   }
 
@@ -328,7 +331,7 @@ Primitive::Primitive(
     if (material.normalTexture) {
       hasNormalMap = true;
       normalMapUvIndex = this->_constants.normalMapTextureCoordinateIndex;
-      this->_constants.normalScale = 
+      this->_constants.normalScale =
           static_cast<float>(material.normalTexture->scale);
     }
   }
@@ -441,24 +444,16 @@ Primitive::Primitive(
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 
-  app.createVertexBuffer(
-      (const void*)this->_vertices.data(),
-      sizeof(Vertex) * this->_vertices.size(),
-      this->_vertexBuffer,
-      this->_vertexBufferMemory);
-  app.createIndexBuffer(
-      (const void*)this->_indices.data(),
-      sizeof(uint32_t) * this->_indices.size(),
-      this->_indexBuffer,
-      this->_indexBufferMemory);
+  this->_vertexBuffer = VertexBuffer(app, this->_vertices);
+  this->_indexBuffer = IndexBuffer(app, this->_indices);
+
   app.createUniformBuffers(
       sizeof(ModelViewProjection),
       this->_uniformBuffers,
       this->_uniformBuffersMemory);
 
   this->_pMaterial->assign()
-      .bindUniformBuffer<ModelViewProjection>(
-          this->_uniformBuffers)
+      .bindUniformBuffer<ModelViewProjection>(this->_uniformBuffers)
       .bindInlineConstants(&this->_constants)
       .bindTexture(
           this->_textureSlots.pBaseTexture->getImageView(),
@@ -491,39 +486,19 @@ void Primitive::updateUniforms(
 }
 
 void Primitive::draw(const DrawContext& context) const {
-  VkDeviceSize offset = 0;
-  vkCmdSetFrontFace(
-      context.commandBuffer,
+  context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  vkCmdBindVertexBuffers(context.commandBuffer, 0, 1, &this->_vertexBuffer, &offset);
-  vkCmdBindIndexBuffer(
-      context.commandBuffer,
-      this->_indexBuffer,
-      0,
-      VK_INDEX_TYPE_UINT32);
-  
+  context.bindVertexBuffer(this->_vertexBuffer);
+  context.bindIndexBuffer(this->_indexBuffer);
   context.bindDescriptorSets(this->_pMaterial);
-
-  vkCmdDrawIndexed(
-      context.commandBuffer,
-      static_cast<uint32_t>(this->_indices.size()),
-      1,
-      0,
-      0,
-      0);
+  context.drawIndexed(static_cast<uint32_t>(this->_indices.size()));
 }
 
 Primitive::~Primitive() {
-  vkDestroyBuffer(this->_device, this->_vertexBuffer, nullptr);
-  vkDestroyBuffer(this->_device, this->_indexBuffer, nullptr);
-
   for (VkBuffer& uniformBuffer : this->_uniformBuffers) {
     vkDestroyBuffer(this->_device, uniformBuffer, nullptr);
   }
-
-  vkFreeMemory(this->_device, this->_vertexBufferMemory, nullptr);
-  vkFreeMemory(this->_device, this->_indexBufferMemory, nullptr);
 
   for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
     vkFreeMemory(this->_device, uniformBufferMemory, nullptr);

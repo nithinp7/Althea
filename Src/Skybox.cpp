@@ -84,6 +84,6 @@ void Skybox::updateUniforms(
 
 void Skybox::draw(const DrawContext& context) const {
   context.bindDescriptorSets(this->_pMaterial);
-  vkCmdDraw(context.commandBuffer, 3, 1, 0, 0);
+  context.draw(3);
 }
 } // namespace AltheaEngine

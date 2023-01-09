@@ -4,6 +4,7 @@
 #include "DescriptorSet.h"
 #include "ShaderManager.h"
 
+#include <algorithm>
 
 namespace AltheaEngine {
 
@@ -11,7 +12,16 @@ GraphicsPipeline::GraphicsPipeline(
     const Application& app,
     const PipelineContext& context,
     const GraphicsPipelineBuilder& builder)
-    : _device(app.getDevice()) {
+    : _device(app.getDevice()),
+      // TODO: would be ideal to move this, but do we really
+      // want the builder to be passed in as an lvalue ref?
+      _pushConstantRanges(builder._pushConstantRanges) {
+
+  this->_dynamicFrontFaceEnabled =
+      std::find(
+          builder._dynamicStates.begin(),
+          builder._dynamicStates.end(),
+          VK_DYNAMIC_STATE_FRONT_FACE) != builder._dynamicStates.end();
 
   if (builder.materialResourceLayoutBuilder.hasBindings()) {
     this->_materialAllocator.emplace(
@@ -76,10 +86,9 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
   pipelineLayoutInfo.pSetLayouts = layouts.data();
-
-  // TODO: Support push constants??
-  pipelineLayoutInfo.pushConstantRangeCount = 0;
-  pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  pipelineLayoutInfo.pushConstantRangeCount =
+      static_cast<uint32_t>(builder._pushConstantRanges.size());
+  pipelineLayoutInfo.pPushConstantRanges = builder._pushConstantRanges.data();
 
   if (vkCreatePipelineLayout(
           this->_device,
@@ -414,4 +423,4 @@ GraphicsPipelineBuilder::setMaterialPoolSize(uint32_t poolSize) {
 
   return *this;
 }
-} // namespace AltheaEngineF
+} // namespace AltheaEngine

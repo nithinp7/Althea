@@ -143,6 +143,31 @@ public:
   GraphicsPipelineBuilder& setMaterialPoolSize(uint32_t poolSize);
 
   /**
+   * @brief Add push constants for this pipeline. Later, push constant ranges
+   * can be updated in the command buffer before issuing draw commands.
+   *
+   * @param stageFlags The shader stages that this push constant range should be
+   * made available in.
+   * @return This builder.
+   */
+  template <typename TPushConstants>
+  GraphicsPipelineBuilder&
+  addPushConstants(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
+
+    uint32_t offset = 0;
+    if (!this->_pushConstantRanges.empty()) {
+      offset = this->_pushConstantRanges.back().offset;
+    }
+
+    VkPushConstantRange& range = this->_pushConstantRanges.emplace_back();
+    range.offset = offset;
+    range.size = static_cast<uint32_t>(sizeof(TPushConstants));
+    range.stageFlags = stageFlags;
+
+    return *this;
+  }
+
+  /**
    * @brief Builder for the per-object, material descriptor set layout. The
    * resources bound to descriptor sets of this layout will be unique for each
    * object rendered in this pipeline's subpass.
@@ -157,6 +182,8 @@ private:
 
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
+
+  std::vector<VkPushConstantRange> _pushConstantRanges;
 
   VkCullModeFlags _cullMode = VK_CULL_MODE_BACK_BIT;
   VkFrontFace _frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -190,6 +217,14 @@ public:
     return *this->_materialAllocator;
   }
 
+  const std::vector<VkPushConstantRange>& getPushConstantRanges() const {
+    return this->_pushConstantRanges;
+  }
+
+  bool isDynamicFrontFaceEnabled() const {
+    return this->_dynamicFrontFaceEnabled;
+  }
+
 private:
   VkDevice _device;
 
@@ -197,5 +232,9 @@ private:
 
   VkPipelineLayout _pipelineLayout;
   VkPipeline _pipeline;
+
+  // These are kept around to validate client setup of draw calls.
+  std::vector<VkPushConstantRange> _pushConstantRanges;
+  bool _dynamicFrontFaceEnabled = false;
 };
 } // namespace AltheaEngine

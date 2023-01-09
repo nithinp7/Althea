@@ -263,7 +263,6 @@ ActiveRenderPass RenderPass::begin(
       app.getSwapChainExtent());
 }
 
-
 ActiveRenderPass::ActiveRenderPass(
     const RenderPass& renderPass,
     const VkCommandBuffer& commandBuffer,
@@ -275,19 +274,19 @@ ActiveRenderPass::ActiveRenderPass(
       _commandBuffer(commandBuffer),
       _frame(frame) {
 
-  this->_drawContext.commandBuffer = commandBuffer;
+  this->_drawContext._commandBuffer = commandBuffer;
 
   if (pGlobalResources) {
-    this->_drawContext.globalResources =
+    this->_drawContext._globalResources =
         pGlobalResources->getCurrentDescriptorSet(frame);
   }
 
   if (renderPass.getRenderPassResources()) {
-    this->_drawContext.renderPassResources =
+    this->_drawContext._renderPassResources =
         renderPass.getRenderPassResources()->getCurrentDescriptorSet(frame);
   }
 
-  this->_drawContext.frame = frame;
+  this->_drawContext._pFrame = &frame;
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -313,13 +312,12 @@ ActiveRenderPass::ActiveRenderPass(
   const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
 
+  this->_drawContext._pCurrentSubpass = &currentSubpass;
+
   if (currentSubpass.getSubpassResources()) {
-    this->_drawContext.subpassResource =
+    this->_drawContext._subpassResource =
         currentSubpass.getSubpassResources()->getCurrentDescriptorSet(frame);
   }
-
-  this->_drawContext.pipelineLayout = 
-      currentSubpass.getPipeline().getLayout();
 
   // TODO: Support compute as well?
   vkCmdBeginRenderPass(
@@ -343,15 +341,16 @@ ActiveRenderPass& ActiveRenderPass::nextSubpass() {
 
   const Subpass& currentSubpass =
       this->_renderPass._subpasses[this->_currentSubpass];
+
+  this->_drawContext._pCurrentSubpass = &currentSubpass;
+
   currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
 
   if (currentSubpass.getSubpassResources()) {
-    this->_drawContext.subpassResource =
+    this->_drawContext._subpassResource =
         currentSubpass.getSubpassResources()->getCurrentDescriptorSet(
             this->_frame);
   }
-
-  this->_drawContext.pipelineLayout = currentSubpass.getPipeline().getLayout();
 
   return *this;
 }

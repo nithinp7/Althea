@@ -1,8 +1,10 @@
 #pragma once
 
-#include "Texture.h"
 #include "DrawContext.h"
+#include "IndexBuffer.h"
 #include "Material.h"
+#include "Texture.h"
+#include "VertexBuffer.h"
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
@@ -13,7 +15,6 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-
 
 namespace CesiumGltf {
 struct Model;
@@ -66,12 +67,10 @@ private:
 
   TextureSlots _textureSlots;
 
-  VkBuffer _vertexBuffer;
-  VkBuffer _indexBuffer;
-  std::vector<VkBuffer> _uniformBuffers;
+  VertexBuffer _vertexBuffer;
+  IndexBuffer _indexBuffer;
 
-  VkDeviceMemory _vertexBufferMemory;
-  VkDeviceMemory _indexBufferMemory;
+  std::vector<VkBuffer> _uniformBuffers;
   std::vector<VkDeviceMemory> _uniformBuffersMemory;
 
   std::unique_ptr<Material> _pMaterial;
