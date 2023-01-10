@@ -185,6 +185,13 @@ Model::Model(
   this->_model = std::move(*result.model);
   // this->_model.generateMissingNormalsSmooth();
 
+  // Generate mip-maps for all images
+  for (CesiumGltf::Image& image : this->_model.images) {
+    if (CesiumGltfReader::GltfReader::generateMipMaps(image.cesium)) {
+      throw std::runtime_error("Could not generate mip-maps for images in glTF.");
+    }
+  }
+
   glm::mat4 transform(1.0f);
 
   if (this->_model.scene >= 0 &&

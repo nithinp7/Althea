@@ -12,7 +12,6 @@
 #include <set>
 #include <stdexcept>
 
-
 namespace AltheaEngine {
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application() : configParser("../Config/ConfigFile.txt") {}
@@ -657,6 +656,7 @@ void Application::createSwapChain() {
         swapChainImages[i],
         swapChainImageFormat,
         1,
+        1,
         VK_IMAGE_VIEW_TYPE_2D,
         VK_IMAGE_ASPECT_COLOR_BIT);
   }
@@ -739,6 +739,7 @@ void Application::createDepthResource() {
       swapChainExtent.width,
       swapChainExtent.height,
       1,
+      1,
       depthImageFormat,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -749,11 +750,13 @@ void Application::createDepthResource() {
       depthImage,
       depthImageFormat,
       1,
+      1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_DEPTH_BIT);
   transitionImageLayout(
       depthImage,
       depthImageFormat,
+      1,
       1,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);

@@ -104,6 +104,7 @@ void Cubemap::_initCubemap(
   this->_imageView = app.createImageView(
       this->_image,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
+      1,
       6,
       VK_IMAGE_VIEW_TYPE_CUBE,
       VK_IMAGE_ASPECT_COLOR_BIT);

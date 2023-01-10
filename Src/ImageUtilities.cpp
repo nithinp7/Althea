@@ -5,17 +5,25 @@
 
 #include <stdexcept>
 
-
 namespace AltheaEngine {
 void Application::createTextureImage(
-    gsl::span<const std::byte> buffer,
+    gsl::span<gsl::span<const std::byte>> mips,
     uint32_t width,
     uint32_t height,
     VkFormat format,
     VkImage& image,
     VkDeviceMemory& imageMemory) const {
 
-  VkDeviceSize bufferSize = buffer.size();
+  uint32_t mipCount = static_cast<uint32_t>(mips.size());
+  if (mipCount == 0) {
+    throw std::runtime_error(
+        "Attempting to create a texture image with 0 mips.");
+  }
+
+  VkDeviceSize bufferSize = 0;
+  for (gsl::span<const std::byte> mip : mips) {
+    bufferSize += mip.size();
+  }
 
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
@@ -27,14 +35,19 @@ void Application::createTextureImage(
       stagingBuffer,
       stagingBufferMemory);
 
+  size_t currentOffset = 0;
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  std::memcpy(data, buffer.data(), bufferSize);
+  for (gsl::span<const std::byte> mip : mips) {
+    std::memcpy((char*)data + currentOffset, mip.data(), mip.size());
+    currentOffset += mip.size();
+  }
   vkUnmapMemory(device, stagingBufferMemory);
 
   createImage(
       width,
       height,
+      mipCount,
       1,
       format,
       VK_IMAGE_TILING_OPTIMAL,
@@ -46,15 +59,39 @@ void Application::createTextureImage(
   transitionImageLayout(
       image,
       format,
+      mipCount,
       1,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-  copyBufferToImage(stagingBuffer, image, width, height, 1);
+  currentOffset = 0;
+  for (uint32_t i = 0; i < mipCount; ++i) {
+    uint32_t mipWidth = width >> i;
+    if (mipWidth == 0) {
+      mipWidth = 1;
+    }
+
+    uint32_t mipHeight = height >> i;
+    if (mipHeight == 0) {
+      mipHeight = 1;
+    }
+
+    copyBufferToImage(
+        stagingBuffer,
+        currentOffset,
+        image,
+        mipWidth,
+        mipHeight,
+        i,
+        1);
+
+    currentOffset += mips[i].size();
+  }
 
   transitionImageLayout(
       image,
       format,
+      mipCount,
       1,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -85,6 +122,7 @@ void Application::createCubemapImage(
   createImage(
       width,
       height,
+      1,
       6,
       format,
       VK_IMAGE_TILING_OPTIMAL,
@@ -119,15 +157,17 @@ void Application::createCubemapImage(
   transitionImageLayout(
       image,
       format,
+      1,
       6,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-  copyBufferToImage(stagingBuffer, image, width, height, 6);
+  copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 6);
 
   transitionImageLayout(
       image,
       format,
+      1,
       6,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -139,6 +179,7 @@ void Application::createCubemapImage(
 void Application::createImage(
     uint32_t width,
     uint32_t height,
+    uint32_t mipCount,
     uint32_t layerCount,
     VkFormat format,
     VkImageTiling tiling,
@@ -155,8 +196,7 @@ void Application::createImage(
   imageInfo.extent.height = height;
   imageInfo.extent.depth = 1;
 
-  // TODO: generate mip levels
-  imageInfo.mipLevels = 1;
+  imageInfo.mipLevels = mipCount;
   imageInfo.arrayLayers = layerCount;
   imageInfo.format = format;
   imageInfo.tiling = tiling;
@@ -190,6 +230,7 @@ void Application::createImage(
 VkImageView Application::createImageView(
     VkImage image,
     VkFormat format,
+    uint32_t mipCount,
     uint32_t layerCount,
     VkImageViewType type,
     VkImageAspectFlags aspectFlags) const {
@@ -205,7 +246,7 @@ VkImageView Application::createImageView(
   createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
   createInfo.subresourceRange.aspectMask = aspectFlags;
   createInfo.subresourceRange.baseMipLevel = 0;
-  createInfo.subresourceRange.levelCount = 1;
+  createInfo.subresourceRange.levelCount = mipCount;
   createInfo.subresourceRange.baseArrayLayer = 0;
   createInfo.subresourceRange.layerCount = layerCount;
 
@@ -221,6 +262,7 @@ VkImageView Application::createImageView(
 void Application::transitionImageLayout(
     VkImage image,
     VkFormat format,
+    uint32_t mipCount,
     uint32_t layerCount,
     VkImageLayout oldLayout,
     VkImageLayout newLayout) const {
@@ -238,7 +280,7 @@ void Application::transitionImageLayout(
   barrier.image = image;
   barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.levelCount = mipCount;
   barrier.subresourceRange.baseArrayLayer = 0;
   barrier.subresourceRange.layerCount = layerCount;
 
@@ -297,19 +339,21 @@ void Application::transitionImageLayout(
 
 void Application::copyBufferToImage(
     VkBuffer buffer,
+    size_t bufferOffset,
     VkImage image,
     uint32_t width,
     uint32_t height,
+    uint32_t mipLevel,
     uint32_t layerCount) const {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
   VkBufferImageCopy region{};
-  region.bufferOffset = 0;
+  region.bufferOffset = bufferOffset;
   region.bufferRowLength = 0;
   region.bufferImageHeight = 0;
 
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.mipLevel = mipLevel;
   region.imageSubresource.baseArrayLayer = 0;
   region.imageSubresource.layerCount = layerCount;
 

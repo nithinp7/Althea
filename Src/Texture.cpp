@@ -88,42 +88,51 @@ void Texture::_initTexture(
     samplerInfo.magFilter = VK_FILTER_LINEAR;
   }
 
-  if (sampler.minFilter) {
-    switch (*sampler.minFilter) {
-    case CesiumGltf::Sampler::MinFilter::NEAREST:
-    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-      samplerInfo.minFilter = VK_FILTER_NEAREST;
-      break;
-    // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-    // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-    // case CesiumGltf::Sampler::MinFilter::LINEAR:
-    default:
-      samplerInfo.minFilter = VK_FILTER_LINEAR;
-    }
+  bool useMipMaps = false;
 
-    switch (*sampler.minFilter) {
-    case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-      samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-      break;
-    // case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-    // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-    // ??
-    // case CesiumGltf::Sampler::MinFilter::NEAREST:
-    // case CesiumGltf::Sampler::MinFilter::LINEAR:
-    default:
-      samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    }
-  } else {
+  // Determine minification filter
+  int32_t minFilter = sampler.minFilter.value_or(
+      CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR);
+
+  switch (minFilter) {
+  case CesiumGltf::Sampler::MinFilter::NEAREST:
+  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    break;
+  // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
+  // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
+  // case CesiumGltf::Sampler::MinFilter::LINEAR:
+  default:
     samplerInfo.minFilter = VK_FILTER_LINEAR;
+  }
+
+  // Determine mipmap mode.
+  switch (minFilter) {
+  case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
+  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
+    useMipMaps = true;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    break;
+  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+  case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
+    useMipMaps = true;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    break;
+  case CesiumGltf::Sampler::MinFilter::NEAREST:
+  case CesiumGltf::Sampler::MinFilter::LINEAR:
+  default:
+    useMipMaps = false;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
   }
 
-  // TODO: revisit mipmapping
   samplerInfo.mipLodBias = 0.0f;
   samplerInfo.minLod = 0.0f;
   samplerInfo.maxLod = 0.0f;
+
+  if (useMipMaps && !image.mipPositions.empty()) {
+    samplerInfo.maxLod = static_cast<float>(image.mipPositions.size() - 1);
+  }
 
   samplerInfo.anisotropyEnable = VK_TRUE;
   samplerInfo.maxAnisotropy =
@@ -141,8 +150,28 @@ void Texture::_initTexture(
     return;
   }
 
+  gsl::span<const std::byte> mips[11];
+  uint32_t mipCount = 1;
+
+  if (image.mipPositions.empty()) {
+    mips[0] = gsl::span<const std::byte>(image.pixelData);
+  } else {
+    mipCount = static_cast<uint32_t>(image.mipPositions.size());
+    if (mipCount > 11) {
+      // Generous max mip count.
+      mipCount = 11;
+    }
+
+    for (uint32_t i = 0; i < mipCount; ++i) {
+      const CesiumGltf::ImageCesiumMipPosition& mipPos = image.mipPositions[i];
+      mips[i] = gsl::span<const std::byte>(
+          &image.pixelData[mipPos.byteOffset],
+          mipPos.byteSize);
+    }
+  }
+
   app.createTextureImage(
-      gsl::span<const std::byte>(image.pixelData),
+      gsl::span<gsl::span<const std::byte>>(mips, mipCount),
       image.width,
       image.height,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
@@ -152,6 +181,7 @@ void Texture::_initTexture(
   this->_textureImageView = app.createImageView(
       this->_textureImage,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
+      mipCount,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_COLOR_BIT);

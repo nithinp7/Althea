@@ -226,7 +226,7 @@ public:
 
   // Image Utilities
   void createTextureImage(
-      gsl::span<const std::byte> buffer,
+      gsl::span<gsl::span<const std::byte>> mips,
       uint32_t width,
       uint32_t height,
       VkFormat format,
@@ -243,6 +243,7 @@ public:
   void createImage(
       uint32_t width,
       uint32_t height,
+      uint32_t mipCount,
       uint32_t layerCount,
       VkFormat format,
       VkImageTiling tiling,
@@ -254,6 +255,7 @@ public:
   VkImageView createImageView(
       VkImage image,
       VkFormat format,
+      uint32_t mipCount,
       uint32_t layerCount,
       VkImageViewType type,
       VkImageAspectFlags aspectFlags) const;
@@ -261,14 +263,17 @@ public:
   void transitionImageLayout(
       VkImage image,
       VkFormat format,
+      uint32_t mipCount,
       uint32_t layerCount,
       VkImageLayout oldLayout,
       VkImageLayout newLayout) const;
   void copyBufferToImage(
       VkBuffer buffer,
+      size_t bufferOffset,
       VkImage image,
       uint32_t width,
       uint32_t height,
+      uint32_t mipLevel,
       uint32_t layerCount) const;
 };
 } // namespace AltheaEngine
