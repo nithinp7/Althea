@@ -1,4 +1,5 @@
 #include "Material.h"
+
 #include "Application.h"
 
 #include <cstdint>
@@ -11,7 +12,10 @@ Material::Material(const Application& app, DescriptorSetAllocator& allocator) {
   }
 }
 
-VkDescriptorSet Material::getCurrentDescriptorSet(const FrameContext& frame) const {
+bool Material::isEmpty() const { return this->_descriptorSets.empty(); }
+
+VkDescriptorSet
+Material::getCurrentDescriptorSet(const FrameContext& frame) const {
   return this->_descriptorSets[frame.frameRingBufferIndex].getVkDescriptorSet();
 }
 

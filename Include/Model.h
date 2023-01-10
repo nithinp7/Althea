@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ConfigParser.h"
-#include "FrameContext.h"
 #include "DrawContext.h"
+#include "FrameContext.h"
 #include "Primitive.h"
 
 #include <CesiumGltf/Model.h>
@@ -13,7 +13,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 
 namespace AltheaEngine {
 class Application;
@@ -31,10 +30,6 @@ public:
   Model(Model&& rhs) = delete;
 
   size_t getPrimitivesCount() const;
-  void updateUniforms(
-      const glm::mat4& view,
-      const glm::mat4& projection,
-      const FrameContext& frame) const;
   void draw(const DrawContext& context) const;
 
 private:

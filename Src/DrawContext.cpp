@@ -5,8 +5,7 @@
 #include <cassert>
 
 namespace AltheaEngine {
-void DrawContext::bindDescriptorSets(
-    const std::unique_ptr<Material>& pMaterial) const {
+void DrawContext::bindDescriptorSets(const Material& material) const {
   assert(this->_pCurrentSubpass != nullptr);
 
   VkDescriptorSet descriptorSets[4];
@@ -27,9 +26,9 @@ void DrawContext::bindDescriptorSets(
     ++descriptorSetCount;
   }
 
-  if (pMaterial) {
+  if (!material.isEmpty()) {
     descriptorSets[descriptorSetCount] =
-        pMaterial->getCurrentDescriptorSet(*this->_pFrame);
+        material.getCurrentDescriptorSet(*this->_pFrame);
     ++descriptorSetCount;
   }
 
@@ -83,13 +82,6 @@ void DrawContext::setFrontFaceDynamic(VkFrontFace frontFace) const {
   }
 
   vkCmdSetFrontFace(this->_commandBuffer, frontFace);
-}
-
-void DrawContext::bindVertexBuffer(const VertexBuffer& vertexBuffer) const {
-  // TODO: Support instance buffer as well
-  size_t offset = 0;
-  VkBuffer vkVertexBuffer = vertexBuffer.getBuffer();
-  vkCmdBindVertexBuffers(this->_commandBuffer, 0, 1, &vkVertexBuffer, &offset);
 }
 
 void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {

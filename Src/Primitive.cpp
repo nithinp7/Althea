@@ -84,9 +84,13 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
         offsetof(Vertex, uvs[i]));
   }
 
-  builder.enableDynamicFrontFace();
+  builder
+      .enableDynamicFrontFace()
 
-  builder.materialResourceLayoutBuilder.addUniformBufferBinding()
+      // Add push constants for updating model transform
+      .addPushConstants<glm::mat4>();
+
+  builder.materialResourceLayoutBuilder
       .addConstantsBufferBinding<PrimitiveConstants>()
       .addTextureBinding()
       .addTextureBinding();
@@ -234,9 +238,12 @@ Primitive::Primitive(
     : _device(app.getDevice()),
       _relativeTransform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
-      _pMaterial(std::make_unique<Material>(app, materialAllocator)) {
+      _material(app, materialAllocator) {
 
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
+
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices;
 
   AttributeIterator posIt = primitive.attributes.find("POSITION");
   if (posIt == primitive.attributes.end()) {
@@ -352,8 +359,8 @@ Primitive::Primitive(
         CesiumGltf::Accessor::ComponentType::BYTE) {
       CesiumGltf::AccessorView<int8_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices,
-          this->_indices,
+          vertices,
+          indices,
           posView,
           indexAccessor,
           normView,
@@ -366,8 +373,8 @@ Primitive::Primitive(
         CesiumGltf::Accessor::ComponentType::UNSIGNED_BYTE) {
       CesiumGltf::AccessorView<uint8_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices,
-          this->_indices,
+          vertices,
+          indices,
           posView,
           indexAccessor,
           normView,
@@ -380,8 +387,8 @@ Primitive::Primitive(
         CesiumGltf::Accessor::ComponentType::SHORT) {
       CesiumGltf::AccessorView<int16_t> indexAccessor(model, primitive.indices);
       initVerticesAndIndices(
-          this->_vertices,
-          this->_indices,
+          vertices,
+          indices,
           posView,
           indexAccessor,
           normView,
@@ -396,8 +403,8 @@ Primitive::Primitive(
           model,
           primitive.indices);
       initVerticesAndIndices(
-          this->_vertices,
-          this->_indices,
+          vertices,
+          indices,
           posView,
           indexAccessor,
           normView,
@@ -412,8 +419,8 @@ Primitive::Primitive(
           model,
           primitive.indices);
       initVerticesAndIndices(
-          this->_vertices,
-          this->_indices,
+          vertices,
+          indices,
           posView,
           indexAccessor,
           normView,
@@ -429,32 +436,26 @@ Primitive::Primitive(
   // Assume the vertex buffer is a regular triangle mesh if the
   // index buffer is invalid.
   if (!validIndices) {
-    this->_vertices =
+    vertices =
         createAndCopyVertices(posView, normView, tangView, uvViews, uvCount);
-    this->_indices = createDummyIndices(static_cast<uint32_t>(vertexCount));
+    indices = createDummyIndices(static_cast<uint32_t>(vertexCount));
   }
 
   if (!hasNormals) {
-    GeometryUtilities::computeFlatNormals(this->_vertices);
+    GeometryUtilities::computeFlatNormals(vertices);
   }
 
   if (!hasTangents && needsTangents) {
-    GeometryUtilities::computeTangentSpace(this->_vertices, normalMapUvIndex);
+    GeometryUtilities::computeTangentSpace(vertices, normalMapUvIndex);
   }
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 
-  this->_vertexBuffer = VertexBuffer(app, this->_vertices);
-  this->_indexBuffer = IndexBuffer(app, this->_indices);
+  this->_vertexBuffer = VertexBuffer(app, std::move(vertices));
+  this->_indexBuffer = IndexBuffer(app, std::move(indices));
 
-  app.createUniformBuffers(
-      sizeof(ModelViewProjection),
-      this->_uniformBuffers,
-      this->_uniformBuffersMemory);
-
-  this->_pMaterial->assign()
-      .bindUniformBuffer<ModelViewProjection>(this->_uniformBuffers)
-      .bindInlineConstants(&this->_constants)
+  this->_material.assign()
+      .bindInlineConstants(this->_constants)
       .bindTexture(
           this->_textureSlots.pBaseTexture->getImageView(),
           this->_textureSlots.pBaseTexture->getSampler())
@@ -463,45 +464,12 @@ Primitive::Primitive(
           this->_textureSlots.pNormalMapTexture->getSampler());
 }
 
-void Primitive::updateUniforms(
-    const glm::mat4& parentTransform,
-    const glm::mat4& view,
-    const glm::mat4& projection,
-    uint32_t currentFrame) const {
-  ModelViewProjection mvp{};
-  mvp.model = parentTransform * this->_relativeTransform;
-  mvp.view = view;
-  mvp.projection = projection;
-
-  void* data;
-  vkMapMemory(
-      this->_device,
-      this->_uniformBuffersMemory[currentFrame],
-      0,
-      sizeof(ModelViewProjection),
-      0,
-      &data);
-  memcpy(data, &mvp, sizeof(ModelViewProjection));
-  vkUnmapMemory(this->_device, this->_uniformBuffersMemory[currentFrame]);
-}
-
 void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  context.bindVertexBuffer(this->_vertexBuffer);
-  context.bindIndexBuffer(this->_indexBuffer);
-  context.bindDescriptorSets(this->_pMaterial);
-  context.drawIndexed(static_cast<uint32_t>(this->_indices.size()));
-}
-
-Primitive::~Primitive() {
-  for (VkBuffer& uniformBuffer : this->_uniformBuffers) {
-    vkDestroyBuffer(this->_device, uniformBuffer, nullptr);
-  }
-
-  for (VkDeviceMemory& uniformBufferMemory : this->_uniformBuffersMemory) {
-    vkFreeMemory(this->_device, uniformBufferMemory, nullptr);
-  }
+  context.bindDescriptorSets(this->_material);
+  context.updatePushConstants(this->_relativeTransform, 0);
+  context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }
 } // namespace AltheaEngine

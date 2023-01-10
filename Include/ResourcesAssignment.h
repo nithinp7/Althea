@@ -1,29 +1,42 @@
 #pragma once
 
 #include "DescriptorSet.h"
+#include "TransientUniforms.h"
+#include "UniformBuffer.h"
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
 #include <cassert>
+#include <vector>
 
 namespace AltheaEngine {
 class ResourcesAssignment {
 public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
-  
+
+  ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
+
+  template <typename TUniforms>
   ResourcesAssignment&
-  bindTexture(VkImageView imageView, VkSampler sampler);
+  bindConstantUniforms(const UniformBuffer<TUniforms>& buffer) {
+    for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
+      this->_assignments[i].bindUniformBufferDescriptor(buffer);
+    }
+
+    return *this;
+  }
 
   // TODO: abstract uniform buffers so client doesn't have to worry about
   // double buffering
   template <typename TUniforms>
-  ResourcesAssignment& bindUniformBuffer(
-      const std::vector<VkBuffer>& uniformBuffers) {
+  ResourcesAssignment&
+  bindTransientUniforms(const TransientUniforms<TUniforms>& buffer) {
+    const std::vector<UniformBuffer<TUniforms>>& uniformBuffers =
+        buffer.getUniformBuffers();
     assert(uniformBuffers.size() == this->_assignments.size());
 
     for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
-      this->_assignments[i].bindUniformBufferDescriptor<TUniforms>(uniformBuffers[i]);
+      this->_assignments[i].bindUniformBufferDescriptor(uniformBuffers[i]);
     }
 
     return *this;
@@ -31,14 +44,14 @@ public:
 
   template <typename TPrimitiveConstants>
   ResourcesAssignment&
-  bindInlineConstants(const TPrimitiveConstants* pConstants) {
+  bindInlineConstants(const TPrimitiveConstants& constants) {
     for (DescriptorAssignment& assignment : this->_assignments) {
-      assignment.bindInlineConstantDescriptors(pConstants);
+      assignment.bindInlineConstantDescriptors(constants);
     }
 
     return *this;
   }
-  
+
 private:
   std::vector<DescriptorAssignment> _assignments;
 };

@@ -61,10 +61,12 @@ void SponzaTest::createRenderState(Application& app) {
   // Global resources
   DescriptorSetLayoutBuilder globalResourceLayout;
   // Add slot for skybox cubemap.
-  globalResourceLayout.addTextureBinding();
+  globalResourceLayout.addTextureBinding().addUniformBufferBinding();
 
   this->_pGlobalResources =
       std::make_shared<PerFrameResources>(app, globalResourceLayout);
+  this->_pGlobalUniforms =
+      std::make_unique<TransientUniforms<GlobalUniforms>>(app);
 
   std::vector<SubpassBuilder> subpassBuilders;
 
@@ -105,11 +107,7 @@ void SponzaTest::createRenderState(Application& app) {
       "../Content/Models/Skybox/front.jpg",
       "../Content/Models/Skybox/back.jpg"};
 
-  this->_pSkybox = std::make_unique<Skybox>(
-      app,
-      skyboxImagePaths,
-      true,
-      subpasses[0].getPipeline().getMaterialAllocator());
+  this->_pSkybox = std::make_unique<Skybox>(app, skyboxImagePaths, true);
 
   this->_pSponzaModel = std::make_unique<Model>(
       app,
@@ -118,9 +116,9 @@ void SponzaTest::createRenderState(Application& app) {
 
   // Bind the skybox cubemap as a global resource
   const std::shared_ptr<Cubemap>& pCubemap = this->_pSkybox->getCubemap();
-  this->_pGlobalResources->assign().bindTexture(
-      pCubemap->getImageView(),
-      pCubemap->getSampler());
+  this->_pGlobalResources->assign()
+      .bindTexture(pCubemap->getImageView(), pCubemap->getSampler())
+      .bindTransientUniforms(*this->_pGlobalUniforms);
 }
 
 void SponzaTest::destroyRenderState(Application& app) {
@@ -129,6 +127,7 @@ void SponzaTest::destroyRenderState(Application& app) {
   this->_pSponzaModel.reset();
   this->_pRenderPass.reset();
   this->_pGlobalResources.reset();
+  this->_pGlobalUniforms.reset();
 }
 
 void SponzaTest::tick(Application& app, const FrameContext& frame) {
@@ -136,28 +135,20 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
   const Camera& camera = this->_pCameraController->getCamera();
 
   const glm::mat4& projection = camera.getProjection();
-  glm::mat4 view = camera.computeView();
 
-  this->_pSkybox->updateUniforms(view, projection, frame);
-  this->_pSponzaModel->updateUniforms(view, projection, frame);
+  GlobalUniforms globalUniforms;
+  globalUniforms.projection = camera.getProjection();
+  globalUniforms.inverseProjection = glm::inverse(globalUniforms.projection);
+  globalUniforms.view = camera.computeView();
+  globalUniforms.inverseView = glm::inverse(globalUniforms.view);
+
+  this->_pGlobalUniforms->updateUniforms(globalUniforms, frame);
 }
 
 void SponzaTest::draw(
     Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
-
-  // TODO:::
-  // DrawBuilder / DrawContext?? {
-  //   cmdBuffer,
-  //   globalResource, -->
-  //   renderPassResource,  --> combineSets function?
-  //   subpassResource, -->
-  //   materialResource, ->
-  //   pipelineLayout,
-  //   frameContext,
-  //   ve
-  // }
   this->_pRenderPass
       ->begin(app, commandBuffer, frame)
       // Draw skybox

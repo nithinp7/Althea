@@ -14,30 +14,33 @@ layout(location=2) out float normalScale;
 layout(location=3) out mat3 vertTbn;
 layout(location=6) out vec3 direction;
 
-layout(set=1, binding=0) uniform UniformBufferObject {
-  mat4 model;
+layout(set=0, binding=1) uniform UniformBufferObject {
+  mat4 projection;
+  mat4 inverseProjection;
   mat4 view;
-  mat4 proj;
+  mat4 inverseView;
 } ubo;
 
-layout(set=1, binding=1) uniform ConstantBufferObject {
+layout(set=1, binding=0) uniform ConstantBufferObject {
   int baseTextureCoordinateIndex;
   int normalMapTextureCoordinateIndex;
   float normalScale;
 } constants;
 
-void main() {
-  // TODO: Do this on CPU?
-  mat4 invView = inverse(ubo.view);
-  vec3 cameraPos = invView[3].xyz;
+layout(push_constant) uniform PushConstants {
+  mat4 model;
+} pushConstants;
 
-  vec4 worldPos = ubo.model * vec4(position, 1.0);
+void main() {
+  vec3 cameraPos = ubo.inverseView[3].xyz;
+
+  vec4 worldPos = pushConstants.model * vec4(position, 1.0);
 
   direction = worldPos.xyz - cameraPos;
 
-  gl_Position = ubo.proj * ubo.view * worldPos;
+  gl_Position = ubo.projection * ubo.view * worldPos;
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];
   normalScale = constants.normalScale;
-  vertTbn = mat3(ubo.model) * tbn;
+  vertTbn = mat3(pushConstants.model) * tbn;
 }

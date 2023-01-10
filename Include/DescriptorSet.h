@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UniformBuffer.h"
+
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -109,7 +111,8 @@ public:
   bindTextureDescriptor(VkImageView imageView, VkSampler sampler);
 
   template <typename TUniforms>
-  DescriptorAssignment& bindUniformBufferDescriptor(VkBuffer uniformBuffer) {
+  DescriptorAssignment&
+  bindUniformBufferDescriptor(const UniformBuffer<TUniforms>& ubo) {
     if ((size_t)this->_currentIndex >= this->_bindings.size()) {
       throw std::runtime_error(
           "Exceeded expected number of bindings in descriptor set.");
@@ -124,9 +127,9 @@ public:
         std::make_unique<VkDescriptorBufferInfo>());
     VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
-    uniformBufferInfo.buffer = uniformBuffer;
+    uniformBufferInfo.buffer = ubo.getBuffer();
     uniformBufferInfo.offset = 0;
-    uniformBufferInfo.range = sizeof(TUniforms);
+    uniformBufferInfo.range = ubo.getSize();
 
     VkWriteDescriptorSet& descriptorWrite =
         this->_descriptorWrites[this->_currentIndex];
@@ -146,7 +149,7 @@ public:
 
   template <typename TPrimitiveConstants>
   DescriptorAssignment&
-  bindInlineConstantDescriptors(const TPrimitiveConstants* pConstants) {
+  bindInlineConstantDescriptors(const TPrimitiveConstants& constants) {
     if ((size_t)this->_currentIndex >= this->_bindings.size()) {
       throw std::runtime_error(
           "Exceeded expected number of bindings in descriptor set.");
@@ -164,7 +167,7 @@ public:
     inlineConstantsWrite.sType =
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
     inlineConstantsWrite.dataSize = sizeof(TPrimitiveConstants);
-    inlineConstantsWrite.pData = pConstants;
+    inlineConstantsWrite.pData = &constants;
 
     VkWriteDescriptorSet& descriptorWrite =
         this->_descriptorWrites[this->_currentIndex];

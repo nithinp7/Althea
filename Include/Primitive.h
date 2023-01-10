@@ -60,20 +60,12 @@ private:
   glm::mat4 _relativeTransform;
   bool _flipFrontFace = false;
 
-  std::vector<Vertex> _vertices;
-  std::vector<uint32_t> _indices;
-
   PrimitiveConstants _constants;
-
   TextureSlots _textureSlots;
 
-  VertexBuffer _vertexBuffer;
+  VertexBuffer<Vertex> _vertexBuffer;
   IndexBuffer _indexBuffer;
-
-  std::vector<VkBuffer> _uniformBuffers;
-  std::vector<VkDeviceMemory> _uniformBuffersMemory;
-
-  std::unique_ptr<Material> _pMaterial;
+  Material _material;
 
 public:
   Primitive(
@@ -85,13 +77,7 @@ public:
   Primitive(const Primitive& rhs) = delete;
   Primitive& operator=(const Primitive& rhs) = delete;
   Primitive(Primitive&& rhs) = delete;
-  ~Primitive();
 
-  void updateUniforms(
-      const glm::mat4& parentTransform,
-      const glm::mat4& view,
-      const glm::mat4& projection,
-      uint32_t currentFrame) const;
   void draw(const DrawContext& context) const;
 };
 } // namespace AltheaEngine

@@ -11,8 +11,8 @@ layout(location=0) out vec4 outColor;
 
 layout(set=0, binding=0) uniform samplerCube skyboxTexture; 
 
-layout(set=1, binding=2) uniform sampler2D baseColorTexture;
-layout(set=1, binding=3) uniform sampler2D normalMapTexture;
+layout(set=1, binding=1) uniform sampler2D baseColorTexture;
+layout(set=1, binding=2) uniform sampler2D normalMapTexture;
 
 void main() {
   vec3 lightDir = normalize(vec3(1.0, -1.0, 1.0));

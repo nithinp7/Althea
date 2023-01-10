@@ -5,7 +5,6 @@
 
 #include <stdexcept>
 
-
 namespace AltheaEngine {
 // Buffer related implementations for the Application class
 uint32_t Application::findMemoryType(
@@ -141,6 +140,19 @@ void Application::createIndexBuffer(
 
   vkDestroyBuffer(device, stagingBuffer, nullptr);
   vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Application::createUniformBuffer(
+    VkDeviceSize bufferSize,
+    VkBuffer& buffer,
+    VkDeviceMemory& memory) const {
+  createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      buffer,
+      memory);
 }
 
 void Application::createUniformBuffers(

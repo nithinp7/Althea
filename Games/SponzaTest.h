@@ -2,18 +2,27 @@
 
 #include "CameraController.h"
 #include "DescriptorSet.h"
-#include "PerFrameResources.h"
 #include "IGameInstance.h"
 #include "Model.h"
+#include "PerFrameResources.h"
 #include "RenderPass.h"
 #include "Skybox.h"
+#include "TransientUniforms.h"
 
+#include <glm/glm.hpp>
 
 using namespace AltheaEngine;
 
 namespace AltheaEngine {
 class Application;
 } // namespace AltheaEngine
+
+struct GlobalUniforms {
+  glm::mat4 projection;
+  glm::mat4 inverseProjection;
+  glm::mat4 view;
+  glm::mat4 inverseView;
+};
 
 class SponzaTest : public IGameInstance {
 public:
@@ -34,6 +43,7 @@ public:
 
 private:
   std::shared_ptr<PerFrameResources> _pGlobalResources;
+  std::unique_ptr<TransientUniforms<GlobalUniforms>> _pGlobalUniforms;
 
   std::unique_ptr<CameraController> _pCameraController;
 

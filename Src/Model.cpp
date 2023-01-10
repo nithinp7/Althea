@@ -17,7 +17,6 @@
 #include <filesystem>
 #include <memory>
 
-
 namespace AltheaEngine {
 static CesiumAsync::Future<CesiumGltfReader::GltfReaderResult>
 resolveExternalData(
@@ -235,19 +234,6 @@ Model::Model(
 }
 
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
-
-void Model::updateUniforms(
-    const glm::mat4& view,
-    const glm::mat4& projection,
-    const FrameContext& frame) const {
-  for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
-    pPrimitive->updateUniforms(
-        glm::mat4(1.0f),
-        view,
-        projection,
-        frame.frameRingBufferIndex);
-  }
-}
 
 void Model::draw(const DrawContext& context) const {
   for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {

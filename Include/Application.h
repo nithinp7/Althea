@@ -6,7 +6,6 @@
 #include "InputManager.h"
 #include "ShaderManager.h"
 
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <gsl/span>
@@ -216,6 +215,10 @@ public:
       VkDeviceSize bufferSize,
       VkBuffer& indexBuffer,
       VkDeviceMemory& indexBufferMemory) const;
+  void createUniformBuffer(
+      VkDeviceSize bufferSize,
+      VkBuffer& uniformBuffer,
+      VkDeviceMemory& uniformBufferMemory) const;
   void createUniformBuffers(
       VkDeviceSize bufferSize,
       std::vector<VkBuffer>& uniformBuffers,

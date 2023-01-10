@@ -27,9 +27,9 @@ public:
    * @brief Bind all needed descriptor sets for this draw call, including
    * global, render pass wide, subpass wide, and material resources.
    *
-   * @param pMaterial The materal corresponding to the current object.
+   * @param material The materal corresponding to the current object.
    */
-  void bindDescriptorSets(const std::unique_ptr<Material>& pMaterial) const;
+  void bindDescriptorSets(const Material& material = Material()) const;
 
   /**
    * @brief Update a push constant range by index. This range must have been
@@ -63,7 +63,18 @@ public:
    *
    * @param vertexBuffer The vertex buffer to bind.
    */
-  void bindVertexBuffer(const VertexBuffer& vertexBuffer) const;
+  template <typename TVertex>
+  void bindVertexBuffer(const VertexBuffer<TVertex>& vertexBuffer) const {
+    // TODO: Support instance buffer as well
+    size_t offset = 0;
+    VkBuffer vkVertexBuffer = vertexBuffer.getBuffer();
+    vkCmdBindVertexBuffers(
+        this->_commandBuffer,
+        0,
+        1,
+        &vkVertexBuffer,
+        &offset);
+  }
 
   /**
    * @brief Bind this index buffer for drawing.
@@ -80,12 +91,44 @@ public:
   void drawIndexed(uint32_t indexCount) const;
 
   /**
+   * @brief Binds the given vertex and index buffers and executes an indexed
+   * draw call.
+   *
+   * @tparam TVertex The type of the vertices in the vertex buffer.
+   * @param vertexBuffer The vertex buffer to bind and draw.
+   * @param indexBuffer The index buffer to bind and draw.
+   */
+  template <typename TVertex>
+  void drawIndexed(
+      const VertexBuffer<TVertex>& vertexBuffer,
+      const IndexBuffer& indexBuffer) const {
+    // TODO: Expose more flexible draw commands, index offset, vertex offset,
+    // instance count, etc.
+    this->bindVertexBuffer(vertexBuffer);
+    this->bindIndexBuffer(indexBuffer);
+    this->drawIndexed(static_cast<uint32_t>(indexBuffer.getIndexCount()));
+  }
+
+  /**
    * @brief Execute a non-indexed draw call.
    *
    * @param vertexCount The number of vertices to execute in the
    * draw call.
    */
   void draw(uint32_t vertexCount) const;
+
+  /**
+   * @brief Binds the given vertex buffer and executes a non-indexed draw call.
+   *
+   * @tparam TVertex The type of vertices in the vertex buffer.
+   * @param vertexBuffer The number of vertices to execute in the
+   * draw call.
+   */
+  template <typename TVertex>
+  void draw(const VertexBuffer<TVertex>& vertexBuffer) const {
+    this->bindVertexBuffer(vertexBuffer);
+    this->draw(static_cast<uint32_t>(vertexBuffer.getVertexCount()));
+  }
 
 private:
   friend class ActiveRenderPass;
