@@ -21,7 +21,8 @@ layout(set=0, binding=1) uniform UniformBufferObject {
   mat4 inverseProjection;
   mat4 view;
   mat4 inverseView;
-} ubo;
+  float time;
+} globals;
 
 // TODO: may be too big for inline block
 layout(set=1, binding=0) uniform ConstantBufferObject {
@@ -47,13 +48,13 @@ layout(push_constant) uniform PushConstants {
 } pushConstants;
 
 void main() {
-  vec3 cameraPos = ubo.inverseView[3].xyz;
+  vec3 cameraPos = globals.inverseView[3].xyz;
 
   vec4 worldPos = pushConstants.model * vec4(position, 1.0);
 
   direction = worldPos.xyz - cameraPos;
 
-  gl_Position = ubo.projection * ubo.view * worldPos;
+  gl_Position = globals.projection * globals.view * worldPos;
 
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];

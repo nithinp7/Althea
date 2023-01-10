@@ -13,6 +13,14 @@ layout(location=0) out vec4 outColor;
 
 layout(set=0, binding=0) uniform samplerCube skyboxTexture; 
 
+layout(set=0, binding=1) uniform UniformBufferObject {
+  mat4 projection;
+  mat4 inverseProjection;
+  mat4 view;
+  mat4 inverseView;
+  float time;
+} globals;
+
 // TODO: may be too big for inline block
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
@@ -38,21 +46,39 @@ layout(set=1, binding=3) uniform sampler2D metallicRoughnessTexture;
 layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
+
+
+float vary(float period, float rangeMin, float rangeMax) {
+  float halfRange = 0.5 * (rangeMax - rangeMin);
+  float t = globals.time / (period * 2.0 * radians(180.0));
+  return halfRange * sin(t) + halfRange;
+}
+
+float vary(float period, float rangeMax) {
+  return vary(period, 0.0, rangeMax);
+}
+
+float vary(float period) {
+  return vary(period, 0.0, 1.0);
+}
+
+
 void main() {
   vec3 lightDir = normalize(vec3(1.0, -1.0, 1.0));
   
-  vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
+  vec3 normalMapSample = textureLod(normalMapTexture, normalMapUV, vary(0.1, 4.0)).rgb;
+  // vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 
       (2.0 * normalMapSample - 1.0) *
       vec3(constants.normalScale, constants.normalScale, 1.0);
   vec3 normal = normalize(fragTBN * tangentSpaceNormal);
 
-  vec3 reflectedDirection = reflect(normalize(direction), normal);
-  vec4 reflectedColor = texture(skyboxTexture, reflectedDirection);
-
   vec2 metallicRoughness = 
       texture(metallicRoughnessTexture, metallicRoughnessUV).bg *
       vec2(constants.metallicFactor, constants.roughnessFactor);
+
+  vec3 reflectedDirection = reflect(normalize(direction), normal);
+  vec4 reflectedColor = texture(skyboxTexture, reflectedDirection);
 
   float ambientOcclusion = 
       texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;
@@ -60,7 +86,7 @@ void main() {
   // float intensity = 2.0 * max(0, dot(lightDir, normal)) + 0.1;
   vec4 baseColor = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
 
-  outColor = vec4(mix(baseColor, reflectedColor, metallicRoughness.x).rgb, 1.0);
+  outColor = reflectedColor;
+  // outColor = vec4(mix(baseColor, reflectedColor, vary(2.0)).rgb, 1.0);
   // outColor = vec4(metallicRoughness, 0.0, 1.0);
 }
-

@@ -141,6 +141,7 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
   globalUniforms.inverseProjection = glm::inverse(globalUniforms.projection);
   globalUniforms.view = camera.computeView();
   globalUniforms.inverseView = glm::inverse(globalUniforms.view);
+  globalUniforms.time = static_cast<float>(frame.currentTime);
 
   this->_pGlobalUniforms->updateUniforms(globalUniforms, frame);
 }

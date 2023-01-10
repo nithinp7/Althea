@@ -22,6 +22,7 @@ struct GlobalUniforms {
   glm::mat4 inverseProjection;
   glm::mat4 view;
   glm::mat4 inverseView;
+  float time;
 };
 
 class SponzaTest : public IGameInstance {
