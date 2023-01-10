@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Texture.h"
 #include "UniformBuffer.h"
 
 #include <vulkan/vulkan.h>
@@ -106,6 +107,9 @@ public:
   // DescriptorAssignment& operator=(const DescriptorAssignment& rhs) = delete;
 
   ~DescriptorAssignment();
+
+  DescriptorAssignment&
+  bindTextureDescriptor(const Texture& texture);
 
   DescriptorAssignment&
   bindTextureDescriptor(VkImageView imageView, VkSampler sampler);

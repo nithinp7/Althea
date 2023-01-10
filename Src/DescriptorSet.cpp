@@ -5,7 +5,6 @@
 #include <cassert>
 #include <stdexcept>
 
-
 namespace AltheaEngine {
 DescriptorSetLayoutBuilder&
 DescriptorSetLayoutBuilder::addTextureBinding(VkShaderStageFlags stageFlags) {
@@ -73,15 +72,15 @@ DescriptorAssignment::DescriptorAssignment(
   this->_descriptorWrites.resize(this->_bindings.size());
 }
 
-DescriptorAssignment::DescriptorAssignment(DescriptorAssignment&& rhs) :
-    _currentIndex(rhs._currentIndex),
-    _device(rhs._device),
-    _descriptorSet(rhs._descriptorSet),
-    _bindings(rhs._bindings),
-    _descriptorWrites(std::move(rhs._descriptorWrites)),
-    _inlineConstantWrites(std::move(rhs._inlineConstantWrites)),
-    _descriptorBufferInfos(std::move(rhs._descriptorBufferInfos)),
-    _descriptorImageInfos(std::move(rhs._descriptorImageInfos)) {
+DescriptorAssignment::DescriptorAssignment(DescriptorAssignment&& rhs)
+    : _currentIndex(rhs._currentIndex),
+      _device(rhs._device),
+      _descriptorSet(rhs._descriptorSet),
+      _bindings(rhs._bindings),
+      _descriptorWrites(std::move(rhs._descriptorWrites)),
+      _inlineConstantWrites(std::move(rhs._inlineConstantWrites)),
+      _descriptorBufferInfos(std::move(rhs._descriptorBufferInfos)),
+      _descriptorImageInfos(std::move(rhs._descriptorImageInfos)) {
   rhs._descriptorWrites.clear();
 }
 
@@ -98,6 +97,13 @@ DescriptorAssignment::~DescriptorAssignment() {
         0,
         nullptr);
   }
+}
+
+DescriptorAssignment&
+DescriptorAssignment::bindTextureDescriptor(const Texture& texture) {
+  return this->bindTextureDescriptor(
+      texture.getImageView(),
+      texture.getSampler());
 }
 
 DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(

@@ -86,8 +86,8 @@ void SponzaTest::createRenderState(Application& app) {
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
     subpassBuilder.pipelineBuilder
-        .addVertexShader(shaderManager, "GltfEnvMap.vert")
-        .addFragmentShader(shaderManager, "GltfEnvMap.frag");
+        .addVertexShader(shaderManager, "GltfPBR.vert")
+        .addFragmentShader(shaderManager, "GltfPBR.frag");
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(

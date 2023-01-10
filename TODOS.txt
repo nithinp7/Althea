@@ -1,19 +1,16 @@
-Current Task:
--UBO abstraction:
--Now, regular UBOs will be a one-time bound resource like textures
--Separately use "Frame UBO" concept, that acts as a per-frame allocated
-stack (double/triple buffered). These will cover any resource that needs
-to be updated every frame.
--Push constants should be used for cheap, smaller per-frame updates like
-model transform changes.
+Current TODOs:
+-GLTF PBR:
+ -metallic-roughness
+ -emissive?? Bloom??
+ -ambient occlusion
+ -lighting (global uniform)
+
+-Un-triaged:
 -In the future, will need to consider UBOs that might have to be "ocassionally"
 updated, but not every frame - these resources will not be able to leverage the
 per-frame stack. For this case, we will need a way to dynamically create a new UBO,
 upload the data as needed, and age out the old one (2 or 3 frames later).
-
-Plan:
--TransientUniforms and PersistentUniforms: built on top of one or more UniformBuffer's
--
+-"Dynamic Uniform Buffer"?
 
 -Skybox is becoming a strange class, it is no longer fully self-contained
 since the cubemap texture is now used from the global descriptor set 

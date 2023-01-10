@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DescriptorSet.h"
+#include "Texture.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
 
@@ -13,6 +14,8 @@ namespace AltheaEngine {
 class ResourcesAssignment {
 public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
+
+  ResourcesAssignment& bindTexture(const Texture& texture);
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
 

@@ -58,6 +58,17 @@ void TextureSlots::fillEmptyWithDefaults() {
 
   if (!this->pNormalMapTexture)
     this->pNormalMapTexture = GNormalTexture1x1;
+
+  if (!this->pMetallicRoughnessTexture)
+    this->pMetallicRoughnessTexture = GGreenTexture1x1;
+
+  if (!this->pOcclusionTexture) {
+    this->pOcclusionTexture = GWhiteTexture1x1;
+  }
+
+  if (!this->pEmissiveTexture) {
+    this->pEmissiveTexture = GBlackTexture1x1;
+  }
 }
 
 /*static*/
@@ -92,7 +103,15 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
 
   builder.materialResourceLayoutBuilder
       .addConstantsBufferBinding<PrimitiveConstants>()
+      // Base color
       .addTextureBinding()
+      // Normal map
+      .addTextureBinding()
+      // Metallic-Roughness
+      .addTextureBinding()
+      // Ambient Occlusion
+      .addTextureBinding()
+      // Emissive
       .addTextureBinding();
 }
 
@@ -323,7 +342,27 @@ Primitive::Primitive(
           this->_constants.baseTextureCoordinateIndex,
           uvCount,
           true);
-      // TODO: pbr.baseColorFactor
+
+      this->_constants.baseColorFactor = glm::vec4(
+          static_cast<float>(pbr.baseColorFactor[0]),
+          static_cast<float>(pbr.baseColorFactor[1]),
+          static_cast<float>(pbr.baseColorFactor[2]),
+          static_cast<float>(pbr.baseColorFactor[3]));
+
+      this->_textureSlots.pMetallicRoughnessTexture = createTexture(
+          app,
+          model,
+          pbr.metallicRoughnessTexture,
+          textureMap,
+          this->_constants.metallicRoughnessTextureCoordinateIndex,
+          uvCount,
+          false);
+
+      this->_constants.metallicFactor = static_cast<float>(pbr.metallicFactor);
+      this->_constants.roughnessFactor =
+          static_cast<float>(pbr.roughnessFactor);
+      // TODO: reconsider default textures!! e.g., consider no texture + factors
+      // metallic factor, roughness factor
     }
 
     this->_textureSlots.pNormalMapTexture = createTexture(
@@ -341,6 +380,36 @@ Primitive::Primitive(
       this->_constants.normalScale =
           static_cast<float>(material.normalTexture->scale);
     }
+
+    this->_textureSlots.pOcclusionTexture = createTexture(
+        app,
+        model,
+        material.occlusionTexture,
+        textureMap,
+        this->_constants.occlusionTextureCoordinateIndex,
+        uvCount,
+        false);
+    
+    if (material.occlusionTexture) {
+      this->_constants.occlusionStrength = 
+          static_cast<float>(material.occlusionTexture->strength);
+    }
+
+    this->_textureSlots.pEmissiveTexture = createTexture(
+        app,
+        modFel,
+        material.emissiveTexture,
+        textureMap,
+        this->_constants.emissiveTextureCoordinateIndex,
+        uvCount,
+        true);
+    
+    this->_constants.emissiveFactor = glm::vec3(
+        static_cast<float>(material.emissiveFactor[0]),
+        static_cast<float>(material.emissiveFactor[1]),
+        static_cast<float>(material.emissiveFactor[2]));
+
+    this->_constants.alphaCutoff = static_cast<float>(material.alphaCutoff);
   }
 
   this->_textureSlots.fillEmptyWithDefaults();
@@ -456,12 +525,11 @@ Primitive::Primitive(
 
   this->_material.assign()
       .bindInlineConstants(this->_constants)
-      .bindTexture(
-          this->_textureSlots.pBaseTexture->getImageView(),
-          this->_textureSlots.pBaseTexture->getSampler())
-      .bindTexture(
-          this->_textureSlots.pNormalMapTexture->getImageView(),
-          this->_textureSlots.pNormalMapTexture->getSampler());
+      .bindTexture(*this->_textureSlots.pBaseTexture)
+      .bindTexture(*this->_textureSlots.pNormalMapTexture)
+      .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
+      .bindTexture(*this->_textureSlots.pOcclusionTexture)
+      .bindTexture(*this->_textureSlots.pEmissiveTexture);
 }
 
 void Primitive::draw(const DrawContext& context) const {

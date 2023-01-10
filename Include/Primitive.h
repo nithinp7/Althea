@@ -37,15 +37,31 @@ struct Vertex {
   glm::vec2 uvs[MAX_UV_COORDS]{};
 };
 
+// TODO: validate alignment, may be too big for inline block
 struct PrimitiveConstants {
+  glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
+  glm::vec3 emissiveFactor{};
+
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
+  int32_t metallicRoughnessTextureCoordinateIndex{};
+  int32_t occlusionTextureCoordinateIndex{};
+  int32_t emissiveTextureCoordinateIndex{};
+
   float normalScale = 1.0f;
+  float metallicFactor = 1.0f;
+  float roughnessFactor = 1.0f;
+  float occlusionStrength = 1.0f;
+
+  float alphaCutoff = 0.5f;
 };
 
 struct TextureSlots {
   std::shared_ptr<Texture> pBaseTexture;
   std::shared_ptr<Texture> pNormalMapTexture;
+  std::shared_ptr<Texture> pMetallicRoughnessTexture;
+  std::shared_ptr<Texture> pOcclusionTexture;
+  std::shared_ptr<Texture> pEmissiveTexture;
 
   void fillEmptyWithDefaults();
 };
