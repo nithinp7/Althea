@@ -54,8 +54,13 @@ void main() {
       texture(metallicRoughnessTexture, metallicRoughnessUV).bg *
       vec2(constants.metallicFactor, constants.roughnessFactor);
 
+  float ambientOcclusion = 
+      texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;
+
   // float intensity = 2.0 * max(0, dot(lightDir, normal)) + 0.1;
   vec4 baseColor = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
 
   outColor = vec4(mix(baseColor, reflectedColor, metallicRoughness.x).rgb, 1.0);
+  // outColor = vec4(metallicRoughness, 0.0, 1.0);
 }
+
