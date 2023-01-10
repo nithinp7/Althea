@@ -389,21 +389,21 @@ Primitive::Primitive(
         this->_constants.occlusionTextureCoordinateIndex,
         uvCount,
         false);
-    
+
     if (material.occlusionTexture) {
-      this->_constants.occlusionStrength = 
+      this->_constants.occlusionStrength =
           static_cast<float>(material.occlusionTexture->strength);
     }
 
     this->_textureSlots.pEmissiveTexture = createTexture(
         app,
-        modFel,
+        model,
         material.emissiveTexture,
         textureMap,
         this->_constants.emissiveTextureCoordinateIndex,
         uvCount,
         true);
-    
+
     this->_constants.emissiveFactor = glm::vec3(
         static_cast<float>(material.emissiveFactor[0]),
         static_cast<float>(material.emissiveFactor[1]),
