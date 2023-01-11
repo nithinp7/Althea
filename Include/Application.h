@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Allocator.h"
 #include "CameraController.h"
 #include "ConfigParser.h"
 #include "FrameContext.h"
@@ -24,6 +25,8 @@ struct ImageCesium;
 namespace AltheaEngine {
 class IGameInstance;
 
+// TODO: Standardize the conventions in this class with the rest of the
+// repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class Application {
 public:
   Application();
@@ -58,11 +61,11 @@ private:
   const bool enableValidationLayers = true;
 #endif
 
+  std::unique_ptr<Allocator> pAllocator;
   std::unique_ptr<IGameInstance> gameInstance;
 
   GLFWwindow* window;
 
-  // TODO: refactor this into OO-heirarchy!!!
   VkInstance instance;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
@@ -160,6 +163,8 @@ public:
   const VkDevice& getDevice() const { return device; }
 
   const VkPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
+
+  const Allocator& getAllocator() const { return *this->pAllocator; }
 
   const VkPhysicalDeviceProperties& getPhysicalDeviceProperties() const {
     return physicalDeviceProperties;

@@ -19,11 +19,14 @@ Application::Application() : configParser("../Config/ConfigFile.txt") {}
 void Application::run() {
   initWindow();
   initVulkan();
+  this->pAllocator = 
+      std::make_unique<Allocator>(this->instance, this->device, this->physicalDevice);
   this->gameInstance->initGame(*this);
   this->gameInstance->createRenderState(*this);
   mainLoop();
   this->gameInstance->destroyRenderState(*this);
   this->gameInstance->shutdownGame(*this);
+  this->pAllocator.reset();
   cleanup();
 }
 

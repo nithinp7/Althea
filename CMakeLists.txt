@@ -89,6 +89,7 @@ find_package(Vulkan REQUIRED) # error
 
 add_subdirectory(Extern/glm)
 add_subdirectory(Extern/glfw)
+add_subdirectory(Extern/VulkanMemoryAllocator)
 
 add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
 set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
@@ -99,7 +100,8 @@ target_include_directories (${PROJECT_NAME}
       ${GLFW_INCLUDE_DIRS}
       Extern/glm
       Extern/stb
-      Extern/MikkTSpace)
+      Extern/MikkTSpace
+      Extern/VulkanMemoryAllocator/include)
 
 
 target_compile_definitions(
@@ -115,6 +117,7 @@ target_compile_definitions(
 target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
 target_link_libraries (${PROJECT_NAME} glfw)
 target_link_libraries (${PROJECT_NAME} MikkTSpace)
+target_link_libraries (${PROJECT_NAME} VulkanMemoryAllocator)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     set(CESIUM_ARCHITECTURE "aarch64")
@@ -177,9 +180,6 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 endif()
 
 add_subdirectory(Extern/cesium-native)
-
-# cesium-native doesn't require this header to be public, but Cesium for Unreal wants to use it.
-#install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Extern/cesium-native/extern/stb/stb_image_resize.h TYPE INCLUDE)
 
 # Don't build the cesium-native tests by default
 set_target_properties(cesium-native-tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
