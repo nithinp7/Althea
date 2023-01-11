@@ -13,3 +13,6 @@
 [submodule "Extern/MikkTSpace"]
 	path = Extern/MikkTSpace
 	url = git@github.com:mmikk/MikkTSpace.git
+[submodule "Extern/VulkanMemoryAllocator"]
+	path = Extern/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
