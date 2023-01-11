@@ -50,7 +50,7 @@ layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
 float vary(float period, float rangeMin, float rangeMax) {
   float halfRange = 0.5 * (rangeMax - rangeMin);
-  float t = globals.time / (period * 2.0 * radians(180.0));
+  float t = 2.0 * radians(180.0) * globals.time / period;
   return halfRange * sin(t) + halfRange;
 }
 
@@ -65,9 +65,8 @@ float vary(float period) {
 
 void main() {
   vec3 lightDir = normalize(vec3(1.0, -1.0, 1.0));
-  
-  vec3 normalMapSample = textureLod(normalMapTexture, normalMapUV, vary(0.1, 4.0)).rgb;
-  // vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
+
+  vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 
       (2.0 * normalMapSample - 1.0) *
       vec3(constants.normalScale, constants.normalScale, 1.0);
@@ -78,7 +77,8 @@ void main() {
       vec2(constants.metallicFactor, constants.roughnessFactor);
 
   vec3 reflectedDirection = reflect(normalize(direction), normal);
-  vec4 reflectedColor = texture(skyboxTexture, reflectedDirection);
+  // vec4 reflectedColor = texture(skyboxTexture, reflectedDirection);
+  vec4 reflectedColor = textureLod(skyboxTexture, reflectedDirection, vary(14.0, 8.0));
 
   float ambientOcclusion = 
       texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;

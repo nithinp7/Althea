@@ -17,6 +17,10 @@
 #include <optional>
 #include <vector>
 
+namespace CesiumGltf {
+struct ImageCesium;
+};
+
 namespace AltheaEngine {
 class IGameInstance;
 
@@ -226,16 +230,12 @@ public:
 
   // Image Utilities
   void createTextureImage(
-      gsl::span<gsl::span<const std::byte>> mips,
-      uint32_t width,
-      uint32_t height,
+      const CesiumGltf::ImageCesium& imageSrc,
       VkFormat format,
       VkImage& image,
       VkDeviceMemory& imageMemory) const;
   void createCubemapImage(
-      const std::array<gsl::span<const std::byte>, 6>& cubemapBuffers,
-      uint32_t width,
-      uint32_t height,
+      const std::array<CesiumGltf::ImageCesium, 6>& imageSrc,
       VkFormat format,
       VkImage& image,
       VkDeviceMemory& imageMemory) const;

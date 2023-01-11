@@ -7,6 +7,7 @@
 #include <CesiumGltf/Texture.h>
 #include <gsl/span>
 
+#include <cstdint>
 #include <memory>
 
 namespace AltheaEngine {
@@ -150,30 +151,13 @@ void Texture::_initTexture(
     return;
   }
 
-  gsl::span<const std::byte> mips[11];
-  uint32_t mipCount = 1;
-
-  if (image.mipPositions.empty()) {
-    mips[0] = gsl::span<const std::byte>(image.pixelData);
-  } else {
-    mipCount = static_cast<uint32_t>(image.mipPositions.size());
-    if (mipCount > 11) {
-      // Generous max mip count.
-      mipCount = 11;
-    }
-
-    for (uint32_t i = 0; i < mipCount; ++i) {
-      const CesiumGltf::ImageCesiumMipPosition& mipPos = image.mipPositions[i];
-      mips[i] = gsl::span<const std::byte>(
-          &image.pixelData[mipPos.byteOffset],
-          mipPos.byteSize);
-    }
+  uint32_t mipCount = static_cast<uint32_t>(image.mipPositions.size());
+  if (mipCount == 0) {
+    mipCount = 1;
   }
 
   app.createTextureImage(
-      gsl::span<gsl::span<const std::byte>>(mips, mipCount),
-      image.width,
-      image.height,
+      image,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       this->_textureImage,
       this->_textureImageMemory);

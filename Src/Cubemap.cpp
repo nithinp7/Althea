@@ -7,6 +7,7 @@
 #include <CesiumGltfReader/GltfReader.h>
 #include <gsl/span>
 
+#include <cstdint>
 #include <stdexcept>
 
 namespace AltheaEngine {
@@ -29,6 +30,10 @@ Cubemap::Cubemap(
     }
 
     cubemapImages[i] = std::move(*result.image);
+
+    if (CesiumGltfReader::GltfReader::generateMipMaps(cubemapImages[i])) {
+      throw std::runtime_error("Unable to generate mipmap for cubemap image!");
+    }
   }
 
   this->_initCubemap(app, cubemapImages, srgb);
@@ -66,11 +71,16 @@ void Cubemap::_initCubemap(
   samplerInfo.magFilter = VK_FILTER_LINEAR;
   samplerInfo.minFilter = VK_FILTER_LINEAR;
 
-  // TODO: revisit mipmapping
+  uint32_t mipCount =
+      static_cast<uint32_t>(cubemapImages[0].mipPositions.size());
+  if (mipCount == 0) {
+    mipCount = 1;
+  }
+
   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
   samplerInfo.mipLodBias = 0.0f;
   samplerInfo.minLod = 0.0f;
-  samplerInfo.maxLod = 0.0f;
+  samplerInfo.maxLod = static_cast<float>(mipCount - 1);
 
   samplerInfo.anisotropyEnable = VK_TRUE;
   samplerInfo.maxAnisotropy =
@@ -88,15 +98,8 @@ void Cubemap::_initCubemap(
     return;
   }
 
-  std::array<gsl::span<const std::byte>, 6> cubemapBuffers;
-  for (uint32_t i = 0; i < 6; ++i) {
-    cubemapBuffers[i] = gsl::span<const std::byte>(cubemapImages[i].pixelData);
-  }
-
   app.createCubemapImage(
-      cubemapBuffers,
-      cubemapImages[0].width,
-      cubemapImages[0].height,
+      cubemapImages,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       this->_image,
       this->_imageMemory);
@@ -104,7 +107,7 @@ void Cubemap::_initCubemap(
   this->_imageView = app.createImageView(
       this->_image,
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      1,
+      mipCount,
       6,
       VK_IMAGE_VIEW_TYPE_CUBE,
       VK_IMAGE_ASPECT_COLOR_BIT);

@@ -1,29 +1,26 @@
 
 #include "Application.h"
 
+#include <CesiumGltf/ImageCesium.h>
 #include <vulkan/vulkan.h>
 
 #include <stdexcept>
 
 namespace AltheaEngine {
 void Application::createTextureImage(
-    gsl::span<gsl::span<const std::byte>> mips,
-    uint32_t width,
-    uint32_t height,
+    const CesiumGltf::ImageCesium& imageSrc,
     VkFormat format,
     VkImage& image,
     VkDeviceMemory& imageMemory) const {
 
-  uint32_t mipCount = static_cast<uint32_t>(mips.size());
+  uint32_t width = static_cast<uint32_t>(imageSrc.width);
+  uint32_t height = static_cast<uint32_t>(imageSrc.height);
+  uint32_t mipCount = static_cast<uint32_t>(imageSrc.mipPositions.size());
   if (mipCount == 0) {
-    throw std::runtime_error(
-        "Attempting to create a texture image with 0 mips.");
+    mipCount = 1;
   }
 
-  VkDeviceSize bufferSize = 0;
-  for (gsl::span<const std::byte> mip : mips) {
-    bufferSize += mip.size();
-  }
+  VkDeviceSize bufferSize = imageSrc.pixelData.size();
 
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
@@ -35,13 +32,9 @@ void Application::createTextureImage(
       stagingBuffer,
       stagingBufferMemory);
 
-  size_t currentOffset = 0;
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  for (gsl::span<const std::byte> mip : mips) {
-    std::memcpy((char*)data + currentOffset, mip.data(), mip.size());
-    currentOffset += mip.size();
-  }
+  std::memcpy((char*)data, imageSrc.pixelData.data(), bufferSize);
   vkUnmapMemory(device, stagingBufferMemory);
 
   createImage(
@@ -64,28 +57,31 @@ void Application::createTextureImage(
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-  currentOffset = 0;
-  for (uint32_t i = 0; i < mipCount; ++i) {
-    uint32_t mipWidth = width >> i;
-    if (mipWidth == 0) {
-      mipWidth = 1;
+  if (imageSrc.mipPositions.empty()) {
+    copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 1);
+  } else {
+    for (uint32_t i = 0; i < mipCount; ++i) {
+      const CesiumGltf::ImageCesiumMipPosition& mipPos =
+          imageSrc.mipPositions[i];
+      uint32_t mipWidth = width >> i;
+      if (mipWidth == 0) {
+        mipWidth = 1;
+      }
+
+      uint32_t mipHeight = height >> i;
+      if (mipHeight == 0) {
+        mipHeight = 1;
+      }
+
+      copyBufferToImage(
+          stagingBuffer,
+          mipPos.byteOffset,
+          image,
+          mipWidth,
+          mipHeight,
+          i,
+          1);
     }
-
-    uint32_t mipHeight = height >> i;
-    if (mipHeight == 0) {
-      mipHeight = 1;
-    }
-
-    copyBufferToImage(
-        stagingBuffer,
-        currentOffset,
-        image,
-        mipWidth,
-        mipHeight,
-        i,
-        1);
-
-    currentOffset += mips[i].size();
   }
 
   transitionImageLayout(
@@ -101,28 +97,37 @@ void Application::createTextureImage(
 }
 
 void Application::createCubemapImage(
-    const std::array<gsl::span<const std::byte>, 6>& cubemapBuffers,
-    uint32_t width,
-    uint32_t height,
+    const std::array<CesiumGltf::ImageCesium, 6>& imageSrc,
     VkFormat format,
     VkImage& image,
     VkDeviceMemory& imageMemory) const {
 
-  VkDeviceSize layerSize = cubemapBuffers[0].size();
+  VkDeviceSize layerSize = imageSrc[0].pixelData.size();
   VkDeviceSize totalSize = 6 * layerSize;
+
+  uint32_t width = static_cast<uint32_t>(imageSrc[0].width);
+  uint32_t height = static_cast<uint32_t>(imageSrc[0].height);
+  uint32_t mipCount = static_cast<uint32_t>(imageSrc[0].mipPositions.size());
 
   // Verify all cubemap images have the same size
   for (uint32_t i = 1; i < 6; ++i) {
-    if (layerSize != cubemapBuffers[i].size()) {
-      throw std::runtime_error("Inconsistent image sizes in cubemap");
+    if (layerSize != imageSrc[i].pixelData.size() ||
+        width != static_cast<uint32_t>(imageSrc[i].width) ||
+        height != static_cast<uint32_t>(imageSrc[i].height) ||
+        mipCount != static_cast<uint32_t>(imageSrc[i].mipPositions.size())) {
+      throw std::runtime_error("Inconsistent images within cubemap");
       return;
     }
+  }
+
+  if (mipCount == 0) {
+    mipCount = 1;
   }
 
   createImage(
       width,
       height,
-      1,
+      mipCount,
       6,
       format,
       VK_IMAGE_TILING_OPTIMAL,
@@ -145,11 +150,31 @@ void Application::createCubemapImage(
   void* data;
   vkMapMemory(device, stagingBufferMemory, 0, totalSize, 0, &data);
 
-  for (uint32_t i = 0; i < 6; ++i) {
-    std::memcpy(
-        (std::byte*)data + i * layerSize,
-        cubemapBuffers[i].data(),
-        layerSize);
+  if (mipCount == 1) {
+    // When there is a single mip, all 6 layers will be placed back-to-back
+    // in the staging buffer.
+    for (uint32_t layerIndex = 0; layerIndex < 6; ++layerIndex) {
+      std::memcpy(
+          (std::byte*)data + layerIndex * layerSize,
+          imageSrc[layerIndex].pixelData.data(),
+          layerSize);
+    }
+  } else {
+    // When there are multiple mips, the same mip levels from each layer will
+    // be placed together such that the order is:
+    // mip0-layer0, mip0-layer1..., mip1-layer0, mip1-layer1,..., etc
+    size_t currentOffset = 0;
+    for (uint32_t mipIndex = 0; mipIndex < mipCount; ++mipIndex) {
+      for (uint32_t layerIndex = 0; layerIndex < 6; ++layerIndex) {
+        const CesiumGltf::ImageCesiumMipPosition& mipPos =
+            imageSrc[layerIndex].mipPositions[mipIndex];
+        std::memcpy(
+            (std::byte*)data + currentOffset,
+            &imageSrc[layerIndex].pixelData[mipPos.byteOffset],
+            mipPos.byteSize);
+        currentOffset += mipPos.byteSize;
+      }
+    }
   }
 
   vkUnmapMemory(device, stagingBufferMemory);
@@ -157,17 +182,49 @@ void Application::createCubemapImage(
   transitionImageLayout(
       image,
       format,
-      1,
+      mipCount,
       6,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-  copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 6);
+  if (mipCount == 1) {
+    // All layers will be back-to-back.
+    copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 6);
+  } else {
+    // Mips of the same level across the layers will be back-to-back.
+    size_t currentOffset = 0;
+    for (uint32_t mipIndex = 0; mipIndex < mipCount; ++mipIndex) {
+      // The mip positions should be consistent across all layers.
+      const CesiumGltf::ImageCesiumMipPosition& mipPos =
+          imageSrc[0].mipPositions[mipIndex];
+
+      uint32_t mipWidth = width >> mipIndex;
+      if (mipWidth == 0) {
+        mipWidth = 1;
+      }
+
+      uint32_t mipHeight = height >> mipIndex;
+      if (mipHeight == 0) {
+        mipHeight = 1;
+      }
+
+      // Copy over 6 layers from this mip level together.
+      copyBufferToImage(
+          stagingBuffer,
+          currentOffset,
+          image,
+          mipWidth,
+          mipHeight,
+          mipIndex,
+          6);
+      currentOffset += mipPos.byteSize * 6;
+    }
+  }
 
   transitionImageLayout(
       image,
       format,
-      1,
+      mipCount,
       6,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
