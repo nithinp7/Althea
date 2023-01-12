@@ -6,15 +6,15 @@
 
 namespace AltheaEngine {
 ImageView::ImageView(
-    const Application& app, 
+    const Application& app,
     VkImage image,
     VkFormat format,
     uint32_t mipCount,
     uint32_t layerCount,
     VkImageViewType type,
-    VkImageAspectFlags aspectFlags) 
+    VkImageAspectFlags aspectFlags)
     : _device(app.getDevice()) {
-  
+
   VkImageViewCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   createInfo.image = image;
@@ -30,25 +30,23 @@ ImageView::ImageView(
   createInfo.subresourceRange.baseArrayLayer = 0;
   createInfo.subresourceRange.layerCount = layerCount;
 
-  if (vkCreateImageView(device, &createInfo, nullptr, &this->_view) !=
+  if (vkCreateImageView(this->_device, &createInfo, nullptr, &this->_view) !=
       VK_SUCCESS) {
     throw std::runtime_error("Failed to create image view!");
   }
 }
 
-ImageView::ImageView(ImageView&& rhs)
-    : _device(rhs._device),
-      _imageView(rhs._imageView) {
+ImageView::ImageView(ImageView&& rhs) : _device(rhs._device), _view(rhs._view) {
   rhs._device = VK_NULL_HANDLE;
-  rhs._imageView = VK_NULL_HANDLE;
+  rhs._view = VK_NULL_HANDLE;
 }
 
 ImageView& ImageView::operator=(ImageView&& rhs) {
   this->_device = rhs._device;
-  this->_imageView = rhs._imageView;
+  this->_view = rhs._view;
 
   rhs._device = VK_NULL_HANDLE;
-  rhs._imageView = VK_NULL_HANDLE;
+  rhs._view = VK_NULL_HANDLE;
 
   return *this;
 }

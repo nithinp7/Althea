@@ -14,8 +14,7 @@ namespace AltheaEngine {
 Cubemap::Cubemap(
     Application& app,
     const std::array<std::string, 6>& cubemapPaths,
-    bool srgb)
-    : _device(app.getDevice()) {
+    bool srgb) {
   std::array<CesiumGltf::ImageCesium, 6> cubemapImages;
   for (uint32_t i = 0; i < 6; ++i) {
     std::vector<char> rawImage = Utilities::readFile(cubemapPaths[i]);
@@ -42,17 +41,8 @@ Cubemap::Cubemap(
 Cubemap::Cubemap(
     Application& app,
     const std::array<CesiumGltf::ImageCesium, 6>& images,
-    bool srgb)
-    : _device(app.getDevice()) {
+    bool srgb) {
   this->_initCubemap(app, images, srgb);
-}
-
-Cubemap::~Cubemap() {
-  vkDestroySampler(this->_device, this->_imageSampler, nullptr);
-  vkDestroyImageView(this->_device, this->_imageView, nullptr);
-
-  vkDestroyImage(this->_device, this->_image, nullptr);
-  vkFreeMemory(this->_device, this->_imageMemory, nullptr);
 }
 
 void Cubemap::_initCubemap(
@@ -89,23 +79,14 @@ void Cubemap::_initCubemap(
   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   samplerInfo.unnormalizedCoordinates = VK_FALSE;
 
-  if (vkCreateSampler(
-          this->_device,
-          &samplerInfo,
-          nullptr,
-          &this->_imageSampler) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create cubemap sampler!");
-    return;
-  }
-
-  app.createCubemapImage(
+  this->_allocation = app.createCubemapImage(
       cubemapImages,
-      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      this->_image,
-      this->_imageMemory);
+      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM);
 
-  this->_imageView = app.createImageView(
-      this->_image,
+  this->_sampler = Sampler(app, samplerInfo);
+  this->_imageView = ImageView(
+      app,
+      this->_allocation.getImage(),
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       mipCount,
       6,

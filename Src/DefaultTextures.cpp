@@ -65,11 +65,11 @@ void initDefaultTextures(const Application& app) {
     return;
   }
 
-  Sampler sampler;
-  sampler.magFilter = Sampler::MagFilter::LINEAR;
-  sampler.minFilter = Sampler::MinFilter::LINEAR_MIPMAP_LINEAR;
-  sampler.wrapS = Sampler::WrapS::CLAMP_TO_EDGE;
-  sampler.wrapT = Sampler::WrapT::CLAMP_TO_EDGE;
+  CesiumGltf::Sampler sampler;
+  sampler.magFilter = CesiumGltf::Sampler::MagFilter::LINEAR;
+  sampler.minFilter = CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR;
+  sampler.wrapS = CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE;
+  sampler.wrapT = CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE;
 
   GNormalTexture1x1 =
       std::make_shared<Texture>(app, *normalResult.image, sampler, false);

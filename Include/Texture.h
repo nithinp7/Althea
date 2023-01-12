@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Application.h"
 #include "Allocator.h"
+#include "Application.h"
 #include "ImageView.h"
 #include "Sampler.h"
 
@@ -34,9 +34,9 @@ public:
 
   Texture(const Texture& rhs) = delete;
   Texture& operator=(const Texture& rhs) = delete;
-  
+
   VkImage getImage() const { return this->_allocation.getImage(); }
-  
+
   VkImageView getImageView() const { return this->_imageView.getImageView(); }
 
   VkSampler getSampler() const { return this->_sampler.getSampler(); }
@@ -47,8 +47,6 @@ private:
       const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler,
       bool srgb);
-
-  VkDevice _device;
 
   ImageAllocation _allocation;
 

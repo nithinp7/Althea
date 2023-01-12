@@ -112,7 +112,6 @@ ImageAllocation Application::createCubemapImage(
         height != static_cast<uint32_t>(imageSrc[i].height) ||
         mipCount != static_cast<uint32_t>(imageSrc[i].mipPositions.size())) {
       throw std::runtime_error("Inconsistent images within cubemap");
-      return;
     }
   }
 

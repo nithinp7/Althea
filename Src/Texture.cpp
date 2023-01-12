@@ -40,8 +40,6 @@ void Texture::_initTexture(
     const CesiumGltf::ImageCesium& image,
     const CesiumGltf::Sampler& sampler,
     bool srgb) {
-  this->_device = app.getDevice();
-
   // TODO: support compressed pixel formats
   if (image.compressedPixelFormat !=
       CesiumGltf::GpuCompressedPixelFormat::NONE) {

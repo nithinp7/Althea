@@ -4,15 +4,16 @@
 #include "CameraController.h"
 #include "ConfigParser.h"
 #include "FrameContext.h"
+#include "ImageView.h"
 #include "InputManager.h"
 #include "ShaderManager.h"
 
 #define GLFW_INCLUDE_VULKAN
+#include "vk_mem_alloc.h"
+
 #include <GLFW/glfw3.h>
 #include <gsl/span>
 #include <vulkan/vulkan.h>
-
-#include "vk_mem_alloc.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -79,13 +80,12 @@ private:
 
   VkSwapchainKHR swapChain;
   std::vector<VkImage> swapChainImages;
-  std::vector<VkImageView> swapChainImageViews;
+  std::vector<ImageView> swapChainImageViews;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
-  VkImage depthImage;
-  VkDeviceMemory depthImageMemory;
-  VkImageView depthImageView;
+  std::unique_ptr<ImageAllocation> pDepthImageAllocation;
+  std::unique_ptr<ImageView> pDepthImageView;
   VkFormat depthImageFormat;
 
   VkCommandPool commandPool;
@@ -180,13 +180,15 @@ public:
     return swapChainImageFormat;
   }
 
-  const std::vector<VkImageView>& getSwapChainImageViews() const {
+  const std::vector<ImageView>& getSwapChainImageViews() const {
     return swapChainImageViews;
   }
 
-  const VkFormat& getDepthImageFormat() const { return depthImageFormat; }
+  VkFormat getDepthImageFormat() const { return depthImageFormat; }
 
-  const VkImageView& getDepthImageView() const { return depthImageView; }
+  VkImageView getDepthImageView() const {
+    return pDepthImageView->getImageView();
+  }
 
   bool hasStencilComponent() const;
 
@@ -215,14 +217,11 @@ public:
       VkDeviceSize size,
       VkBufferUsageFlags usage,
       const VmaAllocationCreateInfo& allocInfo) const;
-  BufferAllocation createVertexBuffer(
-      const void* pSrc,
-      VkDeviceSize bufferSize) const;
-  BufferAllocation createIndexBuffer(
-      const void* pSrc,
-      VkDeviceSize bufferSize) const;
-  BufferAllocation createUniformBuffer(
-      VkDeviceSize bufferSize) const;
+  BufferAllocation
+  createVertexBuffer(const void* pSrc, VkDeviceSize bufferSize) const;
+  BufferAllocation
+  createIndexBuffer(const void* pSrc, VkDeviceSize bufferSize) const;
+  BufferAllocation createUniformBuffer(VkDeviceSize bufferSize) const;
 
   // Image Utilities
   ImageAllocation createTextureImage(

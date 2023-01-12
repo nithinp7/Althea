@@ -5,11 +5,12 @@
 
 #include <stdexcept>
 
-// TODO: provide a bit more abstraction here once various allocation types can be reasonably
-// categorized (e.g., staging, host-device-visible, host-sequential-write-device-visible, device-local)
-// Ideally avoid e.g., allocateBuffer(...) requiring VmaAllocationCreateInfo
+// TODO: provide a bit more abstraction here once various allocation types can
+// be reasonably categorized (e.g., staging, host-device-visible,
+// host-sequential-write-device-visible, device-local) Ideally avoid e.g.,
+// allocateBuffer(...) requiring VmaAllocationCreateInfo
 namespace AltheaEngine {
-BufferAllocation::BufferAllocation(BufferAllocation&& rhs) 
+BufferAllocation::BufferAllocation(BufferAllocation&& rhs)
     : _buffer(rhs._buffer),
       _allocation(rhs._allocation),
       _info(rhs._info),
@@ -30,7 +31,9 @@ BufferAllocation& BufferAllocation::operator=(BufferAllocation&& rhs) {
   rhs._allocation = VK_NULL_HANDLE;
   rhs._info = {};
   rhs._allocator = VK_NULL_HANDLE;
-} 
+
+  return *this;
+}
 
 BufferAllocation::~BufferAllocation() {
   if (this->_buffer != VK_NULL_HANDLE) {
@@ -53,7 +56,7 @@ void BufferAllocation::unmapMemory() const {
   vmaUnmapMemory(this->_allocator, this->_allocation);
 }
 
-ImageAllocation::ImageAllocation(ImageAllocation&& rhs) 
+ImageAllocation::ImageAllocation(ImageAllocation&& rhs)
     : _image(rhs._image),
       _allocation(rhs._allocation),
       _info(rhs._info),
@@ -74,7 +77,9 @@ ImageAllocation& ImageAllocation::operator=(ImageAllocation&& rhs) {
   rhs._allocation = VK_NULL_HANDLE;
   rhs._info = {};
   rhs._allocator = VK_NULL_HANDLE;
-} 
+
+  return *this;
+}
 
 ImageAllocation::~ImageAllocation() {
   if (this->_image != VK_NULL_HANDLE) {

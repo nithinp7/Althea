@@ -1,6 +1,7 @@
 #include "RenderPass.h"
 
 #include "Application.h"
+#include "ImageView.h"
 
 #include <stdexcept>
 
@@ -198,10 +199,8 @@ RenderPass::RenderPass(
     // This frame buffer will be used for presenting and the first attachment
     // will be from the swapchain. So we will need a different frame buffer for
     // each image in the swapchain.
-    const std::vector<VkImageView>& swapChainImageViews =
-        app.getSwapChainImageViews();
-    for (const VkImageView& swapChainImageView : swapChainImageViews) {
-      this->_createFrameBuffer(extent, swapChainImageView);
+    for (const ImageView& swapChainImageView : app.getSwapChainImageViews()) {
+      this->_createFrameBuffer(extent, swapChainImageView.getImageView());
     }
   } else {
     this->_createFrameBuffer(extent, std::nullopt);

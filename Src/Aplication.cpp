@@ -19,8 +19,10 @@ Application::Application() : configParser("../Config/ConfigFile.txt") {}
 void Application::run() {
   initWindow();
   initVulkan();
-  this->pAllocator = 
-      std::make_unique<Allocator>(this->instance, this->device, this->physicalDevice);
+  this->pAllocator = std::make_unique<Allocator>(
+      this->instance,
+      this->device,
+      this->physicalDevice);
   this->gameInstance->initGame(*this);
   this->gameInstance->createRenderState(*this);
   mainLoop();
@@ -655,7 +657,8 @@ void Application::createSwapChain() {
 
   swapChainImageViews.resize(swapChainImages.size());
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
-    swapChainImageViews[i] = createImageView(
+    swapChainImageViews[i] = ImageView(
+        *this,
         swapChainImages[i],
         swapChainImageFormat,
         1,
@@ -666,17 +669,13 @@ void Application::createSwapChain() {
 }
 
 void Application::cleanupSwapChain() {
-  for (VkImageView imageView : swapChainImageViews) {
-    vkDestroyImageView(device, imageView, nullptr);
-  }
-
+  this->swapChainImageViews.clear();
   vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
 void Application::cleanupDepthResource() {
-  vkDestroyImage(device, depthImage, nullptr);
-  vkDestroyImageView(device, depthImageView, nullptr);
-  vkFreeMemory(device, depthImageMemory, nullptr);
+  pDepthImageView.reset();
+  pDepthImageAllocation.reset();
 }
 
 void Application::recreateSwapChain() {
@@ -738,26 +737,24 @@ bool Application::hasStencilComponent() const {
 
 void Application::createDepthResource() {
   depthImageFormat = findDepthFormat();
-  createImage(
+  pDepthImageAllocation = std::make_unique<ImageAllocation>(createImage(
       swapChainExtent.width,
       swapChainExtent.height,
       1,
       1,
       depthImageFormat,
       VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      depthImage,
-      depthImageMemory);
-  depthImageView = createImageView(
-      depthImage,
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+  pDepthImageView = std::make_unique<ImageView>(
+      *this,
+      pDepthImageAllocation->getImage(),
       depthImageFormat,
       1,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_DEPTH_BIT);
   transitionImageLayout(
-      depthImage,
+      pDepthImageAllocation->getImage(),
       depthImageFormat,
       1,
       1,

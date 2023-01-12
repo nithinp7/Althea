@@ -23,7 +23,6 @@ public:
       Application& app,
       const std::array<CesiumGltf::ImageCesium, 6>& images,
       bool srgb);
-  ~Cubemap();
 
   VkImage getImage() const { return this->_allocation.getImage(); }
 
@@ -36,8 +35,6 @@ private:
       Application& app,
       const std::array<CesiumGltf::ImageCesium, 6>& images,
       bool srgb);
-
-  VkDevice _device;
 
   ImageAllocation _allocation;
 
