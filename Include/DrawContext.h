@@ -4,6 +4,7 @@
 #include "IndexBuffer.h"
 #include "Material.h"
 #include "VertexBuffer.h"
+#include "Allocator.h"
 
 #include <vulkan/vulkan.h>
 
@@ -66,14 +67,14 @@ public:
   template <typename TVertex>
   void bindVertexBuffer(const VertexBuffer<TVertex>& vertexBuffer) const {
     // TODO: Support instance buffer as well
-    size_t offset = 0;
-    VkBuffer vkVertexBuffer = vertexBuffer.getBuffer();
+    const BufferAllocation& allocation = vertexBuffer.getAllocation();
+    VkBuffer vkBuffer = buffer.getBuffer();
     vkCmdBindVertexBuffers(
         this->_commandBuffer,
         0,
         1,
-        &vkVertexBuffer,
-        &offset);
+        &vkBuffer,
+        &allocation.getInfo().offset);
   }
 
   /**

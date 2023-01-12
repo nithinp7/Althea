@@ -120,10 +120,11 @@ BufferAllocation Application::createIndexBuffer(
 
 BufferAllocation Application::createUniformBuffer(
     VkDeviceSize bufferSize) const {
-  VmaAllocationCreateInfo allocInfo{};
 
   // TODO: This assumes that the uniform buffer will be _often_ rewritten
-  // and perhaps in a random pattern.
+  // and perhaps in a random pattern. We should prefer a different type of
+  // memory if the uniform buffer will mostly be persistent.
+  VmaAllocationCreateInfo allocInfo{};
   allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
   allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 

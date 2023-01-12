@@ -9,7 +9,7 @@
 namespace AltheaEngine {
 class BufferAllocation {
 public:
-  // Move semantics
+  // Move-only semantics
   BufferAllocation() = default;
   BufferAllocation(BufferAllocation&& rhs);
   BufferAllocation(const BufferAllocation& rhs) = delete;
@@ -42,7 +42,7 @@ private:
 
 class ImageAllocation {
 public:
-  // Move semantics
+  // Move-only semantics
   ImageAllocation() = default;
   ImageAllocation(ImageAllocation&& rhs);
   ImageAllocation(const ImageAllocation& rhs) = delete;

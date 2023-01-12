@@ -85,10 +85,11 @@ void DrawContext::setFrontFaceDynamic(VkFrontFace frontFace) const {
 }
 
 void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {
+  const BufferAllocation& allocation = indexBuffer.getAllocation();
   vkCmdBindIndexBuffer(
       this->_commandBuffer,
-      indexBuffer.getBuffer(),
-      0,
+      allocation.getBuffer(),
+      allocation.getInfo().offset,
       VK_INDEX_TYPE_UINT32);
 }
 
