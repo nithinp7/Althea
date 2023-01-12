@@ -5,6 +5,9 @@
 
 #include <stdexcept>
 
+// TODO: Refactor most of this into the allocator class!!
+// TODO: Do another pass to abstract boiler plate here.
+
 namespace AltheaEngine {
 // Buffer related implementations for the Application class
 uint32_t Application::findMemoryType(
@@ -39,137 +42,94 @@ void Application::copyBuffer(
   this->endSingleTimeCommands(commandBuffer);
 }
 
-void Application::createBuffer(
+BufferAllocation Application::createBuffer(
     VkDeviceSize size,
     VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkBuffer& buffer,
-    VkDeviceMemory& bufferMemory) const {
+    const VmaAllocationCreateInfo& allocInfo) const {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufferInfo.size = size;
   bufferInfo.usage = usage;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create buffer!");
-  }
-
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-      findMemoryType(memRequirements.memoryTypeBits, properties);
-
-  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate buffer memory!");
-  }
-
-  if (vkBindBufferMemory(device, buffer, bufferMemory, 0) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to bind buffer to memory!");
-  };
+  return this->pAllocator->createBuffer(bufferInfo, allocInfo);
 }
 
-void Application::createVertexBuffer(
+BufferAllocation Application::createVertexBuffer(
     const void* pSrc,
-    VkDeviceSize bufferSize,
-    VkBuffer& vertexBuffer,
-    VkDeviceMemory& vertexBufferMemory) const {
+    VkDeviceSize bufferSize) const {
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      stagingBuffer,
-      stagingBufferMemory);
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  void* data;
-  vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  BufferAllocation stagingBuffer = 
+      createBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        stagingInfo);
+
+  void* data = stagingBuffer.mapMemory();
   memcpy(data, pSrc, (size_t)bufferSize);
-  vkUnmapMemory(device, stagingBufferMemory);
+  stagingBuffer.unmapMemory();
 
-  createBuffer(
+  VmaAllocationCreateInfo deviceAllocInfo{};
+  deviceAllocInfo.flags = 0;
+  deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  
+  BufferAllocation vertexBuffer = createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      vertexBuffer,
-      vertexBufferMemory);
+      deviceAllocInfo);
 
-  copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+  copyBuffer(stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), bufferSize);
 
-  vkDestroyBuffer(device, stagingBuffer, nullptr);
-  vkFreeMemory(device, stagingBufferMemory, nullptr);
+  return vertexBuffer;
 }
 
-void Application::createIndexBuffer(
+BufferAllocation Application::createIndexBuffer(
     const void* pSrc,
-    VkDeviceSize bufferSize,
-    VkBuffer& indexBuffer,
-    VkDeviceMemory& indexBufferMemory) const {
+    VkDeviceSize bufferSize) const {
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+  BufferAllocation stagingBuffer = createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      stagingBuffer,
-      stagingBufferMemory);
+      stagingInfo);
 
-  void* data;
-  vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  void* data = stagingBuffer.mapMemory();
   memcpy(data, pSrc, (size_t)bufferSize);
-  vkUnmapMemory(device, stagingBufferMemory);
+  stagingBuffer.unmapMemory();
 
-  createBuffer(
+  VmaAllocationCreateInfo deviceAllocInfo{};
+  deviceAllocInfo.flags = 0;
+  deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  
+  BufferAllocation indexBuffer = createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      indexBuffer,
-      indexBufferMemory);
+      deviceAllocInfo);
 
-  copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+  copyBuffer(stagingBuffer.getBuffer(), indexBuffer.getBuffer(), bufferSize);
 
-  vkDestroyBuffer(device, stagingBuffer, nullptr);
-  vkFreeMemory(device, stagingBufferMemory, nullptr);
+  return indexBuffer;
 }
 
-void Application::createUniformBuffer(
-    VkDeviceSize bufferSize,
-    VkBuffer& buffer,
-    VkDeviceMemory& memory) const {
-  createBuffer(
+BufferAllocation Application::createUniformBuffer(
+    VkDeviceSize bufferSize) const {
+  VmaAllocationCreateInfo allocInfo{};
+
+  // TODO: This assumes that the uniform buffer will be _often_ rewritten
+  // and perhaps in a random pattern.
+  allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+  allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+  return createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      buffer,
-      memory);
-}
-
-void Application::createUniformBuffers(
-    VkDeviceSize bufferSize,
-    std::vector<VkBuffer>& uniformBuffers,
-    std::vector<VkDeviceMemory>& uniformBuffersMemory) const {
-  uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    createBuffer(
-        bufferSize,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        uniformBuffers[i],
-        uniformBuffersMemory[i]);
-  }
+      allocInfo);
 }
 } // namespace AltheaEngine

@@ -12,6 +12,8 @@
 #include <gsl/span>
 #include <vulkan/vulkan.h>
 
+#include "vk_mem_alloc.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -201,6 +203,7 @@ public:
   void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
   // Buffer Utilities
+  // TODO: might no longer need after using VMA
   uint32_t findMemoryType(
       uint32_t typeFilter,
       const VkMemoryPropertyFlags& properties) const;
@@ -208,30 +211,18 @@ public:
       const VkBuffer& srcBuffer,
       const VkBuffer& dstBuffer,
       VkDeviceSize size) const;
-  void createBuffer(
+  BufferAllocation createBuffer(
       VkDeviceSize size,
       VkBufferUsageFlags usage,
-      VkMemoryPropertyFlags properties,
-      VkBuffer& buffer,
-      VkDeviceMemory& bufferMemory) const;
-  void createVertexBuffer(
+      const VmaAllocationCreateInfo& allocInfo) const;
+  BufferAllocation createVertexBuffer(
       const void* pSrc,
-      VkDeviceSize bufferSize,
-      VkBuffer& vertexBuffer,
-      VkDeviceMemory& vertexBufferMemory) const;
-  void createIndexBuffer(
+      VkDeviceSize bufferSize) const;
+  BufferAllocation createIndexBuffer(
       const void* pSrc,
-      VkDeviceSize bufferSize,
-      VkBuffer& indexBuffer,
-      VkDeviceMemory& indexBufferMemory) const;
-  void createUniformBuffer(
-      VkDeviceSize bufferSize,
-      VkBuffer& uniformBuffer,
-      VkDeviceMemory& uniformBufferMemory) const;
-  void createUniformBuffers(
-      VkDeviceSize bufferSize,
-      std::vector<VkBuffer>& uniformBuffers,
-      std::vector<VkDeviceMemory>& uniformBuffersMemory) const;
+      VkDeviceSize bufferSize) const;
+  BufferAllocation createUniformBuffer(
+      VkDeviceSize bufferSize) const;
 
   // Image Utilities
   void createTextureImage(
