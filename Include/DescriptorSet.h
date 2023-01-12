@@ -2,6 +2,7 @@
 
 #include "Texture.h"
 #include "UniformBuffer.h"
+#include "Allocator.h"
 
 #include <vulkan/vulkan.h>
 
@@ -127,12 +128,14 @@ public:
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
 
+    const BufferAllocation& allocation = ubo.getAllocation();
+
     this->_descriptorBufferInfos.push_back(
         std::make_unique<VkDescriptorBufferInfo>());
     VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
-    uniformBufferInfo.buffer = ubo.getBuffer();
-    uniformBufferInfo.offset = 0;
+    uniformBufferInfo.buffer = allocation.getBuffer();
+    uniformBufferInfo.offset = allocation.getInfo().offset;
     uniformBufferInfo.range = ubo.getSize();
 
     VkWriteDescriptorSet& descriptorWrite =

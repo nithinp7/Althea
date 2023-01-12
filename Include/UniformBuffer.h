@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Allocator.h"
+
 #include <vulkan/vulkan.h>
 
 #include <memory>
@@ -7,48 +9,24 @@
 namespace AltheaEngine {
 class Application;
 
-// TODO: Make CPU-copy of uniform buffer optional.
+// TODO: Make CPU-copy of uniform buffer optional?
 
 template <typename TUniforms> class UniformBuffer {
 public:
+  // Move-only semantics
   UniformBuffer() = default;
-
-  UniformBuffer(UniformBuffer&& rhs)
-      : _device(rhs._device), _buffer(rhs._buffer), _memory(rhs._memory) {
-    rhs._device = VK_NULL_HANDLE;
-    rhs._buffer = VK_NULL_HANDLE;
-    rhs._memory = VK_NULL_HANDLE;
-  }
-
-  UniformBuffer& operator=(UniformBuffer&& rhs) {
-    this->_device = rhs._device;
-    this->_buffer = rhs._buffer;
-    this->_memory = rhs._memory;
-
-    rhs._device = VK_NULL_HANDLE;
-    rhs._buffer = VK_NULL_HANDLE;
-    rhs._memory = VK_NULL_HANDLE;
-  }
+  UniformBuffer(UniformBuffer&& rhs) = default;
+  UniformBuffer& operator=(UniformBuffer&& rhs) = default;
 
   UniformBuffer(const UniformBuffer& rhs) = delete;
   UniformBuffer& operator=(const UniformBuffer& rhs) = delete;
 
-  UniformBuffer(const Application& app) : _device(app.getDevice()) {
-    app.createUniformBuffer(sizeof(TUniforms), this->_buffer, this->_memory);
-  }
+  UniformBuffer(const Application& app) 
+      : _allocation(app.createUniformBuffer(sizeof(TUniforms))) {}
 
   UniformBuffer(const Application& app, const TUniforms& uniforms)
-      : _device(app.getDevice()) {
-    app.createUniformBuffer(sizeof(TUniforms), this->_buffer, this->_memory);
-
+      : _allocation(app.createUniformBuffer(sizeof(TUniforms))) {
     updateUniforms(uniforms);
-  }
-
-  ~UniformBuffer() {
-    if (this->_device) {
-      vkDestroyBuffer(this->_device, this->_buffer, nullptr);
-      vkFreeMemory(this->_device, this->_memory, nullptr);
-    }
   }
 
   // TODO: TUniforms& getUniforms()
@@ -57,25 +35,20 @@ public:
   void updateUniforms(const TUniforms& uniforms) {
     this->_uniforms = uniforms;
 
-    void* dst;
-    vkMapMemory(this->_device, this->_memory, 0, sizeof(TUniforms), 0, &dst);
+    void* dst = this->_allocation.mapMemory();
     memcpy(dst, &this->_uniforms, sizeof(TUniforms));
-    vkUnmapMemory(this->_device, this->_memory);
+    this->_allocation.unmapMemory();
   }
 
   const TUniforms& getUniforms() const { return this->_uniforms; }
 
-  VkBuffer getBuffer() const { return this->_buffer; }
+  VkBuffer getAllocation() const { return this->_allocation; }
 
   size_t getSize() const { return sizeof(TUniforms); }
 
 private:
   TUniforms _uniforms;
-
-  VkDevice _device = VK_NULL_HANDLE;
-
-  VkBuffer _buffer;
-  VkDeviceMemory _memory;
+  BufferAllocation _allocation;
 };
 
 } // namespace AltheaEngine
