@@ -223,6 +223,8 @@ ImageAllocation Application::createCubemapImage(
       6,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  return imageAllocation;
 }
 
 // TODO: For now, all images are device-local and must be populated via
@@ -257,6 +259,7 @@ ImageAllocation Application::createImage(
   imageInfo.flags = createFlags;
 
   VmaAllocationCreateInfo allocInfo{};
+  allocInfo.flags = 0;
   allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   return this->pAllocator->createImage(imageInfo, allocInfo);

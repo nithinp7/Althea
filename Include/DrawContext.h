@@ -69,7 +69,7 @@ public:
     // TODO: Support instance buffer as well
     const BufferAllocation& allocation = vertexBuffer.getAllocation();
     VkBuffer vkBuffer = allocation.getBuffer();
-    VkDeviceSize offset;
+    VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(
         this->_commandBuffer,
         0,

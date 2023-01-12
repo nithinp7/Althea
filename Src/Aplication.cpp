@@ -19,16 +19,11 @@ Application::Application() : configParser("../Config/ConfigFile.txt") {}
 void Application::run() {
   initWindow();
   initVulkan();
-  this->pAllocator = std::make_unique<Allocator>(
-      this->instance,
-      this->device,
-      this->physicalDevice);
   this->gameInstance->initGame(*this);
   this->gameInstance->createRenderState(*this);
   mainLoop();
   this->gameInstance->destroyRenderState(*this);
   this->gameInstance->shutdownGame(*this);
-  this->pAllocator.reset();
   cleanup();
 }
 
@@ -65,6 +60,12 @@ void Application::initVulkan() {
   createLogicalDevice();
   createSwapChain();
   createCommandPool();
+  
+  this->pAllocator = std::make_unique<Allocator>(
+      this->instance,
+      this->device,
+      this->physicalDevice);
+
   createDepthResource();
   initDefaultTextures(*this);
   createGraphicsPipeline();
@@ -180,6 +181,8 @@ void Application::cleanup() {
   cleanupDepthResource();
 
   destroyDefaultTextures();
+  
+  this->pAllocator.reset();
 
   vkDestroyDevice(device, nullptr);
   vkDestroySurfaceKHR(instance, surface, nullptr);
