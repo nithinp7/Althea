@@ -142,40 +142,24 @@ void Texture::_initTexture(
   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   samplerInfo.unnormalizedCoordinates = VK_FALSE;
 
-  if (vkCreateSampler(
-          this->_device,
-          &samplerInfo,
-          nullptr,
-          &this->_textureSampler) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create texture sampler!");
-    return;
-  }
+  this->_sampler = Sampler(app, samplerInfo);
 
   uint32_t mipCount = static_cast<uint32_t>(image.mipPositions.size());
   if (mipCount == 0) {
     mipCount = 1;
   }
 
-  app.createTextureImage(
+  this->_allocation = app.createTextureImage(
       image,
-      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      this->_textureImage,
-      this->_textureImageMemory);
+      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM);
 
-  this->_textureImageView = app.createImageView(
-      this->_textureImage,
+  this->_imageView = ImageView(
+      app,
+      this->_allocation.getImage(),
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
       mipCount,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-Texture::~Texture() {
-  vkDestroySampler(this->_device, this->_textureSampler, nullptr);
-  vkDestroyImageView(this->_device, this->_textureImageView, nullptr);
-
-  vkDestroyImage(this->_device, this->_textureImage, nullptr);
-  vkFreeMemory(this->_device, this->_textureImageMemory, nullptr);
 }
 } // namespace AltheaEngine

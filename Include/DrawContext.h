@@ -68,13 +68,14 @@ public:
   void bindVertexBuffer(const VertexBuffer<TVertex>& vertexBuffer) const {
     // TODO: Support instance buffer as well
     const BufferAllocation& allocation = vertexBuffer.getAllocation();
-    VkBuffer vkBuffer = buffer.getBuffer();
+    VkBuffer vkBuffer = allocation.getBuffer();
+    VkDeviceSize offset;
     vkCmdBindVertexBuffers(
         this->_commandBuffer,
         0,
         1,
         &vkBuffer,
-        &allocation.getInfo().offset);
+        &offset);
   }
 
   /**

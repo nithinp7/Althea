@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Application.h"
+#include "Allocator.h"
+#include "ImageView.h"
+#include "Sampler.h"
 
 #include <vulkan/vulkan.h>
 
@@ -24,14 +27,19 @@ public:
       const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler,
       bool srgb);
+
+  // Move-only semantics
+  Texture(Texture&& rhs) = default;
+  Texture& operator=(Texture&& rhs) = default;
+
   Texture(const Texture& rhs) = delete;
   Texture& operator=(const Texture& rhs) = delete;
-  Texture(Texture&& rhs) = delete;
-  ~Texture();
+  
+  VkImage getImage() const { return this->_allocation.getImage(); }
+  
+  VkImageView getImageView() const { return this->_imageView.getImageView(); }
 
-  VkImageView getImageView() const { return this->_textureImageView; }
-
-  VkSampler getSampler() const { return this->_textureSampler; }
+  VkSampler getSampler() const { return this->_sampler.getSampler(); }
 
 private:
   void _initTexture(
@@ -42,10 +50,9 @@ private:
 
   VkDevice _device;
 
-  VkImage _textureImage;
-  VkDeviceMemory _textureImageMemory;
+  ImageAllocation _allocation;
 
-  VkImageView _textureImageView;
-  VkSampler _textureSampler;
+  ImageView _imageView;
+  Sampler _sampler;
 };
 } // namespace AltheaEngine

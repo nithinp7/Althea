@@ -135,7 +135,7 @@ public:
     VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
     uniformBufferInfo.buffer = allocation.getBuffer();
-    uniformBufferInfo.offset = allocation.getInfo().offset;
+    uniformBufferInfo.offset = 0;
     uniformBufferInfo.range = ubo.getSize();
 
     VkWriteDescriptorSet& descriptorWrite =

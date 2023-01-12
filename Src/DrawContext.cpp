@@ -89,7 +89,7 @@ void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {
   vkCmdBindIndexBuffer(
       this->_commandBuffer,
       allocation.getBuffer(),
-      allocation.getInfo().offset,
+      0,
       VK_INDEX_TYPE_UINT32);
 }
 

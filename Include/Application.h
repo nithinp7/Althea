@@ -225,18 +225,14 @@ public:
       VkDeviceSize bufferSize) const;
 
   // Image Utilities
-  void createTextureImage(
+  ImageAllocation createTextureImage(
       const CesiumGltf::ImageCesium& imageSrc,
-      VkFormat format,
-      VkImage& image,
-      VkDeviceMemory& imageMemory) const;
-  void createCubemapImage(
+      VkFormat format) const;
+  ImageAllocation createCubemapImage(
       const std::array<CesiumGltf::ImageCesium, 6>& imageSrc,
-      VkFormat format,
-      VkImage& image,
-      VkDeviceMemory& imageMemory) const;
+      VkFormat format) const;
 
-  void createImage(
+  ImageAllocation createImage(
       uint32_t width,
       uint32_t height,
       uint32_t mipCount,
@@ -244,17 +240,7 @@ public:
       VkFormat format,
       VkImageTiling tiling,
       VkImageUsageFlags usage,
-      VkMemoryPropertyFlags properties,
-      VkImage& image,
-      VkDeviceMemory& imageMemory,
       VkImageCreateFlags createFlags = 0) const;
-  VkImageView createImageView(
-      VkImage image,
-      VkFormat format,
-      uint32_t mipCount,
-      uint32_t layerCount,
-      VkImageViewType type,
-      VkImageAspectFlags aspectFlags) const;
 
   void transitionImageLayout(
       VkImage image,

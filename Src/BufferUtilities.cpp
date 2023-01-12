@@ -63,11 +63,8 @@ BufferAllocation Application::createVertexBuffer(
   stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  BufferAllocation stagingBuffer = 
-      createBuffer(
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        stagingInfo);
+  BufferAllocation stagingBuffer =
+      createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingInfo);
 
   void* data = stagingBuffer.mapMemory();
   memcpy(data, pSrc, (size_t)bufferSize);
@@ -76,7 +73,7 @@ BufferAllocation Application::createVertexBuffer(
   VmaAllocationCreateInfo deviceAllocInfo{};
   deviceAllocInfo.flags = 0;
   deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-  
+
   BufferAllocation vertexBuffer = createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -95,10 +92,8 @@ BufferAllocation Application::createIndexBuffer(
   stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  BufferAllocation stagingBuffer = createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      stagingInfo);
+  BufferAllocation stagingBuffer =
+      createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingInfo);
 
   void* data = stagingBuffer.mapMemory();
   memcpy(data, pSrc, (size_t)bufferSize);
@@ -107,7 +102,7 @@ BufferAllocation Application::createIndexBuffer(
   VmaAllocationCreateInfo deviceAllocInfo{};
   deviceAllocInfo.flags = 0;
   deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-  
+
   BufferAllocation indexBuffer = createBuffer(
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -118,8 +113,8 @@ BufferAllocation Application::createIndexBuffer(
   return indexBuffer;
 }
 
-BufferAllocation Application::createUniformBuffer(
-    VkDeviceSize bufferSize) const {
+BufferAllocation
+Application::createUniformBuffer(VkDeviceSize bufferSize) const {
 
   // TODO: This assumes that the uniform buffer will be _often_ rewritten
   // and perhaps in a random pattern. We should prefer a different type of

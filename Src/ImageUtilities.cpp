@@ -7,11 +7,9 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
-void Application::createTextureImage(
+ImageAllocation Application::createTextureImage(
     const CesiumGltf::ImageCesium& imageSrc,
-    VkFormat format,
-    VkImage& image,
-    VkDeviceMemory& imageMemory) const {
+    VkFormat format) const {
 
   uint32_t width = static_cast<uint32_t>(imageSrc.width);
   uint32_t height = static_cast<uint32_t>(imageSrc.height);
@@ -20,24 +18,20 @@ void Application::createTextureImage(
     mipCount = 1;
   }
 
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
   VkDeviceSize bufferSize = imageSrc.pixelData.size();
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      stagingBuffer,
-      stagingBufferMemory);
+  BufferAllocation stagingBuffer =
+      createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingInfo);
 
-  void* data;
-  vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  void* data = stagingBuffer.mapMemory();
   std::memcpy((char*)data, imageSrc.pixelData.data(), bufferSize);
-  vkUnmapMemory(device, stagingBufferMemory);
+  stagingBuffer.unmapMemory();
 
-  createImage(
+  ImageAllocation imageAllocation = createImage(
       width,
       height,
       mipCount,
@@ -45,12 +39,10 @@ void Application::createTextureImage(
       format,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      image,
-      imageMemory);
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   transitionImageLayout(
-      image,
+      imageAllocation.getImage(),
       format,
       mipCount,
       1,
@@ -58,7 +50,14 @@ void Application::createTextureImage(
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
   if (imageSrc.mipPositions.empty()) {
-    copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 1);
+    copyBufferToImage(
+        stagingBuffer.getBuffer(),
+        0,
+        imageAllocation.getImage(),
+        width,
+        height,
+        0,
+        1);
   } else {
     for (uint32_t i = 0; i < mipCount; ++i) {
       const CesiumGltf::ImageCesiumMipPosition& mipPos =
@@ -74,9 +73,9 @@ void Application::createTextureImage(
       }
 
       copyBufferToImage(
-          stagingBuffer,
+          stagingBuffer.getBuffer(),
           mipPos.byteOffset,
-          image,
+          imageAllocation.getImage(),
           mipWidth,
           mipHeight,
           i,
@@ -85,22 +84,19 @@ void Application::createTextureImage(
   }
 
   transitionImageLayout(
-      image,
+      imageAllocation.getImage(),
       format,
       mipCount,
       1,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  vkDestroyBuffer(device, stagingBuffer, nullptr);
-  vkFreeMemory(device, stagingBufferMemory, nullptr);
+  return imageAllocation;
 }
 
-void Application::createCubemapImage(
+ImageAllocation Application::createCubemapImage(
     const std::array<CesiumGltf::ImageCesium, 6>& imageSrc,
-    VkFormat format,
-    VkImage& image,
-    VkDeviceMemory& imageMemory) const {
+    VkFormat format) const {
 
   VkDeviceSize layerSize = imageSrc[0].pixelData.size();
   VkDeviceSize totalSize = 6 * layerSize;
@@ -124,7 +120,7 @@ void Application::createCubemapImage(
     mipCount = 1;
   }
 
-  createImage(
+  ImageAllocation imageAllocation = createImage(
       width,
       height,
       mipCount,
@@ -132,23 +128,16 @@ void Application::createCubemapImage(
       format,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      image,
-      imageMemory,
       VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(
-      totalSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      stagingBuffer,
-      stagingBufferMemory);
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  void* data;
-  vkMapMemory(device, stagingBufferMemory, 0, totalSize, 0, &data);
+  BufferAllocation stagingBuffer =
+      createBuffer(totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingInfo);
+
+  void* data = stagingBuffer.mapMemory();
 
   if (mipCount == 1) {
     // When there is a single mip, all 6 layers will be placed back-to-back
@@ -177,10 +166,10 @@ void Application::createCubemapImage(
     }
   }
 
-  vkUnmapMemory(device, stagingBufferMemory);
+  stagingBuffer.unmapMemory();
 
   transitionImageLayout(
-      image,
+      imageAllocation.getImage(),
       format,
       mipCount,
       6,
@@ -189,7 +178,14 @@ void Application::createCubemapImage(
 
   if (mipCount == 1) {
     // All layers will be back-to-back.
-    copyBufferToImage(stagingBuffer, 0, image, width, height, 0, 6);
+    copyBufferToImage(
+        stagingBuffer.getBuffer(),
+        0,
+        imageAllocation.getImage(),
+        width,
+        height,
+        0,
+        6);
   } else {
     // Mips of the same level across the layers will be back-to-back.
     size_t currentOffset = 0;
@@ -210,9 +206,9 @@ void Application::createCubemapImage(
 
       // Copy over 6 layers from this mip level together.
       copyBufferToImage(
-          stagingBuffer,
+          stagingBuffer.getBuffer(),
           currentOffset,
-          image,
+          imageAllocation.getImage(),
           mipWidth,
           mipHeight,
           mipIndex,
@@ -222,18 +218,19 @@ void Application::createCubemapImage(
   }
 
   transitionImageLayout(
-      image,
+      imageAllocation.getImage(),
       format,
       mipCount,
       6,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-  vkDestroyBuffer(device, stagingBuffer, nullptr);
-  vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void Application::createImage(
+// TODO: For now, all images are device-local and must be populated via
+// a staging buffer. If it is useful in the future, consider adding a
+// VmaAllocationCreateInfo parameter to createImage to make it more flexible.
+
+ImageAllocation Application::createImage(
     uint32_t width,
     uint32_t height,
     uint32_t mipCount,
@@ -241,9 +238,6 @@ void Application::createImage(
     VkFormat format,
     VkImageTiling tiling,
     VkImageUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkImage& image,
-    VkDeviceMemory& imageMemory,
     VkImageCreateFlags createFlags) const {
 
   VkImageCreateInfo imageInfo{};
@@ -263,57 +257,10 @@ void Application::createImage(
   imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
   imageInfo.flags = createFlags;
 
-  if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create image!");
-  }
+  VmaAllocationCreateInfo allocInfo{};
+  allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
-  VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements(device, image, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-      findMemoryType(memRequirements.memoryTypeBits, properties);
-
-  if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate image memory!");
-  }
-
-  vkBindImageMemory(device, image, imageMemory, 0);
-}
-
-VkImageView Application::createImageView(
-    VkImage image,
-    VkFormat format,
-    uint32_t mipCount,
-    uint32_t layerCount,
-    VkImageViewType type,
-    VkImageAspectFlags aspectFlags) const {
-
-  VkImageViewCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  createInfo.image = image;
-  createInfo.viewType = type;
-  createInfo.format = format;
-  createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-  createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-  createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-  createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-  createInfo.subresourceRange.aspectMask = aspectFlags;
-  createInfo.subresourceRange.baseMipLevel = 0;
-  createInfo.subresourceRange.levelCount = mipCount;
-  createInfo.subresourceRange.baseArrayLayer = 0;
-  createInfo.subresourceRange.layerCount = layerCount;
-
-  VkImageView imageView;
-  if (vkCreateImageView(device, &createInfo, nullptr, &imageView) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to create image view!");
-  }
-
-  return imageView;
+  return this->pAllocator->createImage(imageInfo, allocInfo);
 }
 
 void Application::transitionImageLayout(

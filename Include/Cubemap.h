@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Allocator.h"
+#include "ImageView.h"
+#include "Sampler.h"
+
 #include <CesiumGltf/ImageCesium.h>
 #include <vulkan/vulkan.h>
 
@@ -21,11 +25,11 @@ public:
       bool srgb);
   ~Cubemap();
 
-  VkImage getImage() const { return this->_image; }
+  VkImage getImage() const { return this->_allocation.getImage(); }
 
-  VkImageView getImageView() const { return this->_imageView; }
+  VkImageView getImageView() const { return this->_imageView.getImageView(); }
 
-  VkSampler getSampler() const { return this->_imageSampler; }
+  VkSampler getSampler() const { return this->_sampler.getSampler(); }
 
 private:
   void _initCubemap(
@@ -35,10 +39,9 @@ private:
 
   VkDevice _device;
 
-  VkImage _image;
-  VkDeviceMemory _imageMemory;
+  ImageAllocation _allocation;
 
-  VkImageView _imageView;
-  VkSampler _imageSampler;
+  ImageView _imageView;
+  Sampler _sampler;
 };
 } // namespace AltheaEngine

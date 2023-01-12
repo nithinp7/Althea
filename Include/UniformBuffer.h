@@ -42,7 +42,7 @@ public:
 
   const TUniforms& getUniforms() const { return this->_uniforms; }
 
-  VkBuffer getAllocation() const { return this->_allocation; }
+  const BufferAllocation& getAllocation() const { return this->_allocation; }
 
   size_t getSize() const { return sizeof(TUniforms); }
 
