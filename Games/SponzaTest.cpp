@@ -36,16 +36,16 @@ void SponzaTest::initGame(Application& app) {
       {GLFW_KEY_L, GLFW_PRESS, 0},
       [&adjustingLight = this->_adjustingLight,
        &input]() { 
-        input.setMouseCursorHidden(false);
         adjustingLight = true; 
+        input.setMouseCursorHidden(false);
       });
 
   input.addKeyBinding(
       {GLFW_KEY_L, GLFW_RELEASE, 0},
       [&adjustingLight = this->_adjustingLight,
        &input]() { 
-        input.setMouseCursorHidden(true);
         adjustingLight = false; 
+        input.setMouseCursorHidden(true);
       });
 
   input.addMousePositionCallback(

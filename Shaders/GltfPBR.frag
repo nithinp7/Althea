@@ -5,9 +5,9 @@
 
 layout(location=0) in vec2 baseColorUV;
 layout(location=1) in vec2 normalMapUV;
-layout(location=2) out vec2 metallicRoughnessUV;
-layout(location=3) out vec2 occlusionUV;
-layout(location=4) out vec2 emissiveUV;
+layout(location=2) in vec2 metallicRoughnessUV;
+layout(location=3) in vec2 occlusionUV;
+layout(location=4) in vec2 emissiveUV;
 layout(location=5) in mat3 fragTBN;
 layout(location=8) in vec3 direction;
 
@@ -109,7 +109,8 @@ vec3 pbrMaterial(
     vec3 baseColor, 
     vec3 reflectedColor, 
     float metallic, 
-    float roughness) {
+    float roughness,
+    float ambientOcclusion) {
   vec3 diffuse = baseColor / PI;
 
   // TODO: What if VdotH is negative??
@@ -145,9 +146,16 @@ vec3 pbrMaterial(
   // absorbed.
   vec3 diffuseColor = (1.0 - F) * mix(baseColor, vec3(0.0), metallic);
   vec3 specularColor = 
-      ndfGgx(NdotH, a2) * F * geometrySmith(NdotL, NdotV, kDirect) / (4.0 * NdotL * NdotV);
+      ndfGgx(NdotH, a2) * F * geometrySmith(NdotL, NdotV, kDirect) / (4.0 * NdotL * NdotV + 0.0001);
+  vec3 ambient = vec3(0.03) * baseColor * ambientOcclusion;
 
-  return diffuseColor + specularColor;
+  vec3 color = (diffuseColor + specularColor * reflectedColor) * NdotL + ambient;
+
+  // Tone-map / HDR / gamma??
+  // color = color / (color + vec3(1.0));
+  // color = pow(color, vec3(1.0 / 2.2));
+
+  return color;
 }
 
 // ***********************************************************
@@ -176,7 +184,7 @@ void main() {
   float metallic = metallicRoughness.x;
   float roughness = metallicRoughness.y;
 
-  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness);
+  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness, ambientOcclusion);
 
   outColor = vec4(material, 1.0);
   // outColor = vec4(specular * reflectedColor.rgb, 1.0);

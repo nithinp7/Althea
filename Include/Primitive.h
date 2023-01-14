@@ -39,8 +39,8 @@ struct Vertex {
 
 // TODO: validate alignment, may be too big for inline block
 struct PrimitiveConstants {
-  alignas(16) glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
-  alignas(16) glm::vec3 emissiveFactor{};
+  glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
+  glm::vec3 emissiveFactor{};
 
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
