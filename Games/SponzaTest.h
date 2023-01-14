@@ -22,6 +22,7 @@ struct GlobalUniforms {
   glm::mat4 inverseProjection;
   glm::mat4 view;
   glm::mat4 inverseView;
+  glm::vec3 lightDir;
   float time;
 };
 
@@ -43,6 +44,9 @@ public:
       const FrameContext& frame) override;
 
 private:
+  glm::vec3 _lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+  bool _adjustingLight = false;
+  
   std::shared_ptr<PerFrameResources> _pGlobalResources;
   std::unique_ptr<TransientUniforms<GlobalUniforms>> _pGlobalUniforms;
 

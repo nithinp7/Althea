@@ -20,7 +20,8 @@ screenToNdc(const VkExtent2D& screenDims, double screenX, double screenY) {
 }
 } // namespace
 
-InputManager::InputManager(GLFWwindow* window_) {
+InputManager::InputManager(GLFWwindow* window_) :
+    _pWindow(window_) {
   glfwSetKeyCallback(
       window_,
       [](GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -50,25 +51,8 @@ InputManager::InputManager(GLFWwindow* window_) {
       {GLFW_KEY_F1, GLFW_PRESS, 0},
       std::bind(
           [](GLFWwindow* window, InputManager* inputManager) {
-            if (inputManager->_cursorHidden) {
-              glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-              inputManager->_cursorHidden = false;
-            } else {
-              glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-              inputManager->_cursorHidden = true;
-            }
-
-            // Update the mouse position to notify clients of cursor change.
-            double xPos;
-            double yPos;
-            glfwGetCursorPos(window, &xPos, &yPos);
-
-            Application* app = (Application*)glfwGetWindowUserPointer(window);
-
-            const VkExtent2D& screenDims = app->getSwapChainExtent();
-            NdcCoord ndc = screenToNdc(screenDims, xPos, yPos);
-            app->getInputManager()._updateMousePos(ndc.x, ndc.y);
-            inputManager->_updateMousePos(xPos, yPos);
+            inputManager->setMouseCursorHidden(
+                !inputManager->_cursorHidden);
           },
           window_,
           this));
@@ -127,5 +111,32 @@ InputManager::addMousePositionCallback(MousePositionCallback&& callback) {
 
 bool InputManager::removeMousePositionCallback(uint32_t callbackId) {
   return !!this->_mousePositionCallbacks.erase(callbackId);
+}
+
+void InputManager::setMouseCursorHidden(bool cursorHidden) {
+  if (this->_cursorHidden == cursorHidden) {
+    return;
+  }
+
+  Application* app = (Application*)glfwGetWindowUserPointer(this->_pWindow);
+  const VkExtent2D& screenDims = app->getSwapChainExtent();
+
+  if (this->_cursorHidden) {
+    glfwSetInputMode(this->_pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    this->_cursorHidden = false;
+  } else {
+    glfwSetInputMode(this->_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    this->_cursorHidden = true;
+  }
+  
+  glfwSetCursorPos(this->_pWindow, screenDims.width / 2.0, screenDims.height / 2.0);
+
+  // Update the mouse position to notify clients of cursor change.
+  double xPos;
+  double yPos;
+  glfwGetCursorPos(_pWindow, &xPos, &yPos);
+
+  NdcCoord ndc = screenToNdc(screenDims, xPos, yPos);
+  this->_updateMousePos(ndc.x, ndc.y);
 }
 } // namespace AltheaEngine

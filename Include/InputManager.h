@@ -63,6 +63,8 @@ typedef std::function<void()> KeyBindingCallback;
 typedef std::function<void()> MouseButtonBindingCallback;
 typedef std::function<void(double, double, bool)> MousePositionCallback;
 
+// NOTE: must be recreated if the glfw window context becomes invalid.
+
 class InputManager {
 public:
   InputManager(GLFWwindow* window);
@@ -123,10 +125,29 @@ public:
    */
   bool removeMousePositionCallback(uint32_t callbackId);
 
+  /**
+   * @brief Get whether the mouse cursor is currently hidden.
+   */
+  bool getMouseCursorHidden() const {
+    return this->_cursorHidden;
+  }
+
+  /**
+   * @brief Set whether the mouse cursor should be enabled.
+   * 
+   * This function will hide or show the cursor and notify any mouse position
+   * listeners of the new cursor state.
+   * 
+   * @param cursorHidden Whether the cursor should be hidden.
+   */
+  void setMouseCursorHidden(bool cursorHidden);
+
 private:
   void _processKey(int key, int action, int mods);
   void _processMouseButton(int button, int action, int mods);
   void _updateMousePos(double xPos, double yPos);
+
+  GLFWwindow* _pWindow;
 
   // TODO: Allow for multiple callbacks bound to same combinations?
   std::unordered_map<KeyBinding, KeyBindingCallback> _keyBindings{};

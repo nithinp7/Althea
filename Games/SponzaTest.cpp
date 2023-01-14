@@ -5,6 +5,7 @@
 #include "Cubemap.h"
 #include "DescriptorSet.h"
 #include "GraphicsPipeline.h"
+#include "InputManager.h"
 #include "ModelViewProjection.h"
 #include "Primitive.h"
 
@@ -17,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <glm/gtc/constants.hpp>
+
 using namespace AltheaEngine;
 
 SponzaTest::SponzaTest() {}
@@ -27,6 +30,36 @@ void SponzaTest::initGame(Application& app) {
       app.getInputManager(),
       90.0f,
       (float)windowDims.width / (float)windowDims.height);
+
+  InputManager& input = app.getInputManager();
+  input.addKeyBinding(
+      {GLFW_KEY_L, GLFW_PRESS, 0},
+      [&adjustingLight = this->_adjustingLight,
+       &input]() { 
+        input.setMouseCursorHidden(false);
+        adjustingLight = true; 
+      });
+
+  input.addKeyBinding(
+      {GLFW_KEY_L, GLFW_RELEASE, 0},
+      [&adjustingLight = this->_adjustingLight,
+       &input]() { 
+        input.setMouseCursorHidden(true);
+        adjustingLight = false; 
+      });
+
+  input.addMousePositionCallback(
+      [&adjustingLight = this->_adjustingLight,
+       &lightDir = this->_lightDir](double x, double y, bool cursorHidden) {
+        if (adjustingLight) {
+          // TODO: consider current camera forward direction.
+          float theta = glm::pi<float>() * static_cast<float>(x);
+          float height = static_cast<float>(y) + 1.0f;
+
+          lightDir = glm::normalize(
+              glm::vec3(cos(theta), height, sin(theta)));
+        }
+      });
 }
 
 void SponzaTest::shutdownGame(Application& app) {
@@ -141,6 +174,7 @@ void SponzaTest::tick(Application& app, const FrameContext& frame) {
   globalUniforms.inverseProjection = glm::inverse(globalUniforms.projection);
   globalUniforms.view = camera.computeView();
   globalUniforms.inverseView = glm::inverse(globalUniforms.view);
+  globalUniforms.lightDir = this->_lightDir;
   globalUniforms.time = static_cast<float>(frame.currentTime);
 
   this->_pGlobalUniforms->updateUniforms(globalUniforms, frame);

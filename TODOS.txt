@@ -34,6 +34,10 @@ since the cubemap texture is now used from the global descriptor set
 -Global illumination
 -Clouds
 
+
+Small bugs:
+-Fix camera recentering when mouse needs to recenter
+
 Long-term
 -Generalize to support non-graphics pipelines (compute / raytrace)
 -Integrate unit test framework / write unit tests

@@ -20,6 +20,7 @@ layout(set=0, binding=1) uniform UniformBufferObject {
   mat4 inverseProjection;
   mat4 view;
   mat4 inverseView;
+  vec3 lightDir;
   float time;
 } globals;
 
@@ -152,10 +153,6 @@ vec3 pbrMaterial(
 // ***********************************************************
 
 void main() {
-  // TODO: generalize, currently hardcoded in _model_ space
-  // Direction towards (infinitely far-away) light
-  vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-
   vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 
       (2.0 * normalMapSample - 1.0) *
@@ -179,7 +176,7 @@ void main() {
   float metallic = metallicRoughness.x;
   float roughness = metallicRoughness.y;
 
-  vec3 material = pbrMaterial(normalize(-direction), lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness);
+  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness);
 
   outColor = vec4(material, 1.0);
   // outColor = vec4(specular * reflectedColor.rgb, 1.0);
