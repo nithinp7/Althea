@@ -27,14 +27,14 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 - [x] Skybox and environment mapped reflections
 - [x] Normal mapping
 
-##### The Sponza lion statue with environment mapping and normal mapping.
-![](https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png)
-
-##### A curtain in the Sponza scene with environment mapping and normal mapping.
-![](https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png)
-
 ##### Physically based rendering of the glTF flight helmet model.
-![](https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.gif)
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.gif" width=800/>
+
+##### The Sponza lion statue with environment mapping and normal mapping.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png" width=800/>
+
+##### A curtain in the Sponza scene with environment mapping and normal mapping..
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png" width=800/>
 
 More pictures to come soon!
 
