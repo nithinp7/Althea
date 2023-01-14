@@ -12,7 +12,7 @@ CameraController::CameraController(
     InputManager& inputManager,
     float fovDegrees,
     float aspectRatio)
-    : _camera(fovDegrees, aspectRatio, 0.1f, 1000.0f) {
+    : _camera(fovDegrees, aspectRatio, 0.01f, 1000.0f) {
   // TODO: allow bindings from config file
 
   // Bind inputs.

@@ -144,7 +144,8 @@ void SponzaTest::createRenderState(Application& app) {
 
   this->_pSponzaModel = std::make_unique<Model>(
       app,
-      "Sponza/glTF/Sponza.gltf",
+      // "Sponza/glTF/Sponza.gltf",
+      "FlightHelmet/FlightHelmet.gltf",
       subpasses[1].getPipeline().getMaterialAllocator());
 
   // Bind the skybox cubemap as a global resource
