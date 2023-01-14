@@ -90,6 +90,7 @@ find_package(Vulkan REQUIRED) # error
 add_subdirectory(Extern/glm)
 add_subdirectory(Extern/glfw)
 add_subdirectory(Extern/VulkanMemoryAllocator)
+add_subdirectory(Extern/shaderc)
 
 add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
 set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
@@ -101,7 +102,8 @@ target_include_directories (${PROJECT_NAME}
       Extern/glm
       Extern/stb
       Extern/MikkTSpace
-      Extern/VulkanMemoryAllocator/include)
+      Extern/VulkanMemoryAllocator/include
+      Extern/shaderc/libshaderc/include/shaderc)
 
 
 target_compile_definitions(
@@ -112,39 +114,18 @@ target_compile_definitions(
         GLM_FORCE_XYZW_ONLY # Disable .rgba and .stpq to make it easier to view values from debugger
         GLM_FORCE_EXPLICIT_CTOR # Disallow implicit conversions between dvec3 <-> dvec4, dvec3 <-> fvec3, etc
         GLM_FORCE_SIZE_T_LENGTH # Make vec.length() and vec[idx] use size_t instead of int
+
+        SHADERC_SKIP_INSTALL
+        SHADERC_SKIP_TESTS
+        SHADERC_SKIP_EXAMPLES
+        SHADERC_SKIP_COPYRIGHT_CHECK
 )
 
 target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
 target_link_libraries (${PROJECT_NAME} glfw)
 target_link_libraries (${PROJECT_NAME} MikkTSpace)
 target_link_libraries (${PROJECT_NAME} VulkanMemoryAllocator)
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    set(CESIUM_ARCHITECTURE "aarch64")
-    set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
-    set(CESIUM_ARCHITECTURE "arm64")
-else()
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(CESIUM_ARCHITECTURE "64")
-    else()
-        set(CESIUM_ARCHITECTURE "32")
-    endif()
-endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
-    # Fix for PThread library not in path
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-    set(CMAKE_HAVE_THREADS_LIBRARY 1)
-    set(CMAKE_USE_WIN32_THREADS_INIT 0)
-    set(CMAKE_USE_PTHREADS_INIT 1)
-
-    find_package(Threads REQUIRED)
-endif()
-
-# Rename sqlite3* symbols to cesium_sqlite3* so they don't conflict with UE's sqlite3,
-# which has a bunch of limitations and is not considered public.
-set(PRIVATE_CESIUM_SQLITE ON)
+target_link_libraries (${PROJECT_NAME} shaderc)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
@@ -155,29 +136,6 @@ set(CMAKE_DEBUG_POSTFIX ${CESIUM_DEBUG_POSTFIX})
 set(CMAKE_RELEASE_POSTFIX ${CESIUM_RELEASE_POSTFIX})
 set(CMAKE_MINSIZEREL_POSTFIX ${CESIUM_RELEASE_POSTFIX})
 set(CMAKE_RELWITHDEBINFO_POSTFIX ${CESIUM_RELEASE_POSTFIX})
-
-# On Mac and Linux, Unreal uses -fvisibility-ms-compat.
-# On Android, it uses -fvisibility=hidden
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-ms-compat -fvisibility-inlines-hidden")
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  # Unreal Engine adds /Zp8 in 64-bit Windows builds to align structs to 8 bytes instead of the
-  # default of 16 bytes. There's this nice note in the documentation for that option:
-  #   Don't change the setting from the default when you include the Windows SDK headers, either
-  #   by using /Zp on the command line or by using #pragma pack. Otherwise, your application may
-  #   cause memory corruption at runtime.
-  # (https://docs.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-160)
-  # Yeah that's not just the Windows SDK, but anything that passes structs across the boundary
-  # between compilation units using different versions of that flag. We compile cesium-native
-  # with this same option to avoid super-dodgy and hard to debug issues.
-
-  # TODO: may not need this in this project though
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zp8")
-endif()
 
 add_subdirectory(Extern/cesium-native)
 
