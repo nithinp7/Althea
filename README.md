@@ -10,7 +10,7 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 - [x] Simple API to create vertex inputs and specify their vertex layouts. 
 - [x] Resource layout API, abstracting away descriptor set management / allocation etc. Currently textures, UBOs, and inline constant buffers can be specified in the layout and bound ("assigned" to descriptor sets under-the-hood). Resources can be global, render pass wide, subpass wide, or they can be material (per-object) resources.
 - [x] Pipeline building API, abstracting away tons of boilerplate involved in explicitly setting up PSOs.
-- [x] Similar builder-pattern APIs for constructing render passes, subpasses, 
+- [x] Similar builder-pattern APIs for constructing render passes and subpasses. 
 - [x] Shader management
 - [x] Cubemap and texture management
 
