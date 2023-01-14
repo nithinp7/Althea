@@ -40,7 +40,8 @@ More pictures to come soon!
 
 ## Roadmap
 #### Engine Features
-- [ ] PBR glTF materials (with image-based reflections) _in progress..._
+- [x] PBR glTF materials (with image-based reflections).
+- [ ] Image-based lighting.
 - [ ] Physically-based atmosphere and sun 
 - [ ] Volumetric clouds
 - [ ] Global illumination
