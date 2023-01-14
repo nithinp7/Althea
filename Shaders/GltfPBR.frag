@@ -64,49 +64,92 @@ float vary(float period) {
   return vary(period, 0.0, 1.0);
 }
 
-// TODO: lightdir should be removed as arguments here, should be a global
-// uniform
 
-// Specular BDRF
-float specularBrdf(vec3 lightDir, vec3 normal, float roughness) {
-  // half-vector
-  vec3 H = normalize(lightDir - direction);
+// Based on learnopengl ***********************
+
+
+// Relative surface area of microfacets that are aligned to
+// the halfway vector.
+float ndfGgx(float NdotH, float a2) {
+  float tmp = NdotH * NdotH * (a2 - 1.0) + 1.0;
+  float denom = PI * tmp * tmp;
+
+  return a2 / denom;
+}
+
+// The ratio of light that will get reflected vs refracted.
+// F0 - The base reflectivity when viewing straight down along the
+// surface normal.
+vec3 fresnelSchlick(float VdotH, vec3 F0) {
+  return F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
+}
+
+float geometrySchlickGgx(float NdotV, float k) {
+  return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(float NdotL, float NdotV, float k) {
+  // Amount of microfacet obstruction around this point 
+  // in the viewing direction
+  float ggx1 = geometrySchlickGgx(NdotV, k);
+
+  // Amount of microfacet shadowing around this point in
+  // the light direction
+  float ggx2 = geometrySchlickGgx(NdotL, k);
+
+  // Combined "shadowing" multiplier due to local microfacet geometry
+  return ggx1 * ggx2;
+}
+
+vec3 pbrMaterial(
+    vec3 V, 
+    vec3 L, 
+    vec3 N, 
+    vec3 baseColor, 
+    vec3 reflectedColor, 
+    float metallic, 
+    float roughness) {
+  vec3 diffuse = baseColor / PI;
+
+  // TODO: What if VdotH is negative??
+  vec3 H = normalize(V + L);
+  float VdotH = dot(V, H);
+  float LdotH = dot(L, H);
+
+  float NdotL = max(dot(N, L), 0.0);
+  float NdotV = max(dot(N, V), 0.0);
+  float NdotH = max(dot(N, H), 0.0);
+
+  // F0 is the portion of the incoming light that gets reflected when viewing
+  // a point top-down, along its local surface normal (0 degrees).
+
+  // Metallic objects will reflect the frequency distribution represented
+  // by the base color. Dielectric objects will evenly and dimly reflect
+  // all frequencies - most of the incoming light however will be refracted
+  // into dielectric objects.
+  vec3 F0 = mix(vec3(0.04), baseColor, metallic);
+
+  // The actual portion of the incoming light that will be reflected from the
+  // current viewing angle.
+  // TODO: ?? Can VdotH be negative??
+  // TODO: What is the difference when using LdotH instead?
+  vec3 F = fresnelSchlick(VdotH, F0);
   
-  float a2 = pow(roughness, 4);
-  float NdotH = dot(normal, H);
-  float D = a2 * max(0, NdotH) / pow(PI * NdotH * NdotH * (a2 - 1.0) + 1, 2);
+  float a = roughness * roughness;
+  float a2 = a * a;
+  float kDirect = (a + 1.0) * (a + 1.0) / 8.0;
+  float kIbl = a2 / 2.0;
 
-  // TODO: break-down these terms further
-  float NdotL = dot(normal, lightDir);
-  float NdotV = dot(normal, -direction);
-  float G_num = 2 * abs(NdotL) * max(0, dot(H, lightDir)) * 2 * abs(NdotV) * max(0, dot(H, -direction));
-  float G_denom = (abs(dot(normal, lightDir)) + sqrt(a2 + (1 - a2) * pow(NdotL, 2))) * (abs(NdotV) + sqrt(a2 + (1 - a2) * pow(NdotV, 2)));
+  // Metallic objects have no diffuse color, since all transmitted light gets 
+  // absorbed.
+  vec3 diffuseColor = (1.0 - F) * mix(baseColor, vec3(0.0), metallic);
+  vec3 specularColor = 
+      ndfGgx(NdotH, a2) * F * geometrySmith(NdotL, NdotV, kDirect) / (4.0 * NdotL * NdotV);
 
-  float G = G_num / G_denom;
-  float V = G / (4 * abs(NdotL) * abs(NdotV));
-
-  return V * D;
+  return diffuseColor + specularColor;
 }
 
-vec3 diffuseBrdf(vec3 color) {
-  return color / PI; 
-} 
-
-vec3 conductorFresnel(vec3 lightDir, vec3 f0, float bsdf) {
-  vec3 H = normalize(lightDir - direction);
-  float VdotH = dot(lightDir, H);
-
-  return bsdf * (f0 + (1.0 - f0) * pow(1.0 - abs(VdotH), 5)); 
-}
-
-vec3 fresnelMix(vec3 lightDir, float ior, vec3 base, float layer) {
-  vec3 H = normalize(lightDir - direction);
-  float VdotH = dot(lightDir, H);
-
-  float f0 = pow((1.0 - ior) / (1.0 + ior), 2);
-  float fr = f0 + pow((1.0 - f0) * (1.0 - abs(VdotH)), 5);
-  return mix(base, vec3(layer), fr);
-}
+// ***********************************************************
 
 void main() {
   // TODO: generalize, currently hardcoded in _model_ space
@@ -129,8 +172,6 @@ void main() {
   // float intensity = 2.0 * max(0, dot(lightDir, normal)) + 0.1;
   vec4 baseColor = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
 
-
-
   vec2 metallicRoughness = 
       texture(metallicRoughnessTexture, metallicRoughnessUV).bg *
       vec2(constants.metallicFactor, constants.roughnessFactor);
@@ -138,16 +179,10 @@ void main() {
   float metallic = metallicRoughness.x;
   float roughness = metallicRoughness.y;
 
-  vec3 diffuse = diffuseBrdf(baseColor.rgb); 
-  float specular = specularBrdf(lightDir, normal, roughness);
-
-  
-  vec3 metalBrdf = conductorFresnel(lightDir, diffuse, specular);
-  vec3 dielectricBrdf = fresnelMix(lightDir, 1.5, diffuse, specular);
-
-  vec3 material = mix(dielectricBrdf, metalBrdf, metallic);
+  vec3 material = pbrMaterial(normalize(-direction), lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness);
 
   outColor = vec4(material, 1.0);
+  // outColor = vec4(specular * reflectedColor.rgb, 1.0);
   // outColor = vec4(mix(baseColor, reflectedColor, vary(2.0)).rgb, 1.0);
   // outColor = vec4(metallicRoughness, 0.0, 1.0);
 }

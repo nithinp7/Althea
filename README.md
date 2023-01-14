@@ -36,12 +36,16 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 More pictures to come soon!
 
 ## Roadmap
+#### Engine Features
+- [ ] PBR glTF materials (with image-based reflections) _in progress..._
+- [ ] Physically-based atmosphere and sun 
+- [ ] Volumetric clouds
+- [ ] Global illumination
+
 #### Renderer Features
-- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors). 
-- [ ] Lighting model
-- [ ] Mipmaps
+- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors). _in progress..._
+- [x] Mipmaps
 - [ ] LODs
-- [ ] PBR (with image-based reflections)
 - [ ] Deferred rendering setup
 - [ ] Scenegraph / Entity Component System
 
@@ -50,7 +54,7 @@ More pictures to come soon!
 - [ ] API to leverage raytrace pipeline.
 
 #### Behind the scenes
-- [ ] Better Vulkan memory management (currently done in quite a naive way)
+- [x] Vulkan Memory Allocator integration.
 - [ ] Update to a newer, tagged version of Cesium Native
 - [ ] Multi-threaded rendering / job system
 - [ ] Async model loading / uploading, eventually geometry "streaming"

@@ -29,6 +29,11 @@ since the cubemap texture is now used from the global descriptor set
 -Update Cesium Native when this becomes stable again
 -Fix CMake build rules for directories (copying resources to build folder)
 
+-Atmosphere / Sun
+-Animation (glTF)
+-Global illumination
+-Clouds
+
 Long-term
 -Generalize to support non-graphics pipelines (compute / raytrace)
 -Integrate unit test framework / write unit tests
