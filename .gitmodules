@@ -9,10 +9,13 @@
 	url = https://github.com/nothings/stb
 [submodule "Extern/cesium-native"]
 	path = Extern/cesium-native
-	url = https://github.com/CesiumGS/cesium-native
+	url = https://github.com/nithinp7/cesium-native
 [submodule "Extern/MikkTSpace"]
 	path = Extern/MikkTSpace
 	url = git@github.com:mmikk/MikkTSpace.git
 [submodule "Extern/VulkanMemoryAllocator"]
 	path = Extern/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "Extern/shaderc"]
+	path = Extern/shaderc
+	url = https://github.com/google/shaderc
