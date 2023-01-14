@@ -35,6 +35,7 @@ private:
   // a consistent overall magnitude.
   glm::vec3 _targetDirection{};
   float _targetSpeed = 5.0f;
+  float _acceleration = 0.0f;
 
   // We manually track the camera yaw so we can track winding.
   // This lets us unambiguously know the direction we should rotate the

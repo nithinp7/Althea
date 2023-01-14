@@ -6,7 +6,6 @@
 
 #include <functional>
 
-
 namespace AltheaEngine {
 CameraController::CameraController(
     InputManager& inputManager,
@@ -53,6 +52,20 @@ CameraController::CameraController(
       {GLFW_KEY_E, GLFW_RELEASE, 0},
       std::bind(&CameraController::_updateTargetDirection, this, 1, 0));
 
+  inputManager.addKeyBinding(
+      {GLFW_KEY_X, GLFW_PRESS, 0},
+      [&acceleration = this->_acceleration]() { acceleration = 4.0f; });
+  inputManager.addKeyBinding(
+      {GLFW_KEY_X, GLFW_RELEASE, 0},
+      [&acceleration = this->_acceleration]() { acceleration = 0.0f; });
+
+  inputManager.addKeyBinding(
+      {GLFW_KEY_Z, GLFW_PRESS, 0},
+      [&acceleration = this->_acceleration]() { acceleration = -6.0f; });
+  inputManager.addKeyBinding(
+      {GLFW_KEY_Z, GLFW_RELEASE, 0},
+      [&acceleration = this->_acceleration]() { acceleration = 0.0f; });
+
   inputManager.addMousePositionCallback(
       [this](double x, double y, bool cursorHidden) {
         this->_updateMouse(x, y, cursorHidden);
@@ -64,6 +77,11 @@ CameraController::~CameraController() {
 }
 
 void CameraController::tick(float deltaTime) {
+  this->_targetSpeed = glm::clamp(
+      this->_targetSpeed + this->_acceleration * deltaTime,
+      0.25f,
+      8.0f);
+
   const glm::mat4& transform = this->_camera.getTransform();
   glm::vec3 position(transform[3]);
 
