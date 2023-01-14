@@ -59,7 +59,8 @@ More pictures to come soon!
 
 #### Behind the scenes
 - [x] Vulkan Memory Allocator integration.
-- [ ] Update to a newer, tagged version of Cesium Native
+- [x] Update to a newer, tagged version of Cesium Native on a fork.
+- [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, etc.)
 - [ ] Multi-threaded rendering / job system
 - [ ] Async model loading / uploading, eventually geometry "streaming"
 
