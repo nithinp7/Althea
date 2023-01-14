@@ -33,6 +33,9 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 ##### A curtain in the Sponza scene with environment mapping and normal mapping.
 ![](https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png)
 
+##### Real-time PBR rendering of a curtain in the Sponza scene.
+![](https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRCurtain.gif)
+
 More pictures to come soon!
 
 ## Roadmap
