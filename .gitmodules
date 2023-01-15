@@ -19,3 +19,6 @@
 [submodule "Extern/shaderc"]
 	path = Extern/shaderc
 	url = https://github.com/google/shaderc
+[submodule "Extern/hash-library"]
+	path = Extern/hash-library
+	url = https://github.com/stbrumme/hash-library
