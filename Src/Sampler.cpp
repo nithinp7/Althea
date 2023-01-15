@@ -7,33 +7,18 @@
 namespace AltheaEngine {
 Sampler::Sampler(
     const Application& app,
-    const VkSamplerCreateInfo& createInfo) 
-    : _device(app.getDevice()) {
-  if (vkCreateSampler(this->_device, &createInfo, nullptr, &this->_sampler) != VK_SUCCESS) {
+    const VkSamplerCreateInfo& createInfo) {
+  VkSampler sampler;
+  if (vkCreateSampler(app.getDevice(), &createInfo, nullptr, &sampler) !=
+      VK_SUCCESS) {
     throw std::runtime_error("Failed to create sampler.");
   }
+
+  this->_sampler =
+      UniqueVkHandle<VkSampler, SamplerDeleter>(app.getDevice(), sampler);
 }
 
-Sampler::Sampler(Sampler&& rhs)
-    : _device(rhs._device),
-      _sampler(rhs._sampler) {
-  rhs._device = VK_NULL_HANDLE;
-  rhs._sampler = VK_NULL_HANDLE;
-}
-
-Sampler& Sampler::operator=(Sampler&& rhs) {
-  this->_device = rhs._device;
-  this->_sampler = rhs._sampler;
-
-  rhs._device = VK_NULL_HANDLE;
-  rhs._sampler = VK_NULL_HANDLE;
-
-  return *this;
-}
-
-Sampler::~Sampler() {
-  if (this->_sampler != VK_NULL_HANDLE) {
-    vkDestroySampler(this->_device, this->_sampler, nullptr);
-  }
+void Sampler::SamplerDeleter::operator()(VkDevice device, VkSampler sampler) {
+  vkDestroySampler(device, sampler, nullptr);
 }
 } // namespace AltheaEngine

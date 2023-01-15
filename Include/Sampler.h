@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UniqueVkHandle.h"
+
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -9,27 +11,17 @@ class Application;
 
 class Sampler {
 public:
-  Sampler(
-      const Application& app, 
-      const VkSamplerCreateInfo& createInfo);
-  
+  Sampler(const Application& app, const VkSamplerCreateInfo& createInfo);
+
   Sampler() = default;
-  
-  // Move-only semantics
-  Sampler(Sampler&& rhs);
-  Sampler& operator=(Sampler&& rhs);
 
-  Sampler(const Sampler& rhs) = delete;
-  Sampler& operator=(const Sampler& rhs) = delete;
+  VkSampler getSampler() const { return this->_sampler; }
 
-  ~Sampler();
-
-  VkSampler getSampler() const {
-    return this->_sampler;
-  }
-  
 private:
-  VkDevice _device = VK_NULL_HANDLE;
-  VkSampler _sampler = VK_NULL_HANDLE;
+  struct SamplerDeleter {
+    void operator()(VkDevice device, VkSampler sampler);
+  };
+
+  UniqueVkHandle<VkSampler, SamplerDeleter> _sampler;
 };
 } // namespace AltheaEngine
