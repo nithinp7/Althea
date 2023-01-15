@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace CesiumGltf {
@@ -28,11 +29,13 @@ struct ImageCesium;
 namespace AltheaEngine {
 class IGameInstance;
 
+extern std::string GProjectDirectory;
+
 // TODO: Standardize the conventions in this class with the rest of the
 // repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class Application {
 public:
-  Application();
+  Application(const std::string& projectDirectory);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();

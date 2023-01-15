@@ -1,12 +1,15 @@
 #include "ShaderManager.h"
+#include "Application.h"
 
 #include "Utilities.h"
+
+#include <shaderc/shaderc.hpp>
 
 #include <stdexcept>
 
 
 namespace AltheaEngine {
-ShaderManager::ShaderManager(const VkDevice& device) : _device(device) {}
+ShaderManager::ShaderManager(const Application& app) : _device(app.getDevice()) {}
 
 ShaderManager::~ShaderManager() {
   for (const auto& shaderPair : this->_shaders) {
@@ -24,7 +27,7 @@ ShaderManager::getShaderModule(const std::string& shaderName) {
   auto newShaderResult = this->_shaders.emplace(
       shaderName,
       ShaderModuleEntry{
-          Utilities::readFile("../Shaders/" + shaderName + ".spv"),
+          Utilities::readFile(GProjectDirectory + "/Shaders/" + shaderName + ".spv"),
           VkShaderModule{}});
 
   ShaderModuleEntry& newShader = newShaderResult.first->second;

@@ -13,8 +13,14 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
+
+std::string GProjectDirectory = "";
+
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
-Application::Application() : configParser("../Config/ConfigFile.txt") {}
+Application::Application(const std::string& projectDir) :
+    configParser(projectDir + "/Config/ConfigFile.txt") {
+  GProjectDirectory = projectDir;
+}
 
 void Application::run() {
   initWindow();

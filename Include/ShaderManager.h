@@ -7,9 +7,10 @@
 #include <vector>
 
 namespace AltheaEngine {
+class Application;
 class ShaderManager {
 public:
-  ShaderManager(const VkDevice& device);
+  ShaderManager(const Application& app);
   ~ShaderManager();
 
   const VkShaderModule& getShaderModule(const std::string& shaderName);
