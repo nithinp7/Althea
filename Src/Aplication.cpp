@@ -17,8 +17,8 @@ namespace AltheaEngine {
 std::string GProjectDirectory = "";
 
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
-Application::Application(const std::string& projectDir) :
-    configParser(projectDir + "/Config/ConfigFile.txt") {
+Application::Application(const std::string& projectDir)
+    : configParser(projectDir + "/Config/ConfigFile.txt") {
   GProjectDirectory = projectDir;
 }
 
@@ -66,7 +66,7 @@ void Application::initVulkan() {
   createLogicalDevice();
   createSwapChain();
   createCommandPool();
-  
+
   this->pAllocator = std::make_unique<Allocator>(
       this->instance,
       this->device,
@@ -74,7 +74,6 @@ void Application::initVulkan() {
 
   createDepthResource();
   initDefaultTextures(*this);
-  createGraphicsPipeline();
   createCommandBuffers();
   createSyncObjects();
 }
@@ -172,9 +171,6 @@ void Application::drawFrame() {
 }
 
 void Application::cleanup() {
-  pShaderManager.reset();
-  pShaderManager = nullptr;
-
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
     vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -187,7 +183,7 @@ void Application::cleanup() {
   cleanupDepthResource();
 
   destroyDefaultTextures();
-  
+
   this->pAllocator.reset();
 
   vkDestroyDevice(device, nullptr);
@@ -769,11 +765,6 @@ void Application::createDepthResource() {
       1,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-}
-
-// TODO: this is no longer an accurate name for this function.
-void Application::createGraphicsPipeline() {
-  pShaderManager = std::make_unique<ShaderManager>(*this);
 }
 
 void Application::createCommandPool() {

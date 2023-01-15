@@ -1,17 +1,17 @@
 #pragma once
 
 #include "DescriptorSet.h"
+#include "DrawContext.h"
 #include "FrameContext.h"
 #include "GraphicsPipeline.h"
 #include "PerFrameResources.h"
-#include "DrawContext.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <vector>
-#include <memory>
 
 namespace AltheaEngine {
 class Application;
@@ -72,7 +72,7 @@ public:
       const std::shared_ptr<PerFrameResources>& pGlobalResources,
       const std::optional<PerFrameResources>& renderPassResources,
       uint32_t subpassIndex,
-      const SubpassBuilder& builder);
+      SubpassBuilder&& builder);
   Subpass(Subpass&& rhs) = default;
 
   const GraphicsPipeline& getPipeline() const { return this->_pipeline; }
@@ -108,7 +108,7 @@ public:
       const Application& app,
       const VkCommandBuffer& commandBuffer,
       const FrameContext& frame);
-  
+
   std::optional<PerFrameResources>& getRenderPassResources() {
     return this->_renderPassResources;
   }

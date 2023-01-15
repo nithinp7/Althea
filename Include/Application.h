@@ -6,7 +6,6 @@
 #include "FrameContext.h"
 #include "ImageView.h"
 #include "InputManager.h"
-#include "ShaderManager.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include "vk_mem_alloc.h"
@@ -103,7 +102,6 @@ private:
   uint32_t currentFrame = 0;
 
   ConfigParser configParser;
-  std::unique_ptr<ShaderManager> pShaderManager;
 
   InputManager* pInputManager;
   bool shouldClose = false;
@@ -155,7 +153,6 @@ private:
   void recreateSwapChain();
   void createDepthResource();
   void cleanupDepthResource();
-  void createGraphicsPipeline();
   void createCommandPool();
   void createCommandBuffers();
   void createSyncObjects();
@@ -196,8 +193,6 @@ public:
   bool hasStencilComponent() const;
 
   const ConfigParser& getConfigParser() const { return configParser; }
-
-  ShaderManager& getShaderManager() { return *pShaderManager.get(); }
 
   InputManager& getInputManager() { return *pInputManager; }
 

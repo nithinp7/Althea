@@ -12,7 +12,7 @@ Subpass::Subpass(
     const std::shared_ptr<PerFrameResources>& pGlobalResources,
     const std::optional<PerFrameResources>& renderPassResources,
     uint32_t subpassIndex,
-    const SubpassBuilder& builder)
+    SubpassBuilder&& builder)
     : _subpassResources(
           builder.subpassResourcesBuilder.hasBindings()
               ? std::make_optional<PerFrameResources>(
@@ -33,7 +33,7 @@ Subpass::Subpass(
                   ? std::make_optional(this->_subpassResources->getLayout())
                   : std::nullopt,
               subpassIndex},
-          builder.pipelineBuilder) {}
+          std::move(builder.pipelineBuilder)) {}
 
 RenderPass::RenderPass(
     const Application& app,
@@ -188,7 +188,7 @@ RenderPass::RenderPass(
         this->_pGlobalResources,
         this->_renderPassResources,
         subpassIndex,
-        subpassBuilders[subpassIndex]);
+        std::move(subpassBuilders[subpassIndex]));
   }
 
   // Create frame buffers for this render pass.

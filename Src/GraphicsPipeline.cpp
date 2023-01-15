@@ -2,7 +2,6 @@
 
 #include "Application.h"
 #include "DescriptorSet.h"
-#include "ShaderManager.h"
 
 #include <algorithm>
 
@@ -10,27 +9,39 @@ namespace AltheaEngine {
 
 GraphicsPipeline::GraphicsPipeline(
     const Application& app,
-    const PipelineContext& context,
-    const GraphicsPipelineBuilder& builder)
+    PipelineContext&& context,
+    GraphicsPipelineBuilder&& builder)
     : _device(app.getDevice()),
+      _context(std::move(context)),
+      _builder(std::move(builder)),
       // TODO: would be ideal to move this, but do we really
       // want the builder to be passed in as an lvalue ref?
-      _pushConstantRanges(builder._pushConstantRanges) {
+      _pushConstantRanges(this->_builder._pushConstantRanges) {
+
+  // Create shader modules
+  size_t shaderCount = this->_builder._shaderBuilders.size();
+  this->_shaders.reserve(shaderCount);
+  for (size_t i = 0; i < shaderCount; ++i) {
+    this->_shaders.emplace_back(app, this->_builder._shaderBuilders[i]);
+
+    // Link shader module to corresponding shader stage description
+    this->_builder._shaderStages[i].module = this->_shaders.back().getModule();
+  }
 
   this->_dynamicFrontFaceEnabled =
       std::find(
-          builder._dynamicStates.begin(),
-          builder._dynamicStates.end(),
-          VK_DYNAMIC_STATE_FRONT_FACE) != builder._dynamicStates.end();
+          this->_builder._dynamicStates.begin(),
+          this->_builder._dynamicStates.end(),
+          VK_DYNAMIC_STATE_FRONT_FACE) != this->_builder._dynamicStates.end();
 
-  if (builder.materialResourceLayoutBuilder.hasBindings()) {
+  if (this->_builder.materialResourceLayoutBuilder.hasBindings()) {
     this->_materialAllocator.emplace(
         app,
-        builder.materialResourceLayoutBuilder,
-        builder._materialPoolSize);
+        this->_builder.materialResourceLayoutBuilder,
+        this->_builder._materialPoolSize);
   }
 
-  if (builder._shaderStages.empty()) {
+  if (this->_builder._shaderStages.empty()) {
     throw std::runtime_error(
         "Attempting to build a graphics pipeline without any shader stages.");
   }
@@ -66,16 +77,16 @@ GraphicsPipeline::GraphicsPipeline(
   // 2: Subpass wide resources // TODO necessary??
   // 3: Per-object, material resources
   std::vector<VkDescriptorSetLayout> layouts;
-  if (context.globalResourcesLayout) {
-    layouts.push_back(*context.globalResourcesLayout);
+  if (this->_context.globalResourcesLayout) {
+    layouts.push_back(*this->_context.globalResourcesLayout);
   }
 
-  if (context.renderPassResourcesLayout) {
-    layouts.push_back(*context.renderPassResourcesLayout);
+  if (this->_context.renderPassResourcesLayout) {
+    layouts.push_back(*this->_context.renderPassResourcesLayout);
   }
 
-  if (context.subpassResourcesLayout) {
-    layouts.push_back(*context.subpassResourcesLayout);
+  if (this->_context.subpassResourcesLayout) {
+    layouts.push_back(*this->_context.subpassResourcesLayout);
   }
 
   if (this->_materialAllocator) {
@@ -87,14 +98,15 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
   pipelineLayoutInfo.pSetLayouts = layouts.data();
   pipelineLayoutInfo.pushConstantRangeCount =
-      static_cast<uint32_t>(builder._pushConstantRanges.size());
-  pipelineLayoutInfo.pPushConstantRanges = builder._pushConstantRanges.data();
+      static_cast<uint32_t>(this->_builder._pushConstantRanges.size());
+  pipelineLayoutInfo.pPushConstantRanges =
+      this->_builder._pushConstantRanges.data();
 
   if (vkCreatePipelineLayout(
           this->_device,
           &pipelineLayoutInfo,
           nullptr,
-          &this->_pipelineLayout) != VK_SUCCESS) {
+          &this->_vk.pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create pipeline layout!");
   }
 
@@ -104,19 +116,19 @@ GraphicsPipeline::GraphicsPipeline(
   vertexInputInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertexInputInfo.vertexBindingDescriptionCount =
-      static_cast<uint32_t>(builder._vertexInputBindings.size());
+      static_cast<uint32_t>(this->_builder._vertexInputBindings.size());
   vertexInputInfo.pVertexBindingDescriptions =
-      builder._vertexInputBindings.data();
+      this->_builder._vertexInputBindings.data();
   vertexInputInfo.vertexAttributeDescriptionCount =
-      static_cast<uint32_t>(builder._attributeDescriptions.size());
+      static_cast<uint32_t>(this->_builder._attributeDescriptions.size());
   vertexInputInfo.pVertexAttributeDescriptions =
-      builder._attributeDescriptions.data();
+      this->_builder._attributeDescriptions.data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
   inputAssemblyInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 
-  switch (builder._primitiveType) {
+  switch (this->_builder._primitiveType) {
   case PrimitiveType::TRIANGLES:
     inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     break;
@@ -140,7 +152,7 @@ GraphicsPipeline::GraphicsPipeline(
   rasterizerInfo.depthClampEnable = VK_FALSE;
   rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
 
-  switch (builder._primitiveType) {
+  switch (this->_builder._primitiveType) {
   case PrimitiveType::TRIANGLES:
     rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
     break;
@@ -152,9 +164,9 @@ GraphicsPipeline::GraphicsPipeline(
     break;
   };
 
-  rasterizerInfo.lineWidth = builder._lineWidth;
-  rasterizerInfo.cullMode = builder._cullMode;
-  rasterizerInfo.frontFace = builder._frontFace;
+  rasterizerInfo.lineWidth = this->_builder._lineWidth;
+  rasterizerInfo.cullMode = this->_builder._cullMode;
+  rasterizerInfo.frontFace = this->_builder._frontFace;
   rasterizerInfo.depthBiasEnable = VK_FALSE;
   rasterizerInfo.depthBiasConstantFactor = 0.0f;
   rasterizerInfo.depthBiasClamp = 0.0f;
@@ -218,27 +230,28 @@ GraphicsPipeline::GraphicsPipeline(
   VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
   dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamicStateInfo.dynamicStateCount =
-      static_cast<uint32_t>(builder._dynamicStates.size());
-  dynamicStateInfo.pDynamicStates = builder._dynamicStates.data();
+      static_cast<uint32_t>(this->_builder._dynamicStates.size());
+  dynamicStateInfo.pDynamicStates = this->_builder._dynamicStates.data();
 
   // CREATE THE GRAPHICS PIPELINE
 
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipelineInfo.stageCount = static_cast<uint32_t>(builder._shaderStages.size());
-  pipelineInfo.pStages = builder._shaderStages.data();
+  pipelineInfo.stageCount =
+      static_cast<uint32_t>(this->_builder._shaderStages.size());
+  pipelineInfo.pStages = this->_builder._shaderStages.data();
   pipelineInfo.pVertexInputState = &vertexInputInfo;
   pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
   pipelineInfo.pViewportState = &viewportStateInfo;
   pipelineInfo.pRasterizationState = &rasterizerInfo;
   pipelineInfo.pMultisampleState = &multisamplingInfo;
   pipelineInfo.pDepthStencilState =
-      builder._depthTest ? &depthStencilInfo : nullptr;
+      this->_builder._depthTest ? &depthStencilInfo : nullptr;
   pipelineInfo.pColorBlendState = &colorBlendingInfo;
   pipelineInfo.pDynamicState = &dynamicStateInfo;
-  pipelineInfo.layout = this->_pipelineLayout;
-  pipelineInfo.renderPass = context.renderPass;
-  pipelineInfo.subpass = context.subpassIndex;
+  pipelineInfo.layout = this->_vk.pipelineLayout;
+  pipelineInfo.renderPass = this->_context.renderPass;
+  pipelineInfo.subpass = this->_context.subpassIndex;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineInfo.basePipelineIndex = -1;
 
@@ -248,14 +261,19 @@ GraphicsPipeline::GraphicsPipeline(
           1,
           &pipelineInfo,
           nullptr,
-          &this->_pipeline)) {
+          &this->_vk.pipeline)) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
-  vkDestroyPipeline(this->_device, this->_pipeline, nullptr);
-  vkDestroyPipelineLayout(this->_device, this->_pipelineLayout, nullptr);
+  if (this->_vk.pipeline != VK_NULL_HANDLE) {
+    vkDestroyPipeline(this->_device, this->_vk.pipeline, nullptr);
+  }
+
+  if (this->_vk.pipelineLayout != VK_NULL_HANDLE) {
+    vkDestroyPipelineLayout(this->_device, this->_vk.pipelineLayout, nullptr);
+  }
 }
 
 void GraphicsPipeline::bindPipeline(
@@ -263,33 +281,95 @@ void GraphicsPipeline::bindPipeline(
   vkCmdBindPipeline(
       commandBuffer,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
-      this->_pipeline);
+      this->_vk.pipeline);
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addComputeShader(
-    ShaderManager& shaderManager,
-    const std::string& shaderPath) {
+bool GraphicsPipeline::reloadStaleShaders() {
+  if (this->_outdated) {
+    return false;
+  }
+
+  bool stale = false;
+  for (ShaderBuilder& shader : this->_builder._shaderBuilders) {
+    if (shader.reloadIfStale()) {
+      stale = true;
+    }
+  }
+
+  return stale;
+}
+
+bool GraphicsPipeline::hasShaderRecompileErrors() const {
+  if (this->_outdated) {
+    // This is not necessarily a shader recompile error...
+    // but we don't want to recreate the pipeline if it has already
+    // been recreated from.
+    return true;
+  }
+
+  for (const ShaderBuilder& shader : this->_builder._shaderBuilders) {
+    if (shader.hasErrors()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::string GraphicsPipeline::getShaderRecompileErrors() const {
+  if (this->_outdated) {
+    return "";
+  }
+
+  std::string errors;
+  for (const ShaderBuilder& shader : this->_builder._shaderBuilders) {
+    if (shader.hasErrors()) {
+      errors += shader.getErrors() + "\n";
+    }
+  }
+
+  return errors;
+}
+
+// TODO: Would be less awkward to just return GraphicsPipeline, would need
+// to make the class movable first...
+std::unique_ptr<GraphicsPipeline>
+GraphicsPipeline::recreatePipeline(Application& app) {
+  // Mark this pipeline as outdated so we don't recreate another pipeline
+  // from it.
+  // TODO: This may be a silly constraint, the only reason for it is that we
+  // are moving away the context and builder objects when recreating the
+  // pipeline...
+  this->_outdated = true;
+  return std::make_unique<GraphicsPipeline>(
+      app,
+      std::move(this->_context),
+      std::move(this->_builder));
+}
+
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::addComputeShader(const std::string& shaderPath) {
   throw std::runtime_error("Compute shaders not yet supported!");
 
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
-    ShaderManager& shaderManager,
-    const std::string& shaderPath) {
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::addVertexShader(const std::string& shaderPath) {
+  this->_shaderBuilders.emplace_back(shaderPath, shaderc_vertex_shader);
+
   VkPipelineShaderStageCreateInfo& vertShaderStageInfo =
       this->_shaderStages.emplace_back();
   vertShaderStageInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = shaderManager.getShaderModule(shaderPath);
+  vertShaderStageInfo.module = VK_NULL_HANDLE; // Will get linked later.
   vertShaderStageInfo.pName = "main";
 
   return *this;
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
-    ShaderManager& shaderManager,
     const std::string& shaderPath) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
@@ -298,38 +378,36 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
 
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::addTessellationEvaluationShader(
-    ShaderManager& shaderManager,
     const std::string& shaderPath) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
-    ShaderManager& shaderManager,
-    const std::string& shaderPath) {
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::addGeometryShader(const std::string& shaderPath) {
   throw std::runtime_error("Geometry shaders not yet supported!");
   // VkPipelineShaderStageCreateInfo& geomShaderStageInfo =
   //    this->_shaderStages.emplace_back();
   // geomShaderStageInfo.sType =
   // VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   // geomShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-  // geomShaderStageInfo.module =
-  //   shaderManager.getShaderModule(shaderPath);
+  // geomShaderStageInfo.module = VK_NULL_HANDLE; // Will get linked later.
   // geomShaderStageInfo.pName = "main";
 
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
-    ShaderManager& shaderManager,
-    const std::string& shaderPath) {
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::addFragmentShader(const std::string& shaderPath) {
+  this->_shaderBuilders.emplace_back(shaderPath, shaderc_fragment_shader);
+
   VkPipelineShaderStageCreateInfo& fragShaderStageInfo =
       this->_shaderStages.emplace_back();
   fragShaderStageInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = shaderManager.getShaderModule(shaderPath);
+  fragShaderStageInfo.module = VK_NULL_HANDLE; // Will get linked later.
   fragShaderStageInfo.pName = "main";
 
   return *this;

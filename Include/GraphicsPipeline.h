@@ -2,6 +2,7 @@
 
 #include "DescriptorSet.h"
 #include "PerFrameResources.h"
+#include "Shader.h"
 
 #include <vulkan/vulkan.h>
 
@@ -30,22 +31,14 @@ enum class PrimitiveType { TRIANGLES, LINES, POINTS };
 
 class GraphicsPipelineBuilder {
 public:
+  GraphicsPipelineBuilder& addComputeShader(const std::string& shaderPath);
+  GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath);
   GraphicsPipelineBuilder&
-  addComputeShader(ShaderManager& shaderManager, const std::string& shaderPath);
+  addTessellationControlShader(const std::string& shaderPath);
   GraphicsPipelineBuilder&
-  addVertexShader(ShaderManager& shaderManager, const std::string& shaderPath);
-  GraphicsPipelineBuilder& addTessellationControlShader(
-      ShaderManager& shaderManager,
-      const std::string& shaderPath);
-  GraphicsPipelineBuilder& addTessellationEvaluationShader(
-      ShaderManager& shaderManager,
-      const std::string& shaderPath);
-  GraphicsPipelineBuilder& addGeometryShader(
-      ShaderManager& shaderManager,
-      const std::string& shaderPath);
-  GraphicsPipelineBuilder& addFragmentShader(
-      ShaderManager& shaderManager,
-      const std::string& shaderPath);
+  addTessellationEvaluationShader(const std::string& shaderPath);
+  GraphicsPipelineBuilder& addGeometryShader(const std::string& shaderPath);
+  GraphicsPipelineBuilder& addFragmentShader(const std::string& shaderPath);
 
   /**
    * @brief Add a vertex input binding - can be a vertex buffer or instance
@@ -178,7 +171,11 @@ private:
   friend class GraphicsPipeline;
   // Info needed to build the graphics pipeline
 
+  // Note: The shader stages do not have shader modules linked at this
+  // point, they must be linked when the shader modules are created
+  // during construction of the GraphicsPipeline.
   std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
+  std::vector<ShaderBuilder> _shaderBuilders;
 
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
@@ -202,16 +199,23 @@ class GraphicsPipeline {
 public:
   GraphicsPipeline(
       const Application& app,
-      const PipelineContext& context,
-      const GraphicsPipelineBuilder& builder);
+      PipelineContext&& context,
+      GraphicsPipelineBuilder&& builder);
+
+  // Move-only semantics
   GraphicsPipeline(GraphicsPipeline&& rhs) = default;
+  GraphicsPipeline& operator=(GraphicsPipeline&& rhs) = default;
+
+  GraphicsPipeline(const GraphicsPipeline& rhs) = delete;
+  GraphicsPipeline& operator=(const GraphicsPipeline& rhs) = delete;
+
   ~GraphicsPipeline();
 
   void bindPipeline(const VkCommandBuffer& commandBuffer) const;
 
-  const VkPipelineLayout& getLayout() const { return this->_pipelineLayout; }
+  VkPipelineLayout getLayout() const { return this->_vk.pipelineLayout; }
 
-  const VkPipeline& getVkPipeline() const { return this->_pipeline; }
+  VkPipeline getVkPipeline() const { return this->_vk.pipeline; }
 
   DescriptorSetAllocator& getMaterialAllocator() {
     return *this->_materialAllocator;
@@ -225,13 +229,71 @@ public:
     return this->_dynamicFrontFaceEnabled;
   }
 
+  /**
+   * @brief Reload any stale shaders from disk.
+   *
+   * @return Whether any stale shaders were detected and reloaded.
+   */
+  bool reloadStaleShaders();
+
+  /**
+   * @brief Whether any reloaded shaders have errors during recompilation. Note
+   * that it is NOT safe to recreate the pipeline if there are any shader
+   * recompile errors remaining.
+   *
+   * @return Whether there were any errors when recompiling reloaded shaders.
+   */
+  bool hasShaderRecompileErrors() const;
+
+  /**
+   * @brief Get compilation error messages that were created while reloading
+   * and recompiling stale shaders.
+   *
+   * @return The shader compilation errors.
+   */
+  std::string getShaderRecompileErrors() const;
+
+  /**
+   * @brief Create a new pipeline with all the same paramaters as the current
+   * one, but uses the newly recompiled shaders if they exist. Note this
+   * function is NOT safe to call if any of the recompiled shaders have
+   * compilation errors - check that hasShaderRecompileErrors() is false first.
+   *
+   * @return The new pipeline based on the current one, but with updated and
+   * recompiled shaders if they exist.
+   */
+  std::unique_ptr<GraphicsPipeline> recreatePipeline(Application& app);
+
 private:
+  struct VulkanPipelineInfo {
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline pipeline = VK_NULL_HANDLE;
+
+    VulkanPipelineInfo() = default;
+
+    // Move-only semantics
+    VulkanPipelineInfo(VulkanPipelineInfo&& rhs)
+        : pipelineLayout(rhs.pipelineLayout), pipeline(rhs.pipeline) {
+      rhs.pipelineLayout = VK_NULL_HANDLE;
+      rhs.pipeline = VK_NULL_HANDLE;
+    }
+
+    VulkanPipelineInfo(const VulkanPipelineInfo& rhs) = delete;
+  } _vk;
+
   VkDevice _device;
+
+  // These are kept around to allow the pipeline to recreate itself if
+  // any shaders become stale.
+  PipelineContext _context;
+  GraphicsPipelineBuilder _builder;
+  // Once the pipeline is recreated, this one will be marked outdated to
+  // prevent further pipeline recreations based on this one.
+  bool _outdated = false;
 
   std::optional<DescriptorSetAllocator> _materialAllocator;
 
-  VkPipelineLayout _pipelineLayout;
-  VkPipeline _pipeline;
+  std::vector<Shader> _shaders;
 
   // These are kept around to validate client setup of draw calls.
   std::vector<VkPushConstantRange> _pushConstantRanges;

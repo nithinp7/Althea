@@ -10,6 +10,7 @@
 #include "Primitive.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -17,8 +18,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#include <glm/gtc/constants.hpp>
 
 using namespace AltheaEngine;
 
@@ -34,17 +33,15 @@ void SponzaTest::initGame(Application& app) {
   InputManager& input = app.getInputManager();
   input.addKeyBinding(
       {GLFW_KEY_L, GLFW_PRESS, 0},
-      [&adjustingLight = this->_adjustingLight,
-       &input]() { 
-        adjustingLight = true; 
+      [&adjustingLight = this->_adjustingLight, &input]() {
+        adjustingLight = true;
         input.setMouseCursorHidden(false);
       });
 
   input.addKeyBinding(
       {GLFW_KEY_L, GLFW_RELEASE, 0},
-      [&adjustingLight = this->_adjustingLight,
-       &input]() { 
-        adjustingLight = false; 
+      [&adjustingLight = this->_adjustingLight, &input]() {
+        adjustingLight = false;
         input.setMouseCursorHidden(true);
       });
 
@@ -56,8 +53,7 @@ void SponzaTest::initGame(Application& app) {
           float theta = glm::pi<float>() * static_cast<float>(x);
           float height = static_cast<float>(y) + 1.0f;
 
-          lightDir = glm::normalize(
-              glm::vec3(cos(theta), height, sin(theta)));
+          lightDir = glm::normalize(glm::vec3(cos(theta), height, sin(theta)));
         }
       });
 }
@@ -70,8 +66,6 @@ void SponzaTest::createRenderState(Application& app) {
   const VkExtent2D& extent = app.getSwapChainExtent();
   this->_pCameraController->getCamera().setAspectRatio(
       (float)extent.width / (float)extent.height);
-
-  ShaderManager& shaderManager = app.getShaderManager();
 
   // TODO: Default color and depth-stencil clear values for attachments?
   VkClearValue colorClear;
@@ -118,9 +112,8 @@ void SponzaTest::createRenderState(Application& app) {
 
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
-    subpassBuilder.pipelineBuilder
-        .addVertexShader(shaderManager, "GltfPBR.vert")
-        .addFragmentShader(shaderManager, "GltfPBR.frag");
+    subpassBuilder.pipelineBuilder.addVertexShader("GltfPBR.vert")
+        .addFragmentShader("GltfPBR.frag");
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(

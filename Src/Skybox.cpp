@@ -3,7 +3,6 @@
 #include "Application.h"
 #include "GraphicsPipeline.h"
 #include "ResourcesAssignment.h"
-#include "ShaderManager.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -11,10 +10,8 @@ namespace AltheaEngine {
 
 /*static*/
 void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
-  ShaderManager& shaderManager = app.getShaderManager();
-
-  builder.addVertexShader(shaderManager, "Skybox.vert")
-      .addFragmentShader(shaderManager, "Skybox.frag")
+  builder.addVertexShader("Skybox.vert")
+      .addFragmentShader("Skybox.frag")
 
       .setCullMode(VK_CULL_MODE_FRONT_BIT)
       .setDepthTesting(false);
