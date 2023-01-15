@@ -5,6 +5,21 @@
 Althea is a glTF-based rendering engine built in Vulkan. The goal is to create an intuitive, user-facing rendering API at a reasonable abstraction level, while still leveraging Vulkan's benefits. The progress so far and the tentative roadmap are discussed below.
 
 ## Progress
+
+##### Shader hot-reloading in action!
+<img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
+
+##### Physically based rendering of the glTF flight helmet model.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.gif" width=800/>
+
+##### The Sponza lion statue with environment mapping and normal mapping.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png" width=800/>
+
+##### A curtain in the Sponza scene with environment mapping and normal mapping..
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png" width=800/>
+
+More pictures to come soon!
+
 #### Core Renderer
 - [x] Vulkan backend to initialize device, manage the swapchain, synchronize a double-buffered render-loop, etc.
 - [x] Simple API to create vertex inputs and specify their vertex layouts. 
@@ -26,17 +41,6 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 #### Implementations
 - [x] Skybox and environment mapped reflections
 - [x] Normal mapping
-
-##### Physically based rendering of the glTF flight helmet model.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.gif" width=800/>
-
-##### The Sponza lion statue with environment mapping and normal mapping.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png" width=800/>
-
-##### A curtain in the Sponza scene with environment mapping and normal mapping..
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png" width=800/>
-
-More pictures to come soon!
 
 ## Roadmap
 #### Engine Features
