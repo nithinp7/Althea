@@ -20,7 +20,7 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 
 #### Miscellaneous
 - [x] Flexible, listener-based, input-management system built on top of GLFW.
-- [x] Velocity feedback-based camera controller.
+- [x] Velocity feedback camera controller.
 - [x] Integrated clang-format.
 
 #### Implementations
@@ -47,7 +47,7 @@ More pictures to come soon!
 - [ ] Global illumination
 
 #### Renderer Features
-- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors). _in progress..._
+- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors).
 - [x] Mipmaps
 - [ ] LODs
 - [ ] Deferred rendering setup
@@ -60,14 +60,17 @@ More pictures to come soon!
 #### Behind the scenes
 - [x] Vulkan Memory Allocator integration.
 - [x] Update to a newer, tagged version of Cesium Native on a fork.
-- [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, etc.)
+- [ ] Decouple application-level code from rendering engine.
+- [ ] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
+- [ ] Integrate a hash-based checksum library to detect file edits during loading.
+- [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, compiled shaders etc.)
 - [ ] Multi-threaded rendering / job system
 - [ ] Async model loading / uploading, eventually geometry "streaming"
 
 #### Editor Features
 - [ ] Basic Imgui-based editor capabilities (e.g., transform gizmos, load models etc.)
 - [ ] Shader hot-reloading
-- [ ] Shader variants
+- [ ] Shader includes and specializations (should both be possible with shaderc)
 - [ ] Debug visualizations (dynamic switching to debug shaders)
 
 #### Usability / Maintainability
