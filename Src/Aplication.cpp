@@ -773,7 +773,7 @@ void Application::createDepthResource() {
 
 // TODO: this is no longer an accurate name for this function.
 void Application::createGraphicsPipeline() {
-  pShaderManager = std::make_unique<ShaderManager>(device);
+  pShaderManager = std::make_unique<ShaderManager>(*this);
 }
 
 void Application::createCommandPool() {

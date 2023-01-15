@@ -7,7 +7,7 @@
 using namespace AltheaEngine;
 
 int main() {
-  Application app;
+  Application app("../..");
   app.createGame<SponzaTest>();
 
   try {

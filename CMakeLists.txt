@@ -95,6 +95,9 @@ add_subdirectory(Extern/shaderc)
 add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
 set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
 
+add_library(hash_library Extern/hash-library/sha256.cpp)
+set_target_properties(hash_library PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/hash-library/sha256.h")
+
 target_include_directories (${PROJECT_NAME}
     PUBLIC
       ${Vulkan_INCLUDE_DIRS}
@@ -103,8 +106,8 @@ target_include_directories (${PROJECT_NAME}
       Extern/stb
       Extern/MikkTSpace
       Extern/VulkanMemoryAllocator/include
-      Extern/shaderc/libshaderc/include/shaderc)
-
+      Extern/shaderc/libshaderc/include/shaderc
+      Extern/hash-library)
 
 target_compile_definitions(
     ${PROJECT_NAME}
@@ -126,6 +129,7 @@ target_link_libraries (${PROJECT_NAME} glfw)
 target_link_libraries (${PROJECT_NAME} MikkTSpace)
 target_link_libraries (${PROJECT_NAME} VulkanMemoryAllocator)
 target_link_libraries (${PROJECT_NAME} shaderc)
+target_link_libraries (${PROJECT_NAME} hash_library)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
