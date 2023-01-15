@@ -18,9 +18,8 @@ Shader::Shader(const Application& app, const ShaderBuilder& builder)
 
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = builder._spirvBytecode.size();
-  createInfo.pCode =
-      reinterpret_cast<const uint32_t*>(builder._spirvBytecode.data());
+  createInfo.codeSize = sizeof(uint32_t) * builder._spirvBytecode.size();
+  createInfo.pCode = builder._spirvBytecode.data();
 
   if (vkCreateShaderModule(
           this->_device,
@@ -74,7 +73,7 @@ bool ShaderBuilder::recompile() {
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
-  shaderc::AssemblyCompilationResult result = compiler.CompileGlslToSpvAssembly(
+  shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
       this->_glslCode.data(),
       this->_glslCode.size(),
       this->_kind,
@@ -87,7 +86,7 @@ bool ShaderBuilder::recompile() {
     return false;
   }
 
-  this->_spirvBytecode = std::vector<char>(result.cbegin(), result.cend());
+  this->_spirvBytecode = std::vector<uint32_t>(result.begin(), result.end());
   return true;
 }
 

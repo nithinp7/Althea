@@ -3,6 +3,7 @@
 #include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,6 @@ private:
   std::string _errors;
   std::string _glslFileHash;
   std::vector<char> _glslCode;
-  std::vector<char> _spirvBytecode;
+  std::vector<uint32_t> _spirvBytecode;
 };
 } // namespace AltheaEngine
