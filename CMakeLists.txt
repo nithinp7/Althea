@@ -36,55 +36,6 @@ add_executable(Althea ${SRC_FILES_LIST})
 
 target_compile_definitions(Althea PRIVATE MAX_UV_COORDS=4)
 
-# Compile GLSL into SPIRV files and put it in the output directory.
-make_directory(${PROJECT_BINARY_DIR}/Shaders/)
-foreach(SHADER_FILE ${SHADER_FILES})
-  get_filename_component(FILE_NAME ${SHADER_FILE} NAME)
-  set(output_file "${PROJECT_BINARY_DIR}/Shaders/${FILE_NAME}.spv")
-  add_custom_command(
-    OUTPUT ${output_file}
-    COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER_FILE} -o ${output_file}
-    DEPENDS ${SHADER_FILE}
-    COMMENT "Rebuilding ${output_file}")
-  message(STATUS "Generating build commands for ${output_file}")
-  list(APPEND SPIRV_BINARY_FILES ${output_file})
-endforeach()
-
-# Setup shader dependencies so they automatically get regenerated as needed.
-add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
-add_dependencies(${PROJECT_NAME} Shaders)
-
-function(copy_files dir_rel_path)
-  file(GLOB_RECURSE FILES_TO_COPY LIST_DIRECTORIES true ${dir_rel_path}/*)  
-
-  foreach(FILE ${FILES_TO_COPY})
-    file(RELATIVE_PATH relativePath ${CMAKE_CURRENT_LIST_DIR} ${FILE})
-    if(IS_DIRECTORY FILE)
-      make_directory(${PROJECT_BINARY_DIR}/${relativePath}/)
-    else()
-      set(output_file "${PROJECT_BINARY_DIR}/${relativePath}")
-      add_custom_command(
-        OUTPUT ${output_file}
-        COMMAND ${CMAKE_COMMAND} -E copy ${FILE} ${output_file}
-        DEPENDS ${FILE})
-      message(STATUS "Generating build commands for ${output_file}")
-      list(APPEND COPIED_FILES ${output_file})
-      set(COPIED_FILES ${COPIED_FILES} PARENT_SCOPE)
-    endif()
-    message(${relativePath})
-  endforeach()
-endfunction()
-
-# Automatically copy config and content files
-copy_files(Config)
-copy_files(Content/Models)
-copy_files(Content/Engine)
-
-add_custom_target(
-  CopiedFiles
-  DEPENDS ${COPIED_FILES})
-add_dependencies(${PROJECT_NAME} CopiedFiles)
-
 find_package(Vulkan REQUIRED) # error
 
 add_subdirectory(Extern/glm)

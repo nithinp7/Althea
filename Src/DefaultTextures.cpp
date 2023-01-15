@@ -20,13 +20,13 @@ namespace AltheaEngine {
 
 // TODO: Read these paths from somewhere? Config file?
 const static std::string NORMAL_1x1_PATH =
-    "../Content/Engine/Textures/normal1x1.png";
+    "/Content/Engine/Textures/normal1x1.png";
 const static std::string GREEN_1x1_PATH =
-    "../Content/Engine/Textures/green1x1.png";
+    "/Content/Engine/Textures/green1x1.png";
 const static std::string WHITE_1x1_PATH =
-    "../Content/Engine/Textures/white1x1.png";
+    "/Content/Engine/Textures/white1x1.png";
 const static std::string BLACK_1x1_PATH =
-    "../Content/Engine/Textures/black1x1.png";
+    "/Content/Engine/Textures/black1x1.png";
 
 std::shared_ptr<Texture> GNormalTexture1x1 = nullptr;
 std::shared_ptr<Texture> GGreenTexture1x1 = nullptr;
@@ -42,10 +42,15 @@ gsl::span<const std::byte> charVecToByteSpan(const std::vector<char>& buffer) {
 } // namespace
 
 void initDefaultTextures(const Application& app) {
-  std::vector<char> rawNormal1x1 = Utilities::readFile(NORMAL_1x1_PATH);
-  std::vector<char> rawGreen1x1 = Utilities::readFile(GREEN_1x1_PATH);
-  std::vector<char> rawWhite1x1 = Utilities::readFile(WHITE_1x1_PATH);
-  std::vector<char> rawBlack1x1 = Utilities::readFile(BLACK_1x1_PATH);
+  // TODO: Should have separate, engine directory...
+  std::vector<char> rawNormal1x1 =
+      Utilities::readFile(GProjectDirectory + NORMAL_1x1_PATH);
+  std::vector<char> rawGreen1x1 =
+      Utilities::readFile(GProjectDirectory + GREEN_1x1_PATH);
+  std::vector<char> rawWhite1x1 =
+      Utilities::readFile(GProjectDirectory + WHITE_1x1_PATH);
+  std::vector<char> rawBlack1x1 =
+      Utilities::readFile(GProjectDirectory + BLACK_1x1_PATH);
 
   // TODO: Use KTX2
   Ktx2TranscodeTargets noTranscodeTargets;

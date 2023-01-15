@@ -1,6 +1,0 @@
-
-SHADER_PIPELINES
-default BasicGltf.vert BasicGltf.frag
-
-MODELS_LIST
-default Sponza.gltf

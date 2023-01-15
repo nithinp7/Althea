@@ -112,8 +112,8 @@ void SponzaTest::createRenderState(Application& app) {
 
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
-    subpassBuilder.pipelineBuilder.addVertexShader("GltfPBR.vert")
-        .addFragmentShader("GltfPBR.frag");
+    subpassBuilder.pipelineBuilder.addVertexShader("/Shaders/GltfPBR.vert")
+        .addFragmentShader("/Shaders/GltfPBR.frag");
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(
@@ -126,19 +126,19 @@ void SponzaTest::createRenderState(Application& app) {
   std::vector<Subpass>& subpasses = this->_pRenderPass->getSubpasses();
 
   const static std::array<std::string, 6> skyboxImagePaths = {
-      "../Content/Models/Skybox/right.jpg",
-      "../Content/Models/Skybox/left.jpg",
-      "../Content/Models/Skybox/top.jpg",
-      "../Content/Models/Skybox/bottom.jpg",
-      "../Content/Models/Skybox/front.jpg",
-      "../Content/Models/Skybox/back.jpg"};
+      "/Content/Models/Skybox/right.jpg",
+      "/Content/Models/Skybox/left.jpg",
+      "/Content/Models/Skybox/top.jpg",
+      "/Content/Models/Skybox/bottom.jpg",
+      "/Content/Models/Skybox/front.jpg",
+      "/Content/Models/Skybox/back.jpg"};
 
   this->_pSkybox = std::make_unique<Skybox>(app, skyboxImagePaths, true);
 
   this->_pSponzaModel = std::make_unique<Model>(
       app,
-      // "Sponza/glTF/Sponza.gltf",
-      "FlightHelmet/FlightHelmet.gltf",
+      // "/Content/Models/Sponza/glTF/Sponza.gltf",
+      "/Content/Models/FlightHelmet/FlightHelmet.gltf",
       subpasses[1].getPipeline().getMaterialAllocator());
 
   // Bind the skybox cubemap as a global resource

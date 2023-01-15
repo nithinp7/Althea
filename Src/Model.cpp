@@ -149,7 +149,7 @@ Model::Model(
     const Application& app,
     const std::string& name,
     DescriptorSetAllocator& materialAllocator) {
-  std::string path = "../Content/Models/" + name;
+  std::string path = GProjectDirectory + name;
 
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
@@ -188,7 +188,8 @@ Model::Model(
   // Generate mip-maps for all images
   for (CesiumGltf::Image& image : this->_model.images) {
     if (CesiumGltfReader::GltfReader::generateMipMaps(image.cesium)) {
-      throw std::runtime_error("Could not generate mip-maps for images in glTF.");
+      throw std::runtime_error(
+          "Could not generate mip-maps for images in glTF.");
     }
   }
 
