@@ -56,12 +56,13 @@ More pictures to come soon!
 #### Vulkan Backend
 - [ ] API to leverage compute pipeline.
 - [ ] API to leverage raytrace pipeline.
+- [ ] Pipeline caching - validation based on UUID and checksum hash.
 
 #### Behind the scenes
 - [x] Vulkan Memory Allocator integration.
 - [x] Update to a newer, tagged version of Cesium Native on a fork.
 - [ ] Decouple application-level code from rendering engine.
-- [ ] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
+- [x] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
 - [ ] Integrate a hash-based checksum library to detect file edits during loading.
 - [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, compiled shaders etc.)
 - [ ] Multi-threaded rendering / job system
@@ -77,6 +78,10 @@ More pictures to come soon!
 - [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs
 - [ ] Integrate unit-testing framework, write unit tests
 - [ ] Organize code into renderer backend, frontend, editor, etc.
+
+#### Small Bugs
+- [ ] Fix spurious camera turn when cursor is re-hidden.
+- [ ] Fix spurious camera velocity after renderstate recreation (related to percieved frame-time spike).
 
 #### Way Out Ideas!
 - [ ] Integrate full 3D Tiles streaming support with Cesium Native
