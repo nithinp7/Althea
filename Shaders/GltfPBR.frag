@@ -160,6 +160,24 @@ vec3 pbrMaterial(
 
 // ***********************************************************
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
   vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 

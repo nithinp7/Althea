@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace AltheaEngine;
 
@@ -30,6 +31,7 @@ void SponzaTest::initGame(Application& app) {
       90.0f,
       (float)windowDims.width / (float)windowDims.height);
 
+  // TODO: need to unbind these at shutdown
   InputManager& input = app.getInputManager();
   input.addKeyBinding(
       {GLFW_KEY_L, GLFW_PRESS, 0},
@@ -43,6 +45,22 @@ void SponzaTest::initGame(Application& app) {
       [&adjustingLight = this->_adjustingLight, &input]() {
         adjustingLight = false;
         input.setMouseCursorHidden(true);
+      });
+
+  // Recreate any stale pipelines (shader hot-reload)
+  input.addKeyBinding(
+      {GLFW_KEY_R, GLFW_PRESS, GLFW_MOD_CONTROL},
+      [&app, that = this]() {
+        for (Subpass& subpass : that->_pRenderPass->getSubpasses()) {
+          GraphicsPipeline& pipeline = subpass.getPipeline();
+          if (pipeline.recompileStaleShaders()) {
+            if (pipeline.hasShaderRecompileErrors()) {
+              std::cout << pipeline.getShaderRecompileErrors() << "\n";
+            } else {
+              pipeline = pipeline.recreatePipeline(app);
+            }
+          }
+        }
       });
 
   input.addMousePositionCallback(

@@ -284,7 +284,7 @@ void GraphicsPipeline::bindPipeline(
       this->_vk.pipeline);
 }
 
-bool GraphicsPipeline::reloadStaleShaders() {
+bool GraphicsPipeline::recompileStaleShaders() {
   if (this->_outdated) {
     return false;
   }
@@ -293,6 +293,7 @@ bool GraphicsPipeline::reloadStaleShaders() {
   for (ShaderBuilder& shader : this->_builder._shaderBuilders) {
     if (shader.reloadIfStale()) {
       stale = true;
+      shader.recompile();
     }
   }
 
@@ -331,17 +332,14 @@ std::string GraphicsPipeline::getShaderRecompileErrors() const {
   return errors;
 }
 
-// TODO: Would be less awkward to just return GraphicsPipeline, would need
-// to make the class movable first...
-std::unique_ptr<GraphicsPipeline>
-GraphicsPipeline::recreatePipeline(Application& app) {
+GraphicsPipeline GraphicsPipeline::recreatePipeline(Application& app) {
   // Mark this pipeline as outdated so we don't recreate another pipeline
   // from it.
   // TODO: This may be a silly constraint, the only reason for it is that we
   // are moving away the context and builder objects when recreating the
   // pipeline...
   this->_outdated = true;
-  return std::make_unique<GraphicsPipeline>(
+  return GraphicsPipeline(
       app,
       std::move(this->_context),
       std::move(this->_builder));

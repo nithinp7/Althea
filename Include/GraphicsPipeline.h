@@ -230,11 +230,20 @@ public:
   }
 
   /**
-   * @brief Reload any stale shaders from disk.
+   * @brief Reload and attempt to recompile any stale shaders that is 
+   * out-of-date with the corresponding shader file on disk. Note that the
+   * recompile is not guaranteed to have succeeded, check 
+   * hasShaderRecompileErrors() before recreating the pipeline.
+   * 
    *
-   * @return Whether any stale shaders were detected and reloaded.
+   * @return Whether any stale shaders were detected and reloaded / 
+   * recompiled.
    */
-  bool reloadStaleShaders();
+  bool recompileStaleShaders();
+
+  /**
+   * @brief  
+   */
 
   /**
    * @brief Whether any reloaded shaders have errors during recompilation. Note
@@ -262,7 +271,7 @@ public:
    * @return The new pipeline based on the current one, but with updated and
    * recompiled shaders if they exist.
    */
-  std::unique_ptr<GraphicsPipeline> recreatePipeline(Application& app);
+  GraphicsPipeline recreatePipeline(Application& app);
 
 private:
   struct VulkanPipelineInfo {
@@ -278,7 +287,18 @@ private:
       rhs.pipeline = VK_NULL_HANDLE;
     }
 
+    VulkanPipelineInfo& operator=(VulkanPipelineInfo&& rhs) {
+      this->pipelineLayout = rhs.pipelineLayout;
+      this->pipeline = rhs.pipeline;
+
+      rhs.pipelineLayout = VK_NULL_HANDLE;
+      rhs.pipeline = VK_NULL_HANDLE;
+
+      return *this;
+    }
+
     VulkanPipelineInfo(const VulkanPipelineInfo& rhs) = delete;
+    VulkanPipelineInfo& operator=(const VulkanPipelineInfo& rhs) = delete;
   } _vk;
 
   VkDevice _device;
