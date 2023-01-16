@@ -28,13 +28,6 @@ public:
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  // Move-only semantics
-  Texture(Texture&& rhs) = default;
-  Texture& operator=(Texture&& rhs) = default;
-
-  Texture(const Texture& rhs) = delete;
-  Texture& operator=(const Texture& rhs) = delete;
-
   VkImage getImage() const { return this->_allocation.getImage(); }
 
   VkImageView getImageView() const { return this->_imageView; }

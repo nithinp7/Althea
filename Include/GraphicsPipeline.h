@@ -209,13 +209,6 @@ public:
       PipelineContext&& context,
       GraphicsPipelineBuilder&& builder);
 
-  // Move-only semantics
-  GraphicsPipeline(GraphicsPipeline&& rhs) = default;
-  GraphicsPipeline& operator=(GraphicsPipeline&& rhs) = default;
-
-  GraphicsPipeline(const GraphicsPipeline& rhs) = delete;
-  GraphicsPipeline& operator=(const GraphicsPipeline& rhs) = delete;
-
   void bindPipeline(const VkCommandBuffer& commandBuffer) const;
 
   VkPipelineLayout getLayout() const { return this->_pipelineLayout; }

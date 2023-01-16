@@ -16,7 +16,9 @@ public:
 
   // Move-only semantics
   UniqueVkHandle(UniqueVkHandle&& rhs)
-      : _device(rhs._device), _handle(rhs._handle) {
+      : _device(rhs._device),
+        _handle(rhs._handle),
+        _deleter(std::move(rhs._deleter)) {
     rhs._device = VK_NULL_HANDLE;
     rhs._handle = VK_NULL_HANDLE;
   }
@@ -29,6 +31,7 @@ public:
 
     this->_device = rhs._device;
     this->_handle = rhs._handle;
+    this->_deleter = std::move(rhs._deleter);
 
     rhs._device = VK_NULL_HANDLE;
     rhs._handle = VK_NULL_HANDLE;
@@ -39,7 +42,7 @@ public:
   UniqueVkHandle(const UniqueVkHandle& rhs) = delete;
   UniqueVkHandle& operator=(const UniqueVkHandle& rhs) = delete;
 
-  void set(VkDevice device, THandle handle) {
+  void set(VkDevice device, THandle handle, TDeleter&& deleter = {}) {
     if (this->_handle != VK_NULL_HANDLE) {
       // TODO: Should this be considered an error instead?
       this->destroy();
@@ -47,6 +50,7 @@ public:
 
     this->_device = device;
     this->_handle = handle;
+    this->_deleter = std::move(deleter);
   }
 
   ~UniqueVkHandle() {

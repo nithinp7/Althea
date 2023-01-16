@@ -10,35 +10,10 @@
 // host-sequential-write-device-visible, device-local) Ideally avoid e.g.,
 // allocateBuffer(...) requiring VmaAllocationCreateInfo
 namespace AltheaEngine {
-BufferAllocation::BufferAllocation(BufferAllocation&& rhs)
-    : _buffer(rhs._buffer),
-      _allocation(rhs._allocation),
-      _info(rhs._info),
-      _allocator(rhs._allocator) {
-  rhs._buffer = VK_NULL_HANDLE;
-  rhs._allocation = VK_NULL_HANDLE;
-  rhs._info = {};
-  rhs._allocator = VK_NULL_HANDLE;
-}
-
-BufferAllocation& BufferAllocation::operator=(BufferAllocation&& rhs) {
-  this->_buffer = rhs._buffer;
-  this->_allocation = rhs._allocation;
-  this->_info = rhs._info;
-  this->_allocator = rhs._allocator;
-
-  rhs._buffer = VK_NULL_HANDLE;
-  rhs._allocation = VK_NULL_HANDLE;
-  rhs._info = {};
-  rhs._allocator = VK_NULL_HANDLE;
-
-  return *this;
-}
-
-BufferAllocation::~BufferAllocation() {
-  if (this->_buffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(this->_allocator, this->_buffer, this->_allocation);
-  }
+void BufferAllocation::BufferDeleter::operator()(
+    VkDevice device,
+    VkBuffer buffer) {
+  vmaDestroyBuffer(this->allocator, buffer, this->allocation);
 }
 
 // TODO: provide way to automate / enforce write-combined, e.g., wrap:
@@ -56,35 +31,8 @@ void BufferAllocation::unmapMemory() const {
   vmaUnmapMemory(this->_allocator, this->_allocation);
 }
 
-ImageAllocation::ImageAllocation(ImageAllocation&& rhs)
-    : _image(rhs._image),
-      _allocation(rhs._allocation),
-      _info(rhs._info),
-      _allocator(rhs._allocator) {
-  rhs._image = VK_NULL_HANDLE;
-  rhs._allocation = VK_NULL_HANDLE;
-  rhs._info = {};
-  rhs._allocator = VK_NULL_HANDLE;
-}
-
-ImageAllocation& ImageAllocation::operator=(ImageAllocation&& rhs) {
-  this->_image = rhs._image;
-  this->_allocation = rhs._allocation;
-  this->_info = rhs._info;
-  this->_allocator = rhs._allocator;
-
-  rhs._image = VK_NULL_HANDLE;
-  rhs._allocation = VK_NULL_HANDLE;
-  rhs._info = {};
-  rhs._allocator = VK_NULL_HANDLE;
-
-  return *this;
-}
-
-ImageAllocation::~ImageAllocation() {
-  if (this->_image != VK_NULL_HANDLE) {
-    vmaDestroyImage(this->_allocator, this->_image, this->_allocation);
-  }
+void ImageAllocation::ImageDeleter::operator()(VkDevice device, VkImage image) {
+  vmaDestroyImage(this->allocator, image, this->allocation);
 }
 
 void* ImageAllocation::mapMemory() const {
@@ -128,15 +76,21 @@ BufferAllocation Allocator::createBuffer(
   BufferAllocation result;
   result._allocator = this->_allocator;
 
+  VkBuffer buffer;
   if (vmaCreateBuffer(
           this->_allocator,
           &bufferInfo,
           &allocInfo,
-          &result._buffer,
+          &buffer,
           &result._allocation,
           &result._info) != VK_SUCCESS) {
     throw std::runtime_error("Failed to allocate buffer.");
   }
+
+  result._buffer.set(
+      VK_NULL_HANDLE,
+      buffer,
+      {this->_allocator, result._allocation});
 
   return result;
 }
@@ -147,15 +101,21 @@ ImageAllocation Allocator::createImage(
   ImageAllocation result;
   result._allocator = this->_allocator;
 
+  VkImage image;
   if (vmaCreateImage(
           this->_allocator,
           &imageInfo,
           &allocInfo,
-          &result._image,
+          &image,
           &result._allocation,
           &result._info)) {
     throw std::runtime_error("Failed to allocate image.");
   }
+
+  result._image.set(
+      VK_NULL_HANDLE,
+      image,
+      {this->_allocator, result._allocation});
 
   return result;
 }

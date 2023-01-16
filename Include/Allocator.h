@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UniqueVkHandle.h"
 #include "vk_mem_alloc.h"
 
 #include <vulkan/vulkan.h>
@@ -9,21 +10,7 @@
 namespace AltheaEngine {
 class BufferAllocation {
 public:
-  // Move-only semantics
-  BufferAllocation() = default;
-  BufferAllocation(BufferAllocation&& rhs);
-  BufferAllocation(const BufferAllocation& rhs) = delete;
-
-  BufferAllocation& operator=(BufferAllocation&& rhs);
-  BufferAllocation& operator=(const BufferAllocation& rhs) = delete;
-
-  // Underlying allocation is automatically released to the allocator when
-  // this object is destroyed.
-  ~BufferAllocation();
-
   VkBuffer getBuffer() const { return this->_buffer; }
-
-  VmaAllocation getAllocation() const { return this->_allocation; }
 
   const VmaAllocationInfo& getInfo() const { return this->_info; }
 
@@ -33,30 +20,24 @@ public:
 private:
   friend class Allocator;
 
-  VkBuffer _buffer = VK_NULL_HANDLE;
-  VmaAllocation _allocation = VK_NULL_HANDLE;
-  VmaAllocationInfo _info{};
+  struct BufferDeleter {
+    VmaAllocator allocator;
+    VmaAllocation allocation;
 
-  VmaAllocator _allocator = VK_NULL_HANDLE;
+    void operator()(VkDevice device, VkBuffer buffer);
+  };
+
+  UniqueVkHandle<VkBuffer, BufferDeleter> _buffer;
+
+  VmaAllocator _allocator;
+  VmaAllocation _allocation;
+
+  VmaAllocationInfo _info{};
 };
 
 class ImageAllocation {
 public:
-  // Move-only semantics
-  ImageAllocation() = default;
-  ImageAllocation(ImageAllocation&& rhs);
-  ImageAllocation(const ImageAllocation& rhs) = delete;
-
-  ImageAllocation& operator=(ImageAllocation&& rhs);
-  ImageAllocation& operator=(const ImageAllocation& rhs) = delete;
-
-  // Underlying allocation is automatically released to the allocator when
-  // this object is destroyed.
-  ~ImageAllocation();
-
   VkImage getImage() const { return this->_image; }
-
-  VmaAllocation getAllocation() const { return this->_allocation; }
 
   const VmaAllocationInfo& getInfo() const { return this->_info; }
 
@@ -66,11 +47,19 @@ public:
 private:
   friend class Allocator;
 
-  VkImage _image = VK_NULL_HANDLE;
-  VmaAllocation _allocation = VK_NULL_HANDLE;
-  VmaAllocationInfo _info{};
+  struct ImageDeleter {
+    VmaAllocator allocator;
+    VmaAllocation allocation;
 
-  VmaAllocator _allocator = VK_NULL_HANDLE;
+    void operator()(VkDevice device, VkImage image);
+  };
+
+  UniqueVkHandle<VkImage, ImageDeleter> _image;
+
+  VmaAllocator _allocator;
+  VmaAllocation _allocation;
+
+  VmaAllocationInfo _info{};
 };
 
 enum class AllocationType { CPU_GPU, CPU_GPU_STAGING, GPU_ONLY };
@@ -89,6 +78,7 @@ public:
   ImageAllocation createImage(
       const VkImageCreateInfo& imageInfo,
       const VmaAllocationCreateInfo& allocInfo) const;
+
 private:
   VmaAllocator _allocator;
 };

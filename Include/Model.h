@@ -25,16 +25,13 @@ public:
       const Application& app,
       const std::string& name,
       DescriptorSetAllocator& materialAllocator);
-  Model(const Model& rhs) = delete;
-  Model& operator=(const Model& model) = delete;
-  Model(Model&& rhs) = delete;
 
   size_t getPrimitivesCount() const;
   void draw(const DrawContext& context) const;
 
 private:
   CesiumGltf::Model _model;
-  std::vector<std::unique_ptr<Primitive>> _primitives;
+  std::vector<Primitive> _primitives;
 
   void _loadNode(
       const Application& app,

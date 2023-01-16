@@ -90,9 +90,6 @@ public:
       const CesiumGltf::MeshPrimitive& primitive,
       const glm::mat4& nodeTransform,
       DescriptorSetAllocator& materialAllocator);
-  Primitive(const Primitive& rhs) = delete;
-  Primitive& operator=(const Primitive& rhs) = delete;
-  Primitive(Primitive&& rhs) = delete;
 
   void draw(const DrawContext& context) const;
 };

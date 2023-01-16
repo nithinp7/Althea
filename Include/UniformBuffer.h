@@ -13,15 +13,9 @@ class Application;
 
 template <typename TUniforms> class UniformBuffer {
 public:
-  // Move-only semantics
   UniformBuffer() = default;
-  UniformBuffer(UniformBuffer&& rhs) = default;
-  UniformBuffer& operator=(UniformBuffer&& rhs) = default;
 
-  UniformBuffer(const UniformBuffer& rhs) = delete;
-  UniformBuffer& operator=(const UniformBuffer& rhs) = delete;
-
-  UniformBuffer(const Application& app) 
+  UniformBuffer(const Application& app)
       : _allocation(app.createUniformBuffer(sizeof(TUniforms))) {}
 
   UniformBuffer(const Application& app, const TUniforms& uniforms)

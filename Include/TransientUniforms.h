@@ -21,11 +21,6 @@ class Application;
 template <typename TUniforms> class TransientUniforms {
 public:
   TransientUniforms() = default;
-  TransientUniforms(TransientUniforms&& rhs) = default;
-  TransientUniforms& operator=(TransientUniforms&& rhs) = default;
-
-  TransientUniforms(const TransientUniforms& rhs) = delete;
-  TransientUniforms& operator=(const TransientUniforms& rhs) = delete;
 
   TransientUniforms(const Application& app) {
     for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {

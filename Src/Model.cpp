@@ -195,6 +195,11 @@ Model::Model(
 
   glm::mat4 transform(1.0f);
 
+  // TODO: Create only one primitive for each mesh and position / instance
+  // it as dictated by nodes.
+
+  // Sensible estimate of number of primitives that will be in the model
+  this->_primitives.reserve(this->_model.meshes.size());
   if (this->_model.scene >= 0 &&
       this->_model.scene < this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
@@ -230,12 +235,12 @@ Model::Model(
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
-        this->_primitives.push_back(std::make_unique<Primitive>(
+        this->_primitives.emplace_back(
             app,
             this->_model,
             primitive,
             transform,
-            materialAllocator));
+            materialAllocator);
       }
     }
   }
@@ -244,8 +249,8 @@ Model::Model(
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
 
 void Model::draw(const DrawContext& context) const {
-  for (const std::unique_ptr<Primitive>& pPrimitive : this->_primitives) {
-    pPrimitive->draw(context);
+  for (const Primitive& primitive : this->_primitives) {
+    primitive.draw(context);
   }
 }
 
@@ -338,12 +343,12 @@ void Model::_loadNode(
   if (node.mesh >= 0 && node.mesh < model.meshes.size()) {
     const CesiumGltf::Mesh& mesh = model.meshes[node.mesh];
     for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
-      this->_primitives.push_back(std::make_unique<Primitive>(
+      this->_primitives.emplace_back(
           app,
           this->_model,
           primitive,
           nodeTransform,
-          materialAllocator));
+          materialAllocator);
     }
   }
 

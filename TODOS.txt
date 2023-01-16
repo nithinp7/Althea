@@ -5,6 +5,7 @@ updated, but not every frame - these resources will not be able to leverage the
 per-frame stack. For this case, we will need a way to dynamically create a new UBO,
 upload the data as needed, and age out the old one (2 or 3 frames later).
 -"Dynamic Uniform Buffer"?
+-Write up credits / inspiration / learning references in Readme
 
 Issues from shader-reloading:
 -DescriptorSet references invalid material allocator. Solution is to share material 
