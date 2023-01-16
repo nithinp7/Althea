@@ -57,6 +57,7 @@ More pictures to come soon!
 - [ ] Deferred rendering setup
 - [ ] Scenegraph / Entity Component System
 - [ ] Instancing / batching
+- [ ] Use spir-v reflection via shaderc to code-gen pipeline layouts / binding declarations in application-level C++.
 
 #### Vulkan Backend
 - [ ] API to leverage compute pipeline.

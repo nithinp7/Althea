@@ -6,6 +6,7 @@
 #include "GraphicsPipeline.h"
 #include "PerFrameResources.h"
 
+#include <gsl/span>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -59,8 +60,6 @@ struct SubpassBuilder {
   std::vector<uint32_t> colorAttachments;
   std::optional<uint32_t> depthAttachment;
 
-  DescriptorSetLayoutBuilder subpassResourcesBuilder;
-
   GraphicsPipelineBuilder pipelineBuilder;
 };
 
@@ -69,8 +68,6 @@ public:
   Subpass(
       const Application& app,
       VkRenderPass renderPass,
-      const std::shared_ptr<PerFrameResources>& pGlobalResources,
-      const std::optional<PerFrameResources>& renderPassResources,
       uint32_t subpassIndex,
       SubpassBuilder&& builder);
   Subpass(Subpass&& rhs) = default;
@@ -79,17 +76,7 @@ public:
 
   GraphicsPipeline& getPipeline() { return this->_pipeline; }
 
-  std::optional<PerFrameResources>& getSubpassResources() {
-    return this->_subpassResources;
-  }
-
-  const std::optional<PerFrameResources>& getSubpassResources() const {
-    return this->_subpassResources;
-  }
-
 private:
-  std::optional<PerFrameResources> _subpassResources;
-
   GraphicsPipeline _pipeline;
 };
 
@@ -98,8 +85,6 @@ class RenderPass {
 public:
   RenderPass(
       const Application& app,
-      const std::shared_ptr<PerFrameResources>& pGlobalResources,
-      const DescriptorSetLayoutBuilder& renderPassResourcesLayoutBuilder,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
@@ -108,14 +93,6 @@ public:
       const Application& app,
       const VkCommandBuffer& commandBuffer,
       const FrameContext& frame);
-
-  std::optional<PerFrameResources>& getRenderPassResources() {
-    return this->_renderPassResources;
-  }
-
-  const std::optional<PerFrameResources>& getRenderPassResources() const {
-    return this->_renderPassResources;
-  }
 
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
@@ -126,9 +103,6 @@ private:
   void _createFrameBuffer(
       const VkExtent2D& extent,
       const std::optional<VkImageView>& swapChainImageView);
-
-  std::shared_ptr<PerFrameResources> _pGlobalResources;
-  std::optional<PerFrameResources> _renderPassResources;
 
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;
@@ -147,7 +121,6 @@ public:
   ActiveRenderPass(
       const RenderPass& renderPass,
       const VkCommandBuffer& commandBuffer,
-      const PerFrameResources* pGlobalResources,
       const FrameContext& frame,
       const VkExtent2D& extent);
   ~ActiveRenderPass();
@@ -162,6 +135,9 @@ public:
 
     return *this;
   }
+
+  ActiveRenderPass&
+  setGlobalDescriptorSets(gsl::span<const VkDescriptorSet> sets);
 
 private:
   uint32_t _currentSubpass = 0;

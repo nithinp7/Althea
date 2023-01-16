@@ -105,8 +105,12 @@ void SponzaTest::createRenderState(Application& app) {
 
   // Global resources
   DescriptorSetLayoutBuilder globalResourceLayout;
-  // Add slot for skybox cubemap.
-  globalResourceLayout.addTextureBinding().addUniformBufferBinding();
+
+  globalResourceLayout
+      // Add slot for skybox cubemap.
+      .addTextureBinding()
+      // Global uniforms.
+      .addUniformBufferBinding();
 
   this->_pGlobalResources =
       std::make_shared<PerFrameResources>(app, globalResourceLayout);
@@ -120,24 +124,46 @@ void SponzaTest::createRenderState(Application& app) {
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
     Skybox::buildPipeline(app, subpassBuilder.pipelineBuilder);
+
+    subpassBuilder.pipelineBuilder
+        .layoutBuilder
+        // Global resources (view, projection, skybox)
+        .addDescriptorSet(this->_pGlobalResources->getLayout());
   }
 
   // REGULAR PASS
   {
+    // Per-primitive material resources
+    DescriptorSetLayoutBuilder primitiveMaterialLayout;
+    Primitive::buildMaterial(primitiveMaterialLayout);
+
+    this->_pGltfMaterialAllocator =
+        std::make_unique<DescriptorSetAllocator>(app, primitiveMaterialLayout);
+
     SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
     subpassBuilder.colorAttachments.push_back(0);
     subpassBuilder.depthAttachment = 1;
 
     Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
-    subpassBuilder.pipelineBuilder.addVertexShader("/Shaders/GltfPBR.vert")
-        .addFragmentShader("/Shaders/GltfPBR.frag");
+    subpassBuilder
+        .pipelineBuilder
+        // Vertex shader
+        .addVertexShader("/Shaders/GltfPBR.vert")
+        // Fragment shader
+        .addFragmentShader("/Shaders/GltfPBR.frag")
+
+        // Pipeline resource layouts
+        .layoutBuilder
+        // Global resources (view, projection, environment map)
+        .addDescriptorSet(this->_pGlobalResources->getLayout())
+        // Material (per-object) resources (diffuse, normal map,
+        // metallic-roughness, etc)
+        .addDescriptorSet(this->_pGltfMaterialAllocator->getLayout());
   }
 
   this->_pRenderPass = std::make_unique<RenderPass>(
       app,
-      this->_pGlobalResources,
-      DescriptorSetLayoutBuilder{},
       std::move(attachments),
       std::move(subpassBuilders));
 
@@ -157,7 +183,7 @@ void SponzaTest::createRenderState(Application& app) {
       app,
       // "/Content/Models/Sponza/glTF/Sponza.gltf",
       "/Content/Models/FlightHelmet/FlightHelmet.gltf",
-      subpasses[1].getPipeline().getMaterialAllocator());
+      *this->_pGltfMaterialAllocator);
 
   // Bind the skybox cubemap as a global resource
   const std::shared_ptr<Cubemap>& pCubemap = this->_pSkybox->getCubemap();
@@ -173,6 +199,7 @@ void SponzaTest::destroyRenderState(Application& app) {
   this->_pRenderPass.reset();
   this->_pGlobalResources.reset();
   this->_pGlobalUniforms.reset();
+  this->_pGltfMaterialAllocator.reset();
 }
 
 void SponzaTest::tick(Application& app, const FrameContext& frame) {
@@ -196,8 +223,13 @@ void SponzaTest::draw(
     Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
+  VkDescriptorSet globalDescriptorSet =
+      this->_pGlobalResources->getCurrentDescriptorSet(frame);
+
   this->_pRenderPass
       ->begin(app, commandBuffer, frame)
+      // Bind global descriptor sets
+      .setGlobalDescriptorSets(gsl::span(&globalDescriptorSet, 1))
       // Draw skybox
       .draw(*this->_pSkybox)
       .nextSubpass()

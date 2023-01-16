@@ -12,7 +12,7 @@ Material::Material(const Application& app, DescriptorSetAllocator& allocator) {
   }
 }
 
-bool Material::isEmpty() const { return this->_descriptorSets.empty(); }
+Material::operator bool() const { return !this->_descriptorSets.empty(); }
 
 VkDescriptorSet
 Material::getCurrentDescriptorSet(const FrameContext& frame) const {

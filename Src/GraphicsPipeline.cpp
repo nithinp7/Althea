@@ -11,17 +11,22 @@ GraphicsPipeline::GraphicsPipeline(
     const Application& app,
     PipelineContext&& context,
     GraphicsPipelineBuilder&& builder)
-    : _context(std::move(context)),
-      _builder(std::move(builder)),
-      // TODO: would be ideal to move this, but do we really
-      // want the builder to be passed in as an lvalue ref?
-      _pushConstantRanges(this->_builder._pushConstantRanges) {
+    : _pipelineLayout(app, builder.layoutBuilder),
+      _context(std::move(context)),
+      _builder(std::move(builder)) {
 
   // Create shader modules
   size_t shaderCount = this->_builder._shaderBuilders.size();
   this->_shaders.reserve(shaderCount);
   for (size_t i = 0; i < shaderCount; ++i) {
-    this->_shaders.emplace_back(app, this->_builder._shaderBuilders[i]);
+    ShaderBuilder& shaderBuilder = this->_builder._shaderBuilders[i];
+    // Shader compiler errors should be checked before creating pipeline.
+    if (shaderBuilder.hasErrors()) {
+      throw std::runtime_error("Attempting to build pipeline with shader that "
+                               "could not be compiled.");
+    }
+
+    this->_shaders.emplace_back(app, shaderBuilder);
 
     // Link shader module to corresponding shader stage description
     this->_builder._shaderStages[i].module = this->_shaders.back();
@@ -32,18 +37,6 @@ GraphicsPipeline::GraphicsPipeline(
           this->_builder._dynamicStates.begin(),
           this->_builder._dynamicStates.end(),
           VK_DYNAMIC_STATE_FRONT_FACE) != this->_builder._dynamicStates.end();
-
-  if (this->_builder._pMaterialAllocator) {
-    // This bypasses the material creation. This path is used when a pipeline
-    // is recreated, so the old pipeline's material allocator is shared with the
-    // new one.
-    this->_pMaterialAllocator = this->_builder._pMaterialAllocator;
-  } else if (this->_builder.materialResourceLayoutBuilder.hasBindings()) {
-    this->_pMaterialAllocator = std::make_shared<DescriptorSetAllocator>(
-        app,
-        this->_builder.materialResourceLayoutBuilder,
-        this->_builder._materialPoolSize);
-  }
 
   if (this->_builder._shaderStages.empty()) {
     throw std::runtime_error(
@@ -72,51 +65,6 @@ GraphicsPipeline::GraphicsPipeline(
   viewportStateInfo.pViewports = &viewport;
   viewportStateInfo.scissorCount = 1;
   viewportStateInfo.pScissors = &scissor;
-
-  // RESOURCE LAYOUTS / BINDINGS
-
-  // The descriptor sets will be as follows, skipping any that don't exist:
-  // 0: Global resources
-  // 1: Render pass wide resources
-  // 2: Subpass wide resources // TODO necessary??
-  // 3: Per-object, material resources
-  std::vector<VkDescriptorSetLayout> layouts;
-  if (this->_context.globalResourcesLayout) {
-    layouts.push_back(*this->_context.globalResourcesLayout);
-  }
-
-  if (this->_context.renderPassResourcesLayout) {
-    layouts.push_back(*this->_context.renderPassResourcesLayout);
-  }
-
-  if (this->_context.subpassResourcesLayout) {
-    layouts.push_back(*this->_context.subpassResourcesLayout);
-  }
-
-  if (this->_pMaterialAllocator) {
-    layouts.push_back(this->_pMaterialAllocator->getLayout());
-  }
-
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-  pipelineLayoutInfo.pSetLayouts = layouts.data();
-  pipelineLayoutInfo.pushConstantRangeCount =
-      static_cast<uint32_t>(this->_builder._pushConstantRanges.size());
-  pipelineLayoutInfo.pPushConstantRanges =
-      this->_builder._pushConstantRanges.data();
-
-  VkDevice device = app.getDevice();
-  VkPipelineLayout pipelineLayout;
-  if (vkCreatePipelineLayout(
-          device,
-          &pipelineLayoutInfo,
-          nullptr,
-          &pipelineLayout) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create pipeline layout!");
-  }
-
-  this->_pipelineLayout.set(device, pipelineLayout);
 
   // VERTEX INPUT, ATTRIBUTES, ETC
 
@@ -263,6 +211,7 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineInfo.basePipelineIndex = -1;
 
+  VkDevice device = app.getDevice();
   VkPipeline pipeline;
   if (vkCreateGraphicsPipelines(
           device,
@@ -275,12 +224,6 @@ GraphicsPipeline::GraphicsPipeline(
   }
 
   this->_pipeline.set(device, pipeline);
-}
-
-void GraphicsPipeline::PipelineLayoutDeleter::operator()(
-    VkDevice device,
-    VkPipelineLayout pipelineLayout) {
-  vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 }
 
 void GraphicsPipeline::PipelineDeleter::operator()(
@@ -352,8 +295,6 @@ void GraphicsPipeline::recreatePipeline(Application& app) {
   // are moving away the context and builder objects when recreating the
   // pipeline...
   this->_outdated = true;
-  // Share the current material allocator with the recreated pipeline.
-  this->_builder._pMaterialAllocator = this->_pMaterialAllocator;
 
   GraphicsPipeline newPipeline(
       app,
@@ -370,13 +311,6 @@ void GraphicsPipeline::recreatePipeline(Application& app) {
       app.getCurrentFrameRingBufferIndex()}));
 
   *this = std::move(newPipeline);
-}
-
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addComputeShader(const std::string& shaderPath) {
-  throw std::runtime_error("Compute shaders not yet supported!");
-
-  return *this;
 }
 
 GraphicsPipelineBuilder&
@@ -516,13 +450,6 @@ GraphicsPipelineBuilder::setFrontFace(VkFrontFace frontFace) {
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::setCullMode(VkCullModeFlags cullMode) {
   this->_cullMode = cullMode;
-
-  return *this;
-}
-
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::setMaterialPoolSize(uint32_t poolSize) {
-  this->_materialPoolSize = poolSize;
 
   return *this;
 }

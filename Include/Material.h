@@ -18,7 +18,7 @@ public:
   Material(const Material& rhs) = delete;
   Material& operator=(const Material& rhs) = delete;
 
-  bool isEmpty() const;
+  operator bool() const;
   VkDescriptorSet getCurrentDescriptorSet(const FrameContext& frame) const;
 
   ResourcesAssignment assign();

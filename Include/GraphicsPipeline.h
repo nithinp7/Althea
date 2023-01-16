@@ -2,6 +2,7 @@
 
 #include "DescriptorSet.h"
 #include "PerFrameResources.h"
+#include "PipelineLayout.h"
 #include "Shader.h"
 #include "UniqueVkHandle.h"
 
@@ -20,9 +21,6 @@ class ShaderManager;
 
 struct PipelineContext {
   VkRenderPass renderPass;
-  std::optional<VkDescriptorSetLayout> globalResourcesLayout;
-  std::optional<VkDescriptorSetLayout> renderPassResourcesLayout;
-  std::optional<VkDescriptorSetLayout> subpassResourcesLayout;
   uint32_t subpassIndex;
 };
 
@@ -32,7 +30,6 @@ enum class PrimitiveType { TRIANGLES, LINES, POINTS };
 
 class GraphicsPipelineBuilder {
 public:
-  GraphicsPipelineBuilder& addComputeShader(const std::string& shaderPath);
   GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath);
   GraphicsPipelineBuilder&
   addTessellationControlShader(const std::string& shaderPath);
@@ -122,61 +119,14 @@ public:
   GraphicsPipelineBuilder& setCullMode(VkCullModeFlags cullMode);
 
   /**
-   * @brief Set the size of material pools in the material descriptor set block
-   * allocator.
-   *
-   * Small sizes may cause excessive allocation calls as the block count grows.
-   * On the other hand, if only a few materials will be needed, it may be better
-   * to allocate exactly that many by setting the pool size to the expected
-   * material count.
-   *
-   * @param primitiveCount The max number of primitives that will be rendered
-   * with this pipeline.
-   * @return This builder.
+   * @brief The builder for creating a pipeline layout for this graphics
+   * pipeline.
    */
-  GraphicsPipelineBuilder& setMaterialPoolSize(uint32_t poolSize);
-
-  /**
-   * @brief Add push constants for this pipeline. Later, push constant ranges
-   * can be updated in the command buffer before issuing draw commands.
-   *
-   * @param stageFlags The shader stages that this push constant range should be
-   * made available in.
-   * @return This builder.
-   */
-  template <typename TPushConstants>
-  GraphicsPipelineBuilder&
-  addPushConstants(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL) {
-
-    uint32_t offset = 0;
-    if (!this->_pushConstantRanges.empty()) {
-      offset = this->_pushConstantRanges.back().offset;
-    }
-
-    VkPushConstantRange& range = this->_pushConstantRanges.emplace_back();
-    range.offset = offset;
-    range.size = static_cast<uint32_t>(sizeof(TPushConstants));
-    range.stageFlags = stageFlags;
-
-    return *this;
-  }
-
-  /**
-   * @brief Builder for the per-object, material descriptor set layout. The
-   * resources bound to descriptor sets of this layout will be unique for each
-   * object rendered in this pipeline's subpass.
-   */
-  DescriptorSetLayoutBuilder materialResourceLayoutBuilder;
+  PipelineLayoutBuilder layoutBuilder;
 
 private:
   friend class GraphicsPipeline;
   // Info needed to build the graphics pipeline
-
-  // Used internally to share the material allocator from the old pipeline
-  // to a newly recreated pipeline. When this is not nullptr, this allocator
-  // will be used for the newly built pipeline, instead of building a new
-  // material allocator from materialResourceLayoutBuilder.
-  std::shared_ptr<DescriptorSetAllocator> _pMaterialAllocator = nullptr;
 
   // Note: The shader stages do not have shader modules linked at this
   // point, they must be linked when the shader modules are created
@@ -187,8 +137,6 @@ private:
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
 
-  std::vector<VkPushConstantRange> _pushConstantRanges;
-
   VkCullModeFlags _cullMode = VK_CULL_MODE_BACK_BIT;
   VkFrontFace _frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
@@ -198,8 +146,6 @@ private:
   bool _depthTest = true;
 
   std::vector<VkDynamicState> _dynamicStates;
-
-  uint32_t _materialPoolSize = 1000;
 };
 
 class GraphicsPipeline {
@@ -215,12 +161,8 @@ public:
 
   VkPipeline getVkPipeline() const { return this->_pipeline; }
 
-  DescriptorSetAllocator& getMaterialAllocator() {
-    return *this->_pMaterialAllocator;
-  }
-
   const std::vector<VkPushConstantRange>& getPushConstantRanges() const {
-    return this->_pushConstantRanges;
+    return this->_pipelineLayout.getPushConstantRanges();
   }
 
   bool isDynamicFrontFaceEnabled() const {
@@ -268,15 +210,11 @@ public:
   void recreatePipeline(Application& app);
 
 private:
-  struct PipelineLayoutDeleter {
-    void operator()(VkDevice device, VkPipelineLayout pipelineLayout);
-  };
-
   struct PipelineDeleter {
     void operator()(VkDevice device, VkPipeline pipeline);
   };
 
-  UniqueVkHandle<VkPipelineLayout, PipelineLayoutDeleter> _pipelineLayout;
+  PipelineLayout _pipelineLayout;
   UniqueVkHandle<VkPipeline, PipelineDeleter> _pipeline;
 
   // These are kept around to allow the pipeline to recreate itself if
@@ -288,12 +226,8 @@ private:
   // prevent further pipeline recreations based on this one.
   bool _outdated = false;
 
-  std::shared_ptr<DescriptorSetAllocator> _pMaterialAllocator;
-
   std::vector<Shader> _shaders;
 
-  // These are kept around to validate client setup of draw calls.
-  std::vector<VkPushConstantRange> _pushConstantRanges;
   bool _dynamicFrontFaceEnabled = false;
 };
 } // namespace AltheaEngine

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Allocator.h"
 #include "FrameContext.h"
 #include "IndexBuffer.h"
 #include "Material.h"
 #include "VertexBuffer.h"
-#include "Allocator.h"
 
 #include <vulkan/vulkan.h>
 
@@ -70,12 +70,7 @@ public:
     const BufferAllocation& allocation = vertexBuffer.getAllocation();
     VkBuffer vkBuffer = allocation.getBuffer();
     VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(
-        this->_commandBuffer,
-        0,
-        1,
-        &vkBuffer,
-        &offset);
+    vkCmdBindVertexBuffers(this->_commandBuffer, 0, 1, &vkBuffer, &offset);
   }
 
   /**
@@ -139,9 +134,16 @@ private:
   _updatePushConstants(const void* pSrc, uint32_t size, uint32_t index) const;
 
   VkCommandBuffer _commandBuffer;
-  std::optional<VkDescriptorSet> _globalResources;
-  std::optional<VkDescriptorSet> _renderPassResources;
-  std::optional<VkDescriptorSet> _subpassResource;
+
+  // The number of global descriptor sets there are in the _descriptorSets
+  // array (max 3).
+  uint32_t _globalDescriptorSetCount = 0;
+  // The global descriptor sets, optionally followed by a material descriptor
+  // set.
+  // Note this is mutable so we can temporarily add the material descriptor
+  // set from a const function. It needs to be contiguous in memory to the
+  // rest. This "scratch-space" usage should not be visible externally.
+  mutable VkDescriptorSet _descriptorSets[4];
 
   const Subpass* _pCurrentSubpass;
 

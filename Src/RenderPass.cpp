@@ -9,47 +9,18 @@ namespace AltheaEngine {
 Subpass::Subpass(
     const Application& app,
     VkRenderPass renderPass,
-    const std::shared_ptr<PerFrameResources>& pGlobalResources,
-    const std::optional<PerFrameResources>& renderPassResources,
     uint32_t subpassIndex,
     SubpassBuilder&& builder)
-    : _subpassResources(
-          builder.subpassResourcesBuilder.hasBindings()
-              ? std::make_optional<PerFrameResources>(
-                    app,
-                    builder.subpassResourcesBuilder)
-              : std::nullopt),
-      _pipeline(
+    : _pipeline(
           app,
-          PipelineContext{
-              renderPass,
-              pGlobalResources
-                  ? std::make_optional(pGlobalResources->getLayout())
-                  : std::nullopt,
-              renderPassResources
-                  ? std::make_optional(renderPassResources->getLayout())
-                  : std::nullopt,
-              this->_subpassResources
-                  ? std::make_optional(this->_subpassResources->getLayout())
-                  : std::nullopt,
-              subpassIndex},
+          PipelineContext{renderPass, subpassIndex},
           std::move(builder.pipelineBuilder)) {}
 
 RenderPass::RenderPass(
     const Application& app,
-    const std::shared_ptr<PerFrameResources>& pGlobalResources,
-    const DescriptorSetLayoutBuilder& renderPassResourceLayoutBuilder,
     std::vector<Attachment>&& attachments,
     std::vector<SubpassBuilder>&& subpassBuilders)
-    : _attachments(std::move(attachments)),
-      _device(app.getDevice()),
-      _pGlobalResources(pGlobalResources) {
-
-  // Create render pass level resources.
-  if (renderPassResourceLayoutBuilder.hasBindings()) {
-    this->_renderPassResources.emplace(app, renderPassResourceLayoutBuilder);
-  }
-
+    : _attachments(std::move(attachments)), _device(app.getDevice()) {
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
     const Attachment& attachment = this->_attachments[i];
@@ -185,8 +156,6 @@ RenderPass::RenderPass(
     this->_subpasses.emplace_back(
         app,
         this->_renderPass,
-        this->_pGlobalResources,
-        this->_renderPassResources,
         subpassIndex,
         std::move(subpassBuilders[subpassIndex]));
   }
@@ -257,7 +226,6 @@ ActiveRenderPass RenderPass::begin(
   return ActiveRenderPass(
       *this,
       commandBuffer,
-      this->_pGlobalResources.get(),
       frame,
       app.getSwapChainExtent());
 }
@@ -265,7 +233,6 @@ ActiveRenderPass RenderPass::begin(
 ActiveRenderPass::ActiveRenderPass(
     const RenderPass& renderPass,
     const VkCommandBuffer& commandBuffer,
-    const PerFrameResources* pGlobalResources,
     const FrameContext& frame,
     const VkExtent2D& extent)
     : _currentSubpass(0),
@@ -274,17 +241,6 @@ ActiveRenderPass::ActiveRenderPass(
       _frame(frame) {
 
   this->_drawContext._commandBuffer = commandBuffer;
-
-  if (pGlobalResources) {
-    this->_drawContext._globalResources =
-        pGlobalResources->getCurrentDescriptorSet(frame);
-  }
-
-  if (renderPass.getRenderPassResources()) {
-    this->_drawContext._renderPassResources =
-        renderPass.getRenderPassResources()->getCurrentDescriptorSet(frame);
-  }
-
   this->_drawContext._pFrame = &frame;
 
   VkRenderPassBeginInfo renderPassInfo{};
@@ -313,11 +269,6 @@ ActiveRenderPass::ActiveRenderPass(
 
   this->_drawContext._pCurrentSubpass = &currentSubpass;
 
-  if (currentSubpass.getSubpassResources()) {
-    this->_drawContext._subpassResource =
-        currentSubpass.getSubpassResources()->getCurrentDescriptorSet(frame);
-  }
-
   // TODO: Support compute as well?
   vkCmdBeginRenderPass(
       this->_commandBuffer,
@@ -345,12 +296,23 @@ ActiveRenderPass& ActiveRenderPass::nextSubpass() {
 
   currentSubpass.getPipeline().bindPipeline(this->_commandBuffer);
 
-  if (currentSubpass.getSubpassResources()) {
-    this->_drawContext._subpassResource =
-        currentSubpass.getSubpassResources()->getCurrentDescriptorSet(
-            this->_frame);
+  return *this;
+}
+
+ActiveRenderPass& ActiveRenderPass::setGlobalDescriptorSets(
+    gsl::span<const VkDescriptorSet> sets) {
+  if (sets.size() > 3) {
+    throw std::runtime_error(
+        "Attempting to set more than 3 global descriptor sets.");
+  }
+
+  this->_drawContext._globalDescriptorSetCount =
+      static_cast<uint32_t>(sets.size());
+  for (size_t i = 0; i < sets.size(); ++i) {
+    this->_drawContext._descriptorSets[i] = sets[i];
   }
 
   return *this;
 }
+
 } // namespace AltheaEngine

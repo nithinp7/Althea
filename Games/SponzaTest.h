@@ -46,9 +46,11 @@ public:
 private:
   glm::vec3 _lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
   bool _adjustingLight = false;
-  
+
   std::shared_ptr<PerFrameResources> _pGlobalResources;
   std::unique_ptr<TransientUniforms<GlobalUniforms>> _pGlobalUniforms;
+
+  std::unique_ptr<DescriptorSetAllocator> _pGltfMaterialAllocator;
 
   std::unique_ptr<CameraController> _pCameraController;
 

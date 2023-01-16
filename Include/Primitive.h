@@ -69,6 +69,7 @@ struct TextureSlots {
 class Primitive {
 public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
+  static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 
 private:
   VkDevice _device;

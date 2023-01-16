@@ -95,13 +95,15 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
         offsetof(Vertex, uvs[i]));
   }
 
-  builder
-      .enableDynamicFrontFace()
+  builder.enableDynamicFrontFace();
 
-      // Add push constants for updating model transform
-      .addPushConstants<glm::mat4>();
+  // Add push constants for updating model transform
+  builder.layoutBuilder.addPushConstants<glm::mat4>();
+}
 
-  builder.materialResourceLayoutBuilder
+/*static*/
+void Primitive::buildMaterial(DescriptorSetLayoutBuilder& materialBuilder) {
+  materialBuilder
       .addConstantsBufferBinding<PrimitiveConstants>()
       // Base color
       .addTextureBinding()
