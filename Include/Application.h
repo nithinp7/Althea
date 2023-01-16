@@ -3,6 +3,7 @@
 #include "Allocator.h"
 #include "CameraController.h"
 #include "ConfigParser.h"
+#include "DeletionTasks.h"
 #include "FrameContext.h"
 #include "ImageView.h"
 #include "InputManager.h"
@@ -68,6 +69,7 @@ private:
 
   std::unique_ptr<Allocator> pAllocator;
   std::unique_ptr<IGameInstance> gameInstance;
+  DeletionTasks deletionTasks;
 
   GLFWwindow* window;
 
@@ -86,6 +88,7 @@ private:
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
+  // TODO: These should not no longer need to be wrapped in unique_ptrs
   std::unique_ptr<ImageAllocation> pDepthImageAllocation;
   std::unique_ptr<ImageView> pDepthImageView;
   VkFormat depthImageFormat;
@@ -186,9 +189,7 @@ public:
 
   VkFormat getDepthImageFormat() const { return depthImageFormat; }
 
-  VkImageView getDepthImageView() const {
-    return pDepthImageView->getImageView();
-  }
+  VkImageView getDepthImageView() const { return *pDepthImageView; }
 
   bool hasStencilComponent() const;
 
@@ -197,6 +198,12 @@ public:
   InputManager& getInputManager() { return *pInputManager; }
 
   uint32_t getMaxFramesInFlight() const { return MAX_FRAMES_IN_FLIGHT; }
+
+  void addDeletiontask(DeletionTask&& task) {
+    deletionTasks.addDeletionTask(std::move(task));
+  }
+
+  uint32_t getCurrentFrameRingBufferIndex() const { return this->currentFrame; }
 
   // Command Utilities
   VkCommandBuffer beginSingleTimeCommands() const;

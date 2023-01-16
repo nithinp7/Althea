@@ -12,10 +12,9 @@ class Application;
 class Sampler {
 public:
   Sampler(const Application& app, const VkSamplerCreateInfo& createInfo);
-
   Sampler() = default;
 
-  VkSampler getSampler() const { return this->_sampler; }
+  operator VkSampler() const { return this->_sampler; }
 
 private:
   struct SamplerDeleter {

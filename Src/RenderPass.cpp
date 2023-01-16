@@ -200,7 +200,7 @@ RenderPass::RenderPass(
     // will be from the swapchain. So we will need a different frame buffer for
     // each image in the swapchain.
     for (const ImageView& swapChainImageView : app.getSwapChainImageViews()) {
-      this->_createFrameBuffer(extent, swapChainImageView.getImageView());
+      this->_createFrameBuffer(extent, swapChainImageView);
     }
   } else {
     this->_createFrameBuffer(extent, std::nullopt);

@@ -15,10 +15,10 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-#include <iostream>
 
 using namespace AltheaEngine;
 
@@ -57,7 +57,7 @@ void SponzaTest::initGame(Application& app) {
             if (pipeline.hasShaderRecompileErrors()) {
               std::cout << pipeline.getShaderRecompileErrors() << "\n";
             } else {
-              pipeline = pipeline.recreatePipeline(app);
+              pipeline.recreatePipeline(app);
             }
           }
         }

@@ -12,8 +12,7 @@ ImageView::ImageView(
     uint32_t mipCount,
     uint32_t layerCount,
     VkImageViewType type,
-    VkImageAspectFlags aspectFlags)
-    : _device(app.getDevice()) {
+    VkImageAspectFlags aspectFlags) {
 
   VkImageViewCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -30,30 +29,18 @@ ImageView::ImageView(
   createInfo.subresourceRange.baseArrayLayer = 0;
   createInfo.subresourceRange.layerCount = layerCount;
 
-  if (vkCreateImageView(this->_device, &createInfo, nullptr, &this->_view) !=
-      VK_SUCCESS) {
+  VkDevice device = app.getDevice();
+  VkImageView view;
+  if (vkCreateImageView(device, &createInfo, nullptr, &view) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create image view!");
   }
+
+  this->_view.set(device, view);
 }
 
-ImageView::ImageView(ImageView&& rhs) : _device(rhs._device), _view(rhs._view) {
-  rhs._device = VK_NULL_HANDLE;
-  rhs._view = VK_NULL_HANDLE;
-}
-
-ImageView& ImageView::operator=(ImageView&& rhs) {
-  this->_device = rhs._device;
-  this->_view = rhs._view;
-
-  rhs._device = VK_NULL_HANDLE;
-  rhs._view = VK_NULL_HANDLE;
-
-  return *this;
-}
-
-ImageView::~ImageView() {
-  if (this->_view != VK_NULL_HANDLE) {
-    vkDestroyImageView(this->_device, this->_view, nullptr);
-  }
+void ImageView::ImageViewDeleter::operator()(
+    VkDevice device,
+    VkImageView view) {
+  vkDestroyImageView(device, view, nullptr);
 }
 } // namespace AltheaEngine

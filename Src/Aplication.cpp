@@ -120,6 +120,7 @@ void Application::drawFrame() {
 
   FrameContext frame{time, deltaTime, currentFrame, imageIndex};
 
+  this->deletionTasks.tick(frame);
   this->gameInstance->tick(*this, frame);
 
   vkResetFences(device, 1, &inFlightFence);
@@ -178,6 +179,8 @@ void Application::cleanup() {
   }
 
   vkDestroyCommandPool(device, commandPool, nullptr);
+
+  this->deletionTasks.flush();
 
   cleanupSwapChain();
   cleanupDepthResource();

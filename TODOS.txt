@@ -1,63 +1,37 @@
-Current TODOs:
--GLTF PBR:
- -metallic-roughness
- -emissive?? Bloom??
- -ambient occlusion
- -lighting (global uniform)
+Loose thoughts that haven't been put into the roadmap / readme:
 
--Un-triaged:
 -In the future, will need to consider UBOs that might have to be "ocassionally"
 updated, but not every frame - these resources will not be able to leverage the
 per-frame stack. For this case, we will need a way to dynamically create a new UBO,
 upload the data as needed, and age out the old one (2 or 3 frames later).
 -"Dynamic Uniform Buffer"?
 
+Issues from shader-reloading:
+-DescriptorSet references invalid material allocator. Solution is to share material 
+allocator when recreating pipeline - but it also begs the question whether DescriptorSets
+freeing themselves back to the allocator by reference is suspicious.
+
+-DescriptorAssignment, DescriptorSet, and DescriptorSetAllocator are suspicious, might
+need a small cleanup / refactor
 -Skybox is becoming a strange class, it is no longer fully self-contained
 since the cubemap texture is now used from the global descriptor set 
 -stress test object count
--UBO abstraction 
--batched UBO updates
+-batched UBO updates?
 -Tentative architecture diagram / writeup
--Simple scene graph / ECS system.
--Instancing system
 -decouple engine code from "application code"
--Better Vulkan memory management (external lib?)
--Mip-maps
--Abstract descriptor set management (reference vkguide)
--A default world-space grid (different shader model etc)
--clang format
--Update Cesium Native when this becomes stable again
+-A default world-space grid + axes gizmo
 -Fix CMake build rules for directories (copying resources to build folder)
 
--Atmosphere / Sun
--Animation (glTF)
--Global illumination
--Clouds
-
-
-Small bugs:
+Bugs:
+-DescriptorSetAllocator is not properly movable
 -Fix camera recentering when mouse needs to recenter
 
-Long-term
--Generalize to support non-graphics pipelines (compute / raytrace)
--Integrate unit test framework / write unit tests
--Put together more concrete readme with roadmap
--More thorough documentation.
 -Organize code into subfolders
--Revisit RenderPass code, is it properly decoupled from Primitives? 
--Deferred rendering setup?
--Shader hot-reloading
--Basic Imgui elements
--3D Tiles support
--Multithreaded rendering / job system
--More elegant shader compilation, allow conditional compilation, cached variant generation etc.
--Menu system for loading / unloading models, adjusting settings etc
 -"user application" code hot-reloading??
 
 Other notes:
 -Each object should not need a separate uniform buffer, should pipeline object keep 
 UBO that primitives index into??
--Global uniforms? Pipeline-wide uniform? E.g., model, view?
 -Decouple gltf primitive logic from general primitive logic
 -May want to refactor ImageUtilities? Does it work well with refactored graphics pipeline?
 -const correctness for Application class?

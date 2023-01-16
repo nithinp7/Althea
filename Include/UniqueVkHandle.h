@@ -7,12 +7,12 @@ namespace AltheaEngine {
 // TODO: do some type-trait validation on if THandle is actually a vulkan handle
 // type
 
-template <typename THandle, typename Deleter> class UniqueVkHandle {
+template <typename THandle, typename TDeleter> class UniqueVkHandle {
 public:
   UniqueVkHandle() : _device(VK_NULL_HANDLE), _handle(VK_NULL_HANDLE) {}
 
-  UniqueVkHandle(VkDevice device, THandle handle)
-      : _device(device), _handle(handle) {}
+  UniqueVkHandle(VkDevice device, THandle handle, TDeleter&& deleter = {})
+      : _device(device), _handle(handle), _deleter(std::move(deleter)) {}
 
   // Move-only semantics
   UniqueVkHandle(UniqueVkHandle&& rhs)
@@ -39,7 +39,15 @@ public:
   UniqueVkHandle(const UniqueVkHandle& rhs) = delete;
   UniqueVkHandle& operator=(const UniqueVkHandle& rhs) = delete;
 
-  // TODO: assignment operators??
+  void set(VkDevice device, THandle handle) {
+    if (this->_handle != VK_NULL_HANDLE) {
+      // TODO: Should this be considered an error instead?
+      this->destroy();
+    }
+
+    this->_device = device;
+    this->_handle = handle;
+  }
 
   ~UniqueVkHandle() {
     if (this->_handle != VK_NULL_HANDLE) {
@@ -49,7 +57,7 @@ public:
 
   // Not safe to call more than once.
   void destroy() {
-    Deleter()(this->_device, this->_handle);
+    this->_deleter(this->_device, this->_handle);
 
     this->_device = VK_NULL_HANDLE;
     this->_handle = VK_NULL_HANDLE;
@@ -63,5 +71,6 @@ public:
 private:
   VkDevice _device;
   THandle _handle;
+  TDeleter _deleter;
 };
 } // namespace AltheaEngine

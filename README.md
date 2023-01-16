@@ -56,6 +56,7 @@ More pictures to come soon!
 - [ ] LODs
 - [ ] Deferred rendering setup
 - [ ] Scenegraph / Entity Component System
+- [ ] Instancing / batching
 
 #### Vulkan Backend
 - [ ] API to leverage compute pipeline.
@@ -67,6 +68,7 @@ More pictures to come soon!
 - [x] Update to a newer, tagged version of Cesium Native on a fork.
 - [ ] Decouple application-level code from rendering engine.
 - [x] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
+- [ ] Cleanly decouple engine code from "application" code. Likewise for resources (shaders, textures, etc.)
 - [ ] Integrate a hash-based checksum library to detect file edits during loading.
 - [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, compiled shaders etc.)
 - [ ] Multi-threaded rendering / job system
@@ -79,13 +81,17 @@ More pictures to come soon!
 - [ ] Debug visualizations (dynamic switching to debug shaders)
 
 #### Usability / Maintainability
-- [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs
 - [ ] Integrate unit-testing framework, write unit tests
 - [ ] Organize code into renderer backend, frontend, editor, etc.
 
 #### Small Bugs
 - [ ] Fix spurious camera turn when cursor is re-hidden.
 - [ ] Fix spurious camera velocity after renderstate recreation (related to percieved frame-time spike).
+
+#### Documentation
+- [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs.
+- [ ] Write high-level architecture diagram / writeup about engine.
+- [ ] Write small application-level example codes.
 
 #### Way Out Ideas!
 - [ ] Integrate full 3D Tiles streaming support with Cesium Native

@@ -26,9 +26,9 @@ public:
 
   VkImage getImage() const { return this->_allocation.getImage(); }
 
-  VkImageView getImageView() const { return this->_imageView.getImageView(); }
+  VkImageView getImageView() const { return this->_imageView; }
 
-  VkSampler getSampler() const { return this->_sampler.getSampler(); }
+  VkSampler getSampler() const { return this->_sampler; }
 
 private:
   void _initCubemap(

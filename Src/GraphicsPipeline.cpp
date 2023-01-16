@@ -11,8 +11,7 @@ GraphicsPipeline::GraphicsPipeline(
     const Application& app,
     PipelineContext&& context,
     GraphicsPipelineBuilder&& builder)
-    : _device(app.getDevice()),
-      _context(std::move(context)),
+    : _context(std::move(context)),
       _builder(std::move(builder)),
       // TODO: would be ideal to move this, but do we really
       // want the builder to be passed in as an lvalue ref?
@@ -25,7 +24,7 @@ GraphicsPipeline::GraphicsPipeline(
     this->_shaders.emplace_back(app, this->_builder._shaderBuilders[i]);
 
     // Link shader module to corresponding shader stage description
-    this->_builder._shaderStages[i].module = this->_shaders.back().getModule();
+    this->_builder._shaderStages[i].module = this->_shaders.back();
   }
 
   this->_dynamicFrontFaceEnabled =
@@ -34,8 +33,13 @@ GraphicsPipeline::GraphicsPipeline(
           this->_builder._dynamicStates.end(),
           VK_DYNAMIC_STATE_FRONT_FACE) != this->_builder._dynamicStates.end();
 
-  if (this->_builder.materialResourceLayoutBuilder.hasBindings()) {
-    this->_materialAllocator.emplace(
+  if (this->_builder._pMaterialAllocator) {
+    // This bypasses the material creation. This path is used when a pipeline
+    // is recreated, so the old pipeline's material allocator is shared with the
+    // new one.
+    this->_pMaterialAllocator = this->_builder._pMaterialAllocator;
+  } else if (this->_builder.materialResourceLayoutBuilder.hasBindings()) {
+    this->_pMaterialAllocator = std::make_shared<DescriptorSetAllocator>(
         app,
         this->_builder.materialResourceLayoutBuilder,
         this->_builder._materialPoolSize);
@@ -89,8 +93,8 @@ GraphicsPipeline::GraphicsPipeline(
     layouts.push_back(*this->_context.subpassResourcesLayout);
   }
 
-  if (this->_materialAllocator) {
-    layouts.push_back(this->_materialAllocator->getLayout());
+  if (this->_pMaterialAllocator) {
+    layouts.push_back(this->_pMaterialAllocator->getLayout());
   }
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -102,13 +106,17 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineLayoutInfo.pPushConstantRanges =
       this->_builder._pushConstantRanges.data();
 
+  VkDevice device = app.getDevice();
+  VkPipelineLayout pipelineLayout;
   if (vkCreatePipelineLayout(
-          this->_device,
+          device,
           &pipelineLayoutInfo,
           nullptr,
-          &this->_vk.pipelineLayout) != VK_SUCCESS) {
+          &pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create pipeline layout!");
   }
+
+  this->_pipelineLayout.set(device, pipelineLayout);
 
   // VERTEX INPUT, ATTRIBUTES, ETC
 
@@ -249,31 +257,36 @@ GraphicsPipeline::GraphicsPipeline(
       this->_builder._depthTest ? &depthStencilInfo : nullptr;
   pipelineInfo.pColorBlendState = &colorBlendingInfo;
   pipelineInfo.pDynamicState = &dynamicStateInfo;
-  pipelineInfo.layout = this->_vk.pipelineLayout;
+  pipelineInfo.layout = this->_pipelineLayout;
   pipelineInfo.renderPass = this->_context.renderPass;
   pipelineInfo.subpass = this->_context.subpassIndex;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineInfo.basePipelineIndex = -1;
 
+  VkPipeline pipeline;
   if (vkCreateGraphicsPipelines(
-          this->_device,
+          device,
           VK_NULL_HANDLE,
           1,
           &pipelineInfo,
           nullptr,
-          &this->_vk.pipeline)) {
+          &pipeline)) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
+
+  this->_pipeline.set(device, pipeline);
 }
 
-GraphicsPipeline::~GraphicsPipeline() {
-  if (this->_vk.pipeline != VK_NULL_HANDLE) {
-    vkDestroyPipeline(this->_device, this->_vk.pipeline, nullptr);
-  }
+void GraphicsPipeline::PipelineLayoutDeleter::operator()(
+    VkDevice device,
+    VkPipelineLayout pipelineLayout) {
+  vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+}
 
-  if (this->_vk.pipelineLayout != VK_NULL_HANDLE) {
-    vkDestroyPipelineLayout(this->_device, this->_vk.pipelineLayout, nullptr);
-  }
+void GraphicsPipeline::PipelineDeleter::operator()(
+    VkDevice device,
+    VkPipeline pipeline) {
+  vkDestroyPipeline(device, pipeline, nullptr);
 }
 
 void GraphicsPipeline::bindPipeline(
@@ -281,7 +294,7 @@ void GraphicsPipeline::bindPipeline(
   vkCmdBindPipeline(
       commandBuffer,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
-      this->_vk.pipeline);
+      this->_pipeline);
 }
 
 bool GraphicsPipeline::recompileStaleShaders() {
@@ -332,17 +345,31 @@ std::string GraphicsPipeline::getShaderRecompileErrors() const {
   return errors;
 }
 
-GraphicsPipeline GraphicsPipeline::recreatePipeline(Application& app) {
+void GraphicsPipeline::recreatePipeline(Application& app) {
   // Mark this pipeline as outdated so we don't recreate another pipeline
   // from it.
   // TODO: This may be a silly constraint, the only reason for it is that we
   // are moving away the context and builder objects when recreating the
   // pipeline...
   this->_outdated = true;
-  return GraphicsPipeline(
+  // Share the current material allocator with the recreated pipeline.
+  this->_builder._pMaterialAllocator = this->_pMaterialAllocator;
+
+  GraphicsPipeline newPipeline(
       app,
       std::move(this->_context),
       std::move(this->_builder));
+
+  // Since they will now have invalid values.
+  this->_context = {};
+  this->_builder = {};
+
+  GraphicsPipeline* pOldPipeline = new GraphicsPipeline(std::move(*this));
+  app.addDeletiontask(std::move(DeletionTask{
+      [pOldPipeline]() { delete pOldPipeline; },
+      app.getCurrentFrameRingBufferIndex()}));
+
+  *this = std::move(newPipeline);
 }
 
 GraphicsPipelineBuilder&

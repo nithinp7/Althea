@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UniqueVkHandle.h"
+
 #include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan.h>
 
@@ -17,19 +19,14 @@ public:
   Shader(const Application& app, const ShaderBuilder& builder);
   Shader() = default;
 
-  // Move-only semantics
-  Shader(Shader&& rhs);
-  Shader& operator=(Shader&& rhs);
-  Shader(const Shader& rhs) = delete;
-  Shader& operator=(const Shader& rhs) = delete;
-
-  ~Shader();
-
-  VkShaderModule getModule() const { return this->_shaderModule; }
+  operator VkShaderModule() const { return this->_shaderModule; }
 
 private:
-  VkDevice _device = VK_NULL_HANDLE;
-  VkShaderModule _shaderModule = VK_NULL_HANDLE;
+  struct ShaderDeleter {
+    void operator()(VkDevice device, VkShaderModule shaderModule);
+  };
+
+  UniqueVkHandle<VkShaderModule, ShaderDeleter> _shaderModule;
 };
 
 class ShaderBuilder {

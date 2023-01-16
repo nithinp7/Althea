@@ -204,8 +204,9 @@ void main() {
 
   vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness, ambientOcclusion);
 
-  outColor = vec4(material, 1.0);
-  // outColor = vec4(specular * reflectedColor.rgb, 1.0);
-  // outColor = vec4(mix(baseColor, reflectedColor, vary(2.0)).rgb, 1.0);
-  // outColor = vec4(metallicRoughness, 0.0, 1.0);
+  // outColor = vec4(material, 1.0);
+  outColor = vec4(reflectedColor.rgb * metallic, 1.0);
+  // outColor = vec4(ambientOcclusion * metallicRoughness, 0.0, 1.0);
+  // outColor = vec4(vec3(ambientOcclusion) * reflectedColor.rgb, 1.0);
+  // outColor = vec4(normal, 1.0);
 }

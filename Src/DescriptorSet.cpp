@@ -159,16 +159,20 @@ DescriptorSetAllocator::DescriptorSetAllocator(
       static_cast<uint32_t>(layoutBuilder._bindings.size());
   descriptorSetLayoutInfo.pBindings = layoutBuilder._bindings.data();
 
+  VkDescriptorSetLayout layout;
   if (vkCreateDescriptorSetLayout(
           this->_device,
           &descriptorSetLayoutInfo,
           nullptr,
-          &this->_layout) != VK_SUCCESS) {
+          &layout) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create descriptor set layout!");
   }
 
+  this->_layout.set(this->_device, layout);
+
   // Create descriptor pool sizes according to the descriptor set layout.
   // This will be used later when creating new pools.
+  this->_poolSizes.reserve(layoutBuilder._bindings.size());
   for (const VkDescriptorSetLayoutBinding& binding : layoutBuilder._bindings) {
     VkDescriptorPoolSize& poolSize = this->_poolSizes.emplace_back();
     poolSize.type = binding.descriptorType;
@@ -176,19 +180,16 @@ DescriptorSetAllocator::DescriptorSetAllocator(
   }
 }
 
-// TODO: find a better spot than the destructor??
-DescriptorSetAllocator::~DescriptorSetAllocator() {
-  // if (this->_freeSets.size() != this->_pools.size() * this->_setsPerPool) {
-  //   // TODO: It may be slightly harsh to throw an error here.
-  //   throw std::runtime_error("Attempting to destroy descriptor set allocator
-  //   before freeing all descriptor sets!");
-  // }
+void DescriptorSetAllocator::DescriptorSetLayoutDeleter::operator()(
+    VkDevice device,
+    VkDescriptorSetLayout layout) {
+  vkDestroyDescriptorSetLayout(device, layout, nullptr);
+}
 
-  for (VkDescriptorPool pool : this->_pools) {
-    vkDestroyDescriptorPool(this->_device, pool, nullptr);
-  }
-
-  vkDestroyDescriptorSetLayout(this->_device, this->_layout, nullptr);
+void DescriptorSetAllocator::DescriptorPoolDeleter::operator()(
+    VkDevice device,
+    VkDescriptorPool pool) {
+  vkDestroyDescriptorPool(device, pool, nullptr);
 }
 
 DescriptorSet DescriptorSetAllocator::allocate() {
@@ -211,11 +212,13 @@ DescriptorSet DescriptorSetAllocator::allocate() {
       poolInfo.pNext = &inlineDescriptorPoolCreateInfo;
     }
 
-    VkDescriptorPool& pool = this->_pools.emplace_back();
+    VkDescriptorPool pool;
     if (vkCreateDescriptorPool(this->_device, &poolInfo, nullptr, &pool) !=
         VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool!");
     }
+
+    this->_pools.emplace_back(this->_device, pool);
 
     // Allocate all the descriptor sets for the new pool.
     std::vector<VkDescriptorSetLayout> layouts(

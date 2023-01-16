@@ -3,6 +3,7 @@
 #include "DescriptorSet.h"
 #include "PerFrameResources.h"
 #include "Shader.h"
+#include "UniqueVkHandle.h"
 
 #include <vulkan/vulkan.h>
 
@@ -171,6 +172,12 @@ private:
   friend class GraphicsPipeline;
   // Info needed to build the graphics pipeline
 
+  // Used internally to share the material allocator from the old pipeline
+  // to a newly recreated pipeline. When this is not nullptr, this allocator
+  // will be used for the newly built pipeline, instead of building a new
+  // material allocator from materialResourceLayoutBuilder.
+  std::shared_ptr<DescriptorSetAllocator> _pMaterialAllocator = nullptr;
+
   // Note: The shader stages do not have shader modules linked at this
   // point, they must be linked when the shader modules are created
   // during construction of the GraphicsPipeline.
@@ -209,16 +216,14 @@ public:
   GraphicsPipeline(const GraphicsPipeline& rhs) = delete;
   GraphicsPipeline& operator=(const GraphicsPipeline& rhs) = delete;
 
-  ~GraphicsPipeline();
-
   void bindPipeline(const VkCommandBuffer& commandBuffer) const;
 
-  VkPipelineLayout getLayout() const { return this->_vk.pipelineLayout; }
+  VkPipelineLayout getLayout() const { return this->_pipelineLayout; }
 
-  VkPipeline getVkPipeline() const { return this->_vk.pipeline; }
+  VkPipeline getVkPipeline() const { return this->_pipeline; }
 
   DescriptorSetAllocator& getMaterialAllocator() {
-    return *this->_materialAllocator;
+    return *this->_pMaterialAllocator;
   }
 
   const std::vector<VkPushConstantRange>& getPushConstantRanges() const {
@@ -230,20 +235,16 @@ public:
   }
 
   /**
-   * @brief Reload and attempt to recompile any stale shaders that is 
+   * @brief Reload and attempt to recompile any stale shaders that is
    * out-of-date with the corresponding shader file on disk. Note that the
-   * recompile is not guaranteed to have succeeded, check 
+   * recompile is not guaranteed to have succeeded, check
    * hasShaderRecompileErrors() before recreating the pipeline.
-   * 
    *
-   * @return Whether any stale shaders were detected and reloaded / 
+   *
+   * @return Whether any stale shaders were detected and reloaded /
    * recompiled.
    */
   bool recompileStaleShaders();
-
-  /**
-   * @brief  
-   */
 
   /**
    * @brief Whether any reloaded shaders have errors during recompilation. Note
@@ -271,47 +272,30 @@ public:
    * @return The new pipeline based on the current one, but with updated and
    * recompiled shaders if they exist.
    */
-  GraphicsPipeline recreatePipeline(Application& app);
+  void recreatePipeline(Application& app);
 
 private:
-  struct VulkanPipelineInfo {
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline pipeline = VK_NULL_HANDLE;
+  struct PipelineLayoutDeleter {
+    void operator()(VkDevice device, VkPipelineLayout pipelineLayout);
+  };
 
-    VulkanPipelineInfo() = default;
+  struct PipelineDeleter {
+    void operator()(VkDevice device, VkPipeline pipeline);
+  };
 
-    // Move-only semantics
-    VulkanPipelineInfo(VulkanPipelineInfo&& rhs)
-        : pipelineLayout(rhs.pipelineLayout), pipeline(rhs.pipeline) {
-      rhs.pipelineLayout = VK_NULL_HANDLE;
-      rhs.pipeline = VK_NULL_HANDLE;
-    }
-
-    VulkanPipelineInfo& operator=(VulkanPipelineInfo&& rhs) {
-      this->pipelineLayout = rhs.pipelineLayout;
-      this->pipeline = rhs.pipeline;
-
-      rhs.pipelineLayout = VK_NULL_HANDLE;
-      rhs.pipeline = VK_NULL_HANDLE;
-
-      return *this;
-    }
-
-    VulkanPipelineInfo(const VulkanPipelineInfo& rhs) = delete;
-    VulkanPipelineInfo& operator=(const VulkanPipelineInfo& rhs) = delete;
-  } _vk;
-
-  VkDevice _device;
+  UniqueVkHandle<VkPipelineLayout, PipelineLayoutDeleter> _pipelineLayout;
+  UniqueVkHandle<VkPipeline, PipelineDeleter> _pipeline;
 
   // These are kept around to allow the pipeline to recreate itself if
   // any shaders become stale.
   PipelineContext _context;
   GraphicsPipelineBuilder _builder;
+
   // Once the pipeline is recreated, this one will be marked outdated to
   // prevent further pipeline recreations based on this one.
   bool _outdated = false;
 
-  std::optional<DescriptorSetAllocator> _materialAllocator;
+  std::shared_ptr<DescriptorSetAllocator> _pMaterialAllocator;
 
   std::vector<Shader> _shaders;
 

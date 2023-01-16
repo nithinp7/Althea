@@ -8,8 +8,7 @@
 
 namespace AltheaEngine {
 
-Shader::Shader(const Application& app, const ShaderBuilder& builder)
-    : _device(app.getDevice()) {
+Shader::Shader(const Application& app, const ShaderBuilder& builder) {
   if (builder.hasErrors()) {
     // Compilation errors should be caught during the builder stage.
     throw std::runtime_error(
@@ -21,35 +20,20 @@ Shader::Shader(const Application& app, const ShaderBuilder& builder)
   createInfo.codeSize = sizeof(uint32_t) * builder._spirvBytecode.size();
   createInfo.pCode = builder._spirvBytecode.data();
 
-  if (vkCreateShaderModule(
-          this->_device,
-          &createInfo,
-          nullptr,
-          &this->_shaderModule) != VK_SUCCESS) {
+  VkDevice device = app.getDevice();
+  VkShaderModule shader;
+  if (vkCreateShaderModule(device, &createInfo, nullptr, &shader) !=
+      VK_SUCCESS) {
     throw std::runtime_error("Failed to create shader module!");
   }
+
+  this->_shaderModule.set(device, shader);
 }
 
-Shader::Shader(Shader&& rhs)
-    : _device(rhs._device), _shaderModule(rhs._shaderModule) {
-  rhs._device = VK_NULL_HANDLE;
-  rhs._shaderModule = VK_NULL_HANDLE;
-}
-
-Shader& Shader::operator=(Shader&& rhs) {
-  this->_device = rhs._device;
-  this->_shaderModule = rhs._shaderModule;
-
-  rhs._device = VK_NULL_HANDLE;
-  rhs._shaderModule = VK_NULL_HANDLE;
-
-  return *this;
-}
-
-Shader::~Shader() {
-  if (this->_shaderModule != VK_NULL_HANDLE) {
-    vkDestroyShaderModule(this->_device, this->_shaderModule, nullptr);
-  }
+void Shader::ShaderDeleter::operator()(
+    VkDevice device,
+    VkShaderModule shaderModule) {
+  vkDestroyShaderModule(device, shaderModule, nullptr);
 }
 
 ShaderBuilder::ShaderBuilder(const std::string& path, shaderc_shader_kind kind)

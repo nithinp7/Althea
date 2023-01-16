@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Allocator.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
-#include "Allocator.h"
+#include "UniqueVkHandle.h"
 
 #include <vulkan/vulkan.h>
 
@@ -109,8 +110,7 @@ public:
 
   ~DescriptorAssignment();
 
-  DescriptorAssignment&
-  bindTextureDescriptor(const Texture& texture);
+  DescriptorAssignment& bindTextureDescriptor(const Texture& texture);
 
   DescriptorAssignment&
   bindTextureDescriptor(VkImageView imageView, VkSampler sampler);
@@ -222,7 +222,6 @@ public:
       const Application& app,
       const DescriptorSetLayoutBuilder& layoutBuilder,
       uint32_t setsPerPool = 1000);
-  ~DescriptorSetAllocator();
 
   DescriptorSet allocate();
   void free(VkDescriptorSet descriptorSet);
@@ -234,12 +233,20 @@ public:
   }
 
 private:
+  struct DescriptorSetLayoutDeleter {
+    void operator()(VkDevice device, VkDescriptorSetLayout layout);
+  };
+
+  struct DescriptorPoolDeleter {
+    void operator()(VkDevice device, VkDescriptorPool pool);
+  };
+
   VkDevice _device;
 
   // Each pool will have this many descriptor sets of the given layout.
   uint32_t _setsPerPool;
 
-  VkDescriptorSetLayout _layout;
+  UniqueVkHandle<VkDescriptorSetLayout, DescriptorSetLayoutDeleter> _layout;
   bool _hasInlineUniformBlock = false;
 
   // Keep this around to check validity when binding resources to a
@@ -251,7 +258,7 @@ private:
   // each binding.
   std::vector<VkDescriptorPoolSize> _poolSizes;
 
-  std::vector<VkDescriptorPool> _pools;
+  std::vector<UniqueVkHandle<VkDescriptorPool, DescriptorPoolDeleter>> _pools;
   std::vector<VkDescriptorSet> _freeSets;
 };
 } // namespace AltheaEngine
