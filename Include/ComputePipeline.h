@@ -10,17 +10,25 @@ namespace AltheaEngine {
 class Application;
 class ComputePipeline;
 
-struct ComputePipelineBuilder {
+class ComputePipelineBuilder {
+public:
+  /**
+   * @brief Set the compute shader for this compute pipeline.
+   *
+   * @param path The project-relative path to the glsl compute shader.
+   */
+  void setComputeShader(const std::string& path);
+
   /**
    * @brief The builder for creating a pipeline layout for this graphics
    * pipeline.
    */
   PipelineLayoutBuilder layoutBuilder;
 
-  /**
-   * @brief The builder for this pipeline's compute shader.
-   */
-  ShaderBuilder shaderBuilder;
+private:
+  friend class ComputePipeline;
+
+  ShaderBuilder _shaderBuilder;
 };
 
 class ComputePipeline {
