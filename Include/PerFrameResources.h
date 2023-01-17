@@ -13,8 +13,11 @@ class ResourcesAssignment;
 
 class PerFrameResources {
 public:
-  PerFrameResources(const Application& app, const DescriptorSetLayoutBuilder& layoutBuilder);
-  
+  PerFrameResources() = default;
+  PerFrameResources(
+      const Application& app,
+      const DescriptorSetLayoutBuilder& layoutBuilder);
+
   VkDescriptorSetLayout getLayout() const {
     return this->_pDescriptorSetAllocator->getLayout();
   }

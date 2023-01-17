@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Allocator.h"
 #include "CameraController.h"
+#include "ComputePipeline.h"
 #include "DescriptorSet.h"
 #include "IGameInstance.h"
+#include "ImageView.h"
 #include "Model.h"
 #include "PerFrameResources.h"
 #include "RenderPass.h"
+#include "Sampler.h"
 #include "Skybox.h"
 #include "TransientUniforms.h"
 
@@ -26,6 +30,15 @@ struct GlobalUniforms {
   float time;
 };
 
+struct ComputePass {
+  ImageAllocation image;
+  ImageView view;
+  Sampler sampler;
+
+  PerFrameResources resources;
+  ComputePipeline pipeline;
+};
+
 class SponzaTest : public IGameInstance {
 public:
   SponzaTest();
@@ -44,6 +57,8 @@ public:
       const FrameContext& frame) override;
 
 private:
+  void _initComputePass(Application& app);
+
   glm::vec3 _lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
   bool _adjustingLight = false;
 
@@ -58,6 +73,8 @@ private:
 
   std::unique_ptr<Skybox> _pSkybox;
   std::unique_ptr<Model> _pSponzaModel;
+
+  std::unique_ptr<ComputePass> _pComputePass;
 
   std::string _currentShader = "BasicGltf";
   bool _envMap = false;

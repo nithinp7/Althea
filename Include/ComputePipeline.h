@@ -33,11 +33,14 @@ private:
 
 class ComputePipeline {
 public:
+  ComputePipeline() = default;
   ComputePipeline(const Application& app, ComputePipelineBuilder&& builder);
 
-  void bindPipeline() const;
+  void bindPipeline(VkCommandBuffer commandBuffer) const;
 
   VkPipeline getPipeline() const { return this->_pipeline; }
+
+  VkPipelineLayout getLayout() const { return this->_pipelineLayout; }
 
 private:
   struct ComputePipelineDeleter {

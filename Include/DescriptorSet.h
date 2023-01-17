@@ -21,6 +21,14 @@ public:
   DescriptorSetLayoutBuilder() {}
 
   /**
+   * @brief Add an image binding to the descriptor set layout for access in a
+   * compute shader. Only valid for use in a compute pipeline.
+   *
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder& addStorageImageBinding();
+
+  /**
    * @brief Add a texture binding to the descriptor set layout.
    *
    * @param stageFlags The shader stages this binding should be accessible to.
@@ -114,6 +122,9 @@ public:
 
   DescriptorAssignment&
   bindTextureDescriptor(VkImageView imageView, VkSampler sampler);
+
+  DescriptorAssignment&
+  bindStorageImage(VkImageView imageView, VkSampler sampler);
 
   template <typename TUniforms>
   DescriptorAssignment&

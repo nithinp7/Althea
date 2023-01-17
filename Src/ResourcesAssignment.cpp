@@ -22,4 +22,15 @@ ResourcesAssignment::bindTexture(VkImageView imageView, VkSampler sampler) {
 
   return *this;
 }
+
+ResourcesAssignment& ResourcesAssignment::bindStorageImage(
+    VkImageView imageView,
+    VkSampler sampler) {
+  for (DescriptorAssignment& assignment : this->_assignments) {
+    assignment.bindStorageImage(imageView, sampler);
+  }
+
+  return *this;
+}
+
 } // namespace AltheaEngine

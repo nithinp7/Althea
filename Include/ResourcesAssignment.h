@@ -19,6 +19,9 @@ public:
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
 
+  ResourcesAssignment&
+  bindStorageImage(VkImageView imageView, VkSampler sampler);
+
   template <typename TUniforms>
   ResourcesAssignment&
   bindConstantUniforms(const UniformBuffer<TUniforms>& buffer) {

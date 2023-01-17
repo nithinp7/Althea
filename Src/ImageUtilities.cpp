@@ -266,11 +266,16 @@ ImageAllocation Application::createImage(
 
 void Application::transitionImageLayout(
     VkImage image,
-    VkFormat format,
+    VkFormat format, // TODO: not needed??
     uint32_t mipCount,
     uint32_t layerCount,
     VkImageLayout oldLayout,
     VkImageLayout newLayout) const {
+
+  // TODO: For bulk resource transitions and buffer / image copy commands, use
+  // dedicated (temporary) command buffer to submit commands instead of one-time
+  // command buffers for each individual command.
+
   VkCommandBuffer commandBuffer = this->beginSingleTimeCommands();
 
   VkPipelineStageFlags sourceStage;

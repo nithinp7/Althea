@@ -40,6 +40,13 @@ ComputePipeline::ComputePipeline(
   this->_pipeline.set(device, computePipeline);
 }
 
+void ComputePipeline::bindPipeline(VkCommandBuffer commandBuffer) const {
+  vkCmdBindPipeline(
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_COMPUTE,
+      this->_pipeline);
+}
+
 void ComputePipeline::ComputePipelineDeleter::operator()(
     VkDevice device,
     VkPipeline computePipeline) {

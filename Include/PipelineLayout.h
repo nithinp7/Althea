@@ -50,6 +50,7 @@ private:
 
 class PipelineLayout {
 public:
+  PipelineLayout() = default;
   PipelineLayout(const Application& app, const PipelineLayoutBuilder& builder);
 
   operator VkPipelineLayout() const { return this->_layout; }

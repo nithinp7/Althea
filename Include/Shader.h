@@ -31,6 +31,8 @@ private:
 
 class ShaderBuilder {
 public:
+  ShaderBuilder() = default;
+
   ShaderBuilder(const std::string& path, shaderc_shader_kind kind);
 
   /**
