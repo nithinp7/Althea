@@ -51,8 +51,13 @@ private:
   float _targetPitch = 0.0f;
   float _targetYaw = 0.0f;
 
+  float _targetPitchOffset = 0.0f;
+  float _targetYawOffset = 0.0f;
+
   float _yawMultiplier = 0.5f;   // 0.25f;
   float _pitchMultiplier = 1.0f; // 0.25f;
+
+  bool _mouseDisabled = true;
 
   Camera _camera;
 };

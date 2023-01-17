@@ -85,10 +85,6 @@ More pictures to come soon!
 - [ ] Integrate unit-testing framework, write unit tests
 - [ ] Organize code into renderer backend, frontend, editor, etc.
 
-#### Small Bugs
-- [ ] Fix spurious camera turn when cursor is re-hidden.
-- [ ] Fix spurious camera velocity after renderstate recreation (related to percieved frame-time spike).
-
 #### Documentation
 - [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs.
 - [ ] Write high-level architecture diagram / writeup about engine.

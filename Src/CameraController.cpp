@@ -77,6 +77,10 @@ CameraController::~CameraController() {
 }
 
 void CameraController::tick(float deltaTime) {
+  // Cap max _perceived_ deltaTime, to avoid strange behavior doing
+  // lag spikes (e.g., renderstate recreation on window resize)
+  deltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 30.0f);
+
   this->_targetSpeed = glm::clamp(
       this->_targetSpeed + this->_acceleration * deltaTime,
       0.25f,
@@ -140,20 +144,37 @@ static void moveLocal(Camera& camera, const glm::vec3& localDisplacement) {
 
 void CameraController::_updateMouse(double x, double y, bool cursorHidden) {
   if (cursorHidden) {
+    float unclampedTargetYaw =
+        this->_yawMultiplier * static_cast<float>(-180.0 * x);
+    float unclampedTargetPitch =
+        this->_pitchMultiplier * static_cast<float>(89.0 * y);
+
+    if (this->_mouseDisabled) {
+      // The mouse is just now becoming enabled, offset the target pitch and
+      // yaw to avoid spurious movement.
+      this->_targetYawOffset = unclampedTargetYaw - this->_targetYaw;
+      this->_targetPitchOffset = unclampedTargetPitch - this->_targetPitch;
+
+      this->_mouseDisabled = false;
+    }
+
     // Yaw increases to the left
-    // Clamp the change in yaw so it never reaches a half-turn or more.
+    // Clamp the change in yaw so it never reaches a half-turn or more,
+    // otherwise large mouse motions will cause the camera to turn in the
+    // "wrong" direction.
     float targetYawChange = glm::clamp(
-        this->_yawMultiplier * static_cast<float>(-180.0 * x) -
-            this->_targetYaw,
+        unclampedTargetYaw - (this->_targetYaw + this->_targetYawOffset),
         -179.0f,
         179.0f);
     this->_targetYaw += targetYawChange;
 
     // Clamp the pitch to avoid disorientation and gimbal lock.
     this->_targetPitch = glm::clamp(
-        this->_pitchMultiplier * static_cast<float>(89.0 * y),
+        unclampedTargetPitch - this->_targetPitchOffset,
         -89.0f,
         89.0f);
+  } else {
+    this->_mouseDisabled = true;
   }
 }
 } // namespace AltheaEngine
