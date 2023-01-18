@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 #include "FrameContext.h"
 #include "IndexBuffer.h"
@@ -19,10 +21,10 @@ class Subpass;
  * @brief A transient context object that helps setup and execute draw calls.
  *
  * This object should only ever be managed by an ActiveRenderPass. References
- * used in this class may be invalid if a DrawContext object is used outside the
+ * used in this class ALTHEA_API may be invalid if a DrawContext object is used outside the
  * lifetime of an ActiveRenderPass.
  */
-class DrawContext {
+class ALTHEA_API DrawContext {
 public:
   /**
    * @brief Bind all needed descriptor sets for this draw call, including

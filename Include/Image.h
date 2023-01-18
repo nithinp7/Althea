@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -13,7 +15,7 @@ class Application;
  * @brief A collection of options used to create an image resource with
  * reasonable default values.
  */
-struct ImageOptions {
+struct ALTHEA_API ImageOptions {
   uint32_t width = 1;
   uint32_t height = 1;
   uint32_t mipCount = 1;
@@ -26,7 +28,7 @@ struct ImageOptions {
   VkImageCreateFlags createFlags = 0;
 };
 
-class Image {
+class ALTHEA_API Image {
 public:
   Image() = default;
   Image(const Application& app, const ImageOptions& options);

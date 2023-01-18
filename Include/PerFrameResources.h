@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "FrameContext.h"
 
@@ -11,7 +13,7 @@ namespace AltheaEngine {
 class Application;
 class ResourcesAssignment;
 
-class PerFrameResources {
+class ALTHEA_API PerFrameResources {
 public:
   PerFrameResources() = default;
   PerFrameResources(

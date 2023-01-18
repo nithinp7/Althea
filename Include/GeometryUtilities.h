@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "mikktspace.h"
 
 #include <glm/glm.hpp>
@@ -11,13 +13,13 @@
 namespace AltheaEngine {
 
 namespace {
-template <typename TVertex> struct VerticesAndUvIndex {
+template <typename TVertex> struct ALTHEA_API VerticesAndUvIndex {
   std::vector<TVertex>* vertices;
   uint32_t uvIndex;
 };
 } // namespace
 
-class GeometryUtilities {
+class ALTHEA_API GeometryUtilities {
 public:
   /**
    * @brief Fill in normals for these vertices. Assumes a non-indexed, triangle

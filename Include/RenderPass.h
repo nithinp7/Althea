@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
@@ -17,13 +19,13 @@
 namespace AltheaEngine {
 class Application;
 
-enum class AttachmentType {
+enum class ALTHEA_API AttachmentType {
   Color,
   Depth
   // Stencil
 };
 
-struct Attachment {
+struct ALTHEA_API Attachment {
   /**
    * @brief The type of attachment to create.
    */
@@ -40,7 +42,7 @@ struct Attachment {
   VkClearValue clearValue;
 
   /**
-   * @brief The image required to construct the frame buffer for
+   * @brief The image required to construct ALTHEA_API the frame buffer for
    * this render pass.
    *
    * If this attachment will be used for presentation, leave this empty.
@@ -56,14 +58,14 @@ struct Attachment {
 };
 
 // TODO: Generalize to non-graphics pipelines
-struct SubpassBuilder {
+struct ALTHEA_API SubpassBuilder {
   std::vector<uint32_t> colorAttachments;
   std::optional<uint32_t> depthAttachment;
 
   GraphicsPipelineBuilder pipelineBuilder;
 };
 
-class Subpass {
+class ALTHEA_API Subpass {
 public:
   Subpass(
       const Application& app,
@@ -81,7 +83,7 @@ private:
 };
 
 class ActiveRenderPass;
-class RenderPass {
+class ALTHEA_API RenderPass {
 public:
   RenderPass(
       const Application& app,
@@ -116,7 +118,7 @@ private:
   bool _firstAttachmentFromSwapChain = false;
 };
 
-class ActiveRenderPass {
+class ALTHEA_API ActiveRenderPass {
 public:
   ActiveRenderPass(
       const RenderPass& renderPass,

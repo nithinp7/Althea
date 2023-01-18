@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "PerFrameResources.h"
 #include "PipelineLayout.h"
@@ -19,16 +21,16 @@ namespace AltheaEngine {
 class Application;
 class ShaderManager;
 
-struct PipelineContext {
+struct ALTHEA_API PipelineContext {
   VkRenderPass renderPass;
   uint32_t subpassIndex;
 };
 
-enum class VertexAttributeType { INT, FLOAT, VEC2, VEC3, VEC4 };
+enum class ALTHEA_API VertexAttributeType { INT, FLOAT, VEC2, VEC3, VEC4 };
 
-enum class PrimitiveType { TRIANGLES, LINES, POINTS };
+enum class ALTHEA_API PrimitiveType { TRIANGLES, LINES, POINTS };
 
-class GraphicsPipelineBuilder {
+class ALTHEA_API GraphicsPipelineBuilder {
 public:
   GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath);
   GraphicsPipelineBuilder&
@@ -148,7 +150,7 @@ private:
   std::vector<VkDynamicState> _dynamicStates;
 };
 
-class GraphicsPipeline {
+class ALTHEA_API GraphicsPipeline {
 public:
   GraphicsPipeline(
       const Application& app,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "UniqueVkHandle.h"
 #include "vk_mem_alloc.h"
 
@@ -8,7 +10,7 @@
 // #include VMA_VULKAN_VERSION 1002000
 
 namespace AltheaEngine {
-class BufferAllocation {
+class ALTHEA_API BufferAllocation {
 public:
   VkBuffer getBuffer() const { return this->_buffer; }
 
@@ -35,7 +37,7 @@ private:
   VmaAllocationInfo _info{};
 };
 
-class ImageAllocation {
+class ALTHEA_API ImageAllocation {
 public:
   VkImage getImage() const { return this->_image; }
 
@@ -62,9 +64,9 @@ private:
   VmaAllocationInfo _info{};
 };
 
-enum class AllocationType { CPU_GPU, CPU_GPU_STAGING, GPU_ONLY };
+enum class ALTHEA_API AllocationType { CPU_GPU, CPU_GPU_STAGING, GPU_ONLY };
 
-class Allocator {
+class ALTHEA_API Allocator {
 public:
   Allocator(
       VkInstance instance,

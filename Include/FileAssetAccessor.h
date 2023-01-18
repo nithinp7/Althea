@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Library.h"
+
 #include <CesiumAsync/IAssetAccessor.h>
 #include <CesiumAsync/IAssetRequest.h>
 #include <CesiumAsync/IAssetResponse.h>
 
 namespace AltheaEngine {
-class FileResponse : public CesiumAsync::IAssetResponse {
+class ALTHEA_API FileResponse : public CesiumAsync::IAssetResponse {
 private:
   uint16_t _statusCode;
   CesiumAsync::HttpHeaders _headers;
@@ -35,7 +37,7 @@ public:
   gsl::span<const std::byte> data() const override;
 };
 
-class FileRequest : public CesiumAsync::IAssetRequest {
+class ALTHEA_API FileRequest : public CesiumAsync::IAssetRequest {
 private:
   std::string _url;
   std::string _method;
@@ -71,7 +73,7 @@ public:
   const CesiumAsync::IAssetResponse* response() const override;
 };
 
-class FileAssetAccessor : public CesiumAsync::IAssetAccessor {
+class ALTHEA_API FileAssetAccessor : public CesiumAsync::IAssetAccessor {
 public:
   CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
   get(const CesiumAsync::AsyncSystem& asyncSystem,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "Texture.h"
 #include "TransientUniforms.h"
@@ -11,7 +13,7 @@
 #include <vector>
 
 namespace AltheaEngine {
-class ResourcesAssignment {
+class ALTHEA_API ResourcesAssignment {
 public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 

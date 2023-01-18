@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "PipelineLayout.h"
 #include "Shader.h"
 #include "UniqueVkHandle.h"
@@ -10,7 +12,7 @@ namespace AltheaEngine {
 class Application;
 class ComputePipeline;
 
-class ComputePipelineBuilder {
+class ALTHEA_API ComputePipelineBuilder {
 public:
   /**
    * @brief Set the compute shader for this compute pipeline.
@@ -31,7 +33,7 @@ private:
   ShaderBuilder _shaderBuilder;
 };
 
-class ComputePipeline {
+class ALTHEA_API ComputePipeline {
 public:
   ComputePipeline() = default;
   ComputePipeline(const Application& app, ComputePipelineBuilder&& builder);

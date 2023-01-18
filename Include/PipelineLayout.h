@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "UniqueVkHandle.h"
 
@@ -11,7 +13,7 @@ namespace AltheaEngine {
 class Application;
 class PipelineLayout;
 
-class PipelineLayoutBuilder {
+class ALTHEA_API PipelineLayoutBuilder {
 public:
   /**
    * @brief Add push constants for this pipeline. Later, push constant ranges
@@ -48,7 +50,7 @@ private:
   std::vector<VkPushConstantRange> _pushConstantRanges;
 };
 
-class PipelineLayout {
+class ALTHEA_API PipelineLayout {
 public:
   PipelineLayout() = default;
   PipelineLayout(const Application& app, const PipelineLayoutBuilder& builder);

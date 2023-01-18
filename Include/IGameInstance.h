@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Application.h"
 #include "FrameContext.h"
 
 namespace AltheaEngine {
-class IGameInstance {
+class ALTHEA_API IGameInstance {
 public:
   virtual ~IGameInstance() {}
 

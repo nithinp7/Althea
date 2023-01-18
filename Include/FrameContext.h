@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Library.h"
+
 #include <cstdint>
 
 namespace AltheaEngine {
-struct FrameContext {
+struct ALTHEA_API FrameContext {
   /**
    * @brief The time in seconds that the application has been running.
    */

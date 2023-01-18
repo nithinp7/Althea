@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -9,7 +11,7 @@
 namespace AltheaEngine {
 class Application;
 
-template <typename TVertex> class VertexBuffer {
+template <typename TVertex> class ALTHEA_API VertexBuffer {
 public:
   VertexBuffer() = default;
 

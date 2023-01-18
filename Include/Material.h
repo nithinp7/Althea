@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DescriptorSet.h"
 #include "FrameContext.h"
 #include "ResourcesAssignment.h"
@@ -9,7 +11,7 @@
 namespace AltheaEngine {
 class Application;
 
-class Material {
+class ALTHEA_API Material {
 public:
   Material(const Application& app, DescriptorSetAllocator& allocator);
   Material() = default;

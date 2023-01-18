@@ -1,12 +1,17 @@
 Loose thoughts that haven't been put into the roadmap / readme:
 
 Important!!:
+-Make Althea into a shared_library! 
+-Dynamically link in game instances, hot-reload, easy switching between games, etc.
+
+Also important!
 -Some exceptions cause state with unfreed allocations
 -This causes the allocator to crash instead of the original exception being
 visible
 -Either handle errors and bulk de-allocate...
 -OR come up with idiomatic way to avoid unclear allocation state.
 
+-Refactor Texture and Cubemap to all use the Image class (remove ImageUtilities)
 
 -In the future, will need to consider UBOs that might have to be "ocassionally"
 updated, but not every frame - these resources will not be able to leverage the

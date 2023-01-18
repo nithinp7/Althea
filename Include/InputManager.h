@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -8,7 +10,7 @@
 
 
 namespace AltheaEngine {
-struct KeyBinding {
+struct ALTHEA_API KeyBinding {
   int key;
   int action;
   int mods;
@@ -22,7 +24,7 @@ struct KeyBinding {
   }
 };
 
-struct MouseButtonBinding {
+struct ALTHEA_API MouseButtonBinding {
   int button;
   int action;
   int mods;
@@ -40,7 +42,7 @@ struct MouseButtonBinding {
 } // namespace AltheaEngine
 
 namespace std {
-template <> struct hash<::AltheaEngine::KeyBinding> {
+template <> struct ALTHEA_API hash<::AltheaEngine::KeyBinding> {
   size_t operator()(const ::AltheaEngine::KeyBinding& kb) const {
     hash<int> h;
     int combined = (kb.key << 5) ^ (kb.action << 3) ^ kb.mods;
@@ -48,7 +50,7 @@ template <> struct hash<::AltheaEngine::KeyBinding> {
   }
 };
 
-template <> struct hash<::AltheaEngine::MouseButtonBinding> {
+template <> struct ALTHEA_API hash<::AltheaEngine::MouseButtonBinding> {
   size_t operator()(const ::AltheaEngine::MouseButtonBinding& mb) const {
     hash<int> h;
     int combined = (mb.button << 5) ^ (mb.action << 3) ^ mb.mods;
@@ -65,7 +67,7 @@ typedef std::function<void(double, double, bool)> MousePositionCallback;
 
 // NOTE: must be recreated if the glfw window context becomes invalid.
 
-class InputManager {
+class ALTHEA_API InputManager {
 public:
   InputManager(GLFWwindow* window);
 

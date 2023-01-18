@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "UniqueVkHandle.h"
 
 #include <shaderc/shaderc.hpp>
@@ -14,7 +16,7 @@ class Application;
 
 class ShaderBuilder;
 
-class Shader {
+class ALTHEA_API Shader {
 public:
   Shader(const Application& app, const ShaderBuilder& builder);
   Shader() = default;
@@ -29,7 +31,7 @@ private:
   UniqueVkHandle<VkShaderModule, ShaderDeleter> _shaderModule;
 };
 
-class ShaderBuilder {
+class ALTHEA_API ShaderBuilder {
 public:
   ShaderBuilder() = default;
 

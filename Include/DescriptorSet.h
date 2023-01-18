@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
@@ -16,7 +18,7 @@ class Application;
 class DescriptorSetAllocator;
 class DescriptorAssignment;
 
-class DescriptorSetLayoutBuilder {
+class ALTHEA_API DescriptorSetLayoutBuilder {
 public:
   DescriptorSetLayoutBuilder() {}
 
@@ -79,7 +81,7 @@ private:
   std::vector<VkDescriptorSetLayoutBinding> _bindings{};
 };
 
-class DescriptorSet {
+class ALTHEA_API DescriptorSet {
 public:
   DescriptorSet(DescriptorSet&& rhs) noexcept;
   DescriptorSet& operator=(DescriptorSet&& rhs) noexcept;
@@ -106,7 +108,7 @@ private:
   DescriptorSetAllocator& _allocator;
 };
 
-class DescriptorAssignment {
+class ALTHEA_API DescriptorAssignment {
 public:
   DescriptorAssignment(
       VkDevice device,
@@ -227,7 +229,7 @@ private:
 // set allocator, which will block allocate from a descriptor "set" pool
 // (a descriptor pool that is only used for one specific layout).
 
-class DescriptorSetAllocator {
+class ALTHEA_API DescriptorSetAllocator {
 public:
   DescriptorSetAllocator(
       const Application& app,

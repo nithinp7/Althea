@@ -200,7 +200,6 @@ void SponzaTest::createRenderState(Application& app) {
 }
 
 void SponzaTest::destroyRenderState(Application& app) {
-  // TODO: actually release resources, descriptor sets, etc?
   this->_pSkybox.reset();
   this->_pSponzaModel.reset();
   this->_pRenderPass.reset();

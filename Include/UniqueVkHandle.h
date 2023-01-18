@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include <vulkan/vulkan.h>
 
 namespace AltheaEngine {
@@ -7,7 +9,7 @@ namespace AltheaEngine {
 // TODO: do some type-trait validation on if THandle is actually a vulkan handle
 // type
 
-template <typename THandle, typename TDeleter> class UniqueVkHandle {
+template <typename THandle, typename TDeleter> class ALTHEA_API UniqueVkHandle {
 public:
   UniqueVkHandle() : _device(VK_NULL_HANDLE), _handle(VK_NULL_HANDLE) {}
 

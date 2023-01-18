@@ -1,9 +1,13 @@
 #pragma once
 
+#include "Library.h"
+
+#include "Library.h"
+
 #include <glm/glm.hpp>
 
 namespace AltheaEngine {
-class Camera {
+class ALTHEA_API Camera {
 public:
   Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPlane);
   void setFovDegrees(float fovDegrees);

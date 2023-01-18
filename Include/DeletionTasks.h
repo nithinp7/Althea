@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Library.h"
+
 #include "FrameContext.h"
 
 #include <cstdint>
 #include <functional>
 #include <vector>
 
-struct DeletionTask {
+struct ALTHEA_API DeletionTask {
   std::function<void()> deleter;
   uint32_t frameRingBufferIndex;
 
@@ -18,7 +20,7 @@ struct DeletionTask {
 };
 
 namespace AltheaEngine {
-class DeletionTasks {
+class ALTHEA_API DeletionTasks {
 public:
   void tick(const FrameContext& frame);
   void addDeletionTask(DeletionTask&& task);

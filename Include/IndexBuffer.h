@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -10,7 +12,7 @@
 namespace AltheaEngine {
 class Application;
 
-class IndexBuffer {
+class ALTHEA_API IndexBuffer {
 public:
   IndexBuffer() = default;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 #include "CameraController.h"
 #include "ConfigParser.h"
@@ -23,7 +25,7 @@
 #include <vector>
 
 namespace CesiumGltf {
-struct ImageCesium;
+struct ALTHEA_API ImageCesium;
 };
 
 namespace AltheaEngine {
@@ -31,9 +33,9 @@ class IGameInstance;
 
 extern std::string GProjectDirectory;
 
-// TODO: Standardize the conventions in this class with the rest of the
+// TODO: Standardize the conventions in this class ALTHEA_API with the rest of the
 // repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
-class Application {
+class ALTHEA_API Application {
 public:
   Application(const std::string& projectDirectory);
 
@@ -116,14 +118,14 @@ private:
   void cleanup();
 
   // BOILER PLATE IMPLEMENTATIONS
-  struct QueueFamilyIndices {
+  struct ALTHEA_API QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
     bool isComplete() const;
   };
 
-  struct SwapChainSupportDetails {
+  struct ALTHEA_API SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;

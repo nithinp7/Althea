@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Cubemap.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
@@ -16,7 +18,7 @@ namespace AltheaEngine {
 class Application;
 class GraphicsPipelineBuilder;
 
-class Skybox {
+class ALTHEA_API Skybox {
 public:
   static void buildPipeline(Application& app, GraphicsPipelineBuilder& builder);
 

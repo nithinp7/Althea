@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "DrawContext.h"
 #include "IndexBuffer.h"
 #include "Material.h"
@@ -17,10 +19,10 @@
 #include <vector>
 
 namespace CesiumGltf {
-struct Model;
-struct MeshPrimitive;
-struct Texture;
-struct TextureInfo;
+struct ALTHEA_API Model;
+struct ALTHEA_API MeshPrimitive;
+struct ALTHEA_API Texture;
+struct ALTHEA_API TextureInfo;
 } // namespace CesiumGltf
 
 namespace AltheaEngine {
@@ -29,7 +31,7 @@ class GraphicsPipelineBuilder;
 class DescriptorSet;
 class DescriptorSetAllocator;
 
-struct Vertex {
+struct ALTHEA_API Vertex {
   glm::vec3 position{};
   glm::vec3 tangent{};
   glm::vec3 bitangent{};
@@ -38,7 +40,7 @@ struct Vertex {
 };
 
 // TODO: validate alignment, may be too big for inline block
-struct PrimitiveConstants {
+struct ALTHEA_API PrimitiveConstants {
   glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
   glm::vec3 emissiveFactor{};
 
@@ -56,7 +58,7 @@ struct PrimitiveConstants {
   float alphaCutoff = 0.5f;
 };
 
-struct TextureSlots {
+struct ALTHEA_API TextureSlots {
   std::shared_ptr<Texture> pBaseTexture;
   std::shared_ptr<Texture> pNormalMapTexture;
   std::shared_ptr<Texture> pMetallicRoughnessTexture;
@@ -66,7 +68,7 @@ struct TextureSlots {
   void fillEmptyWithDefaults();
 };
 
-class Primitive {
+class ALTHEA_API Primitive {
 public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);

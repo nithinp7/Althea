@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "UniqueVkHandle.h"
 
 #include <vulkan/vulkan.h>
@@ -7,7 +9,7 @@
 namespace AltheaEngine {
 class Application;
 
-class ImageView {
+class ALTHEA_API ImageView {
 public:
   ImageView(
       const Application& app,

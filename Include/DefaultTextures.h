@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Texture.h"
 
 #include <vulkan/vulkan.h>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "UniqueVkHandle.h"
 
 #include <vulkan/vulkan.h>
@@ -9,7 +11,7 @@
 namespace AltheaEngine {
 class Application;
 
-class Sampler {
+class ALTHEA_API Sampler {
 public:
   Sampler(const Application& app, const VkSamplerCreateInfo& createInfo);
   Sampler() = default;

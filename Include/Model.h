@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "ConfigParser.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
@@ -19,7 +21,7 @@ class Application;
 class GraphicsPipeline;
 class DescriptorSetAllocator;
 
-class Model {
+class ALTHEA_API Model {
 public:
   Model(
       const Application& app,

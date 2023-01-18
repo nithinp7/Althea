@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -11,7 +13,7 @@ class Application;
 
 // TODO: Make CPU-copy of uniform buffer optional?
 
-template <typename TUniforms> class UniformBuffer {
+template <typename TUniforms> class ALTHEA_API UniformBuffer {
 public:
   UniformBuffer() = default;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "FrameContext.h"
 #include "UniformBuffer.h"
 
@@ -18,7 +20,7 @@ class Application;
  * transient, per-frame data. Uniform updates will only be written to the
  * underlying UBO corresponding to the current frame.
  */
-template <typename TUniforms> class TransientUniforms {
+template <typename TUniforms> class ALTHEA_API TransientUniforms {
 public:
   TransientUniforms() = default;
 

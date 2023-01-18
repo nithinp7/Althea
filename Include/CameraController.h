@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Camera.h"
 #include "InputManager.h"
 
 #include <glm/glm.hpp>
 
 namespace AltheaEngine {
-class CameraController {
+class ALTHEA_API CameraController {
 public:
   CameraController(
       InputManager& inputManager,

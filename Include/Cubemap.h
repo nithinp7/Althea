@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 #include "ImageView.h"
 #include "Sampler.h"
@@ -13,7 +15,7 @@
 namespace AltheaEngine {
 class Application;
 
-class Cubemap {
+class ALTHEA_API Cubemap {
 public:
   Cubemap(
       Application& app,

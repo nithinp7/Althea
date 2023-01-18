@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Library.h"
+
 #include "Allocator.h"
 #include "Application.h"
 #include "ImageView.h"
@@ -8,14 +10,14 @@
 #include <vulkan/vulkan.h>
 
 namespace CesiumGltf {
-struct Model;
-struct Texture;
-struct ImageCesium;
-struct Sampler;
+struct ALTHEA_API Model;
+struct ALTHEA_API Texture;
+struct ALTHEA_API ImageCesium;
+struct ALTHEA_API Sampler;
 } // namespace CesiumGltf
 
 namespace AltheaEngine {
-class Texture {
+class ALTHEA_API Texture {
 public:
   Texture(
       const Application& app,
