@@ -3,6 +3,7 @@ Loose thoughts that haven't been put into the roadmap / readme:
 Important!!:
 -Make Althea into a shared_library! 
 -Dynamically link in game instances, hot-reload, easy switching between games, etc.
+-First step, setup Althea as a static library, use as a submodule
 
 Also important!
 -Some exceptions cause state with unfreed allocations
