@@ -101,7 +101,7 @@ void Image::copyMipFromBuffer(
       commandBuffer,
       srcBuffer,
       this->_image.getImage(),
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      this->_layout,
       1,
       &region);
 }

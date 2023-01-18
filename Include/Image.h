@@ -28,6 +28,7 @@ struct ImageOptions {
 
 class Image {
 public:
+  Image() = default;
   Image(const Application& app, const ImageOptions& options);
 
   VkImage getImage() const { return this->_image.getImage(); }

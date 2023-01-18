@@ -5,6 +5,7 @@
 #include "ComputePipeline.h"
 #include "DescriptorSet.h"
 #include "IGameInstance.h"
+#include "Image.h"
 #include "ImageView.h"
 #include "Model.h"
 #include "PerFrameResources.h"
@@ -31,7 +32,7 @@ struct GlobalUniforms {
 };
 
 struct ComputePass {
-  ImageAllocation image;
+  Image image;
   ImageView view;
   Sampler sampler;
 

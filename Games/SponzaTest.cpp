@@ -231,6 +231,13 @@ void SponzaTest::draw(
     Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
+
+  this->_pComputePass->image.transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_GENERAL,
+      VK_ACCESS_SHADER_WRITE_BIT,
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
   this->_pComputePass->pipeline.bindPipeline(commandBuffer);
 
   VkDescriptorSet currentSet =
@@ -247,32 +254,11 @@ void SponzaTest::draw(
 
   vkCmdDispatch(commandBuffer, 32, 32, 1);
 
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image = this->_pComputePass->image.getImage();
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-
-  vkCmdPipelineBarrier(
+  this->_pComputePass->image.transitionLayout(
       commandBuffer,
-      VK_SHADER_STAGE_COMPUTE_BIT,
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      0,
-      0,
-      nullptr,
-      0,
-      nullptr,
-      1,
-      &barrier);
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      VK_ACCESS_SHADER_READ_BIT,
+      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
   VkDescriptorSet globalDescriptorSet =
       this->_pGlobalResources->getCurrentDescriptorSet(frame);
@@ -292,50 +278,16 @@ void SponzaTest::draw(
 void SponzaTest::_initComputePass(Application& app) {
   // Init compute shader
   this->_pComputePass = std::make_unique<ComputePass>();
-  this->_pComputePass->image = app.createImage(
-      512,
-      512,
-      1,
-      1,
-      VK_FORMAT_R8G8B8A8_UNORM,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  // Custom transition:
+  ImageOptions imageOptions{};
+  imageOptions.width = 512;
+  imageOptions.height = 512;
+  imageOptions.format = VK_FORMAT_R8G8B8A8_UNORM;
+  imageOptions.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-  VkCommandBuffer commandBuffer = app.beginSingleTimeCommands();
+  this->_pComputePass->image = Image(app, imageOptions);
 
-  VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-  VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image = this->_pComputePass->image.getImage();
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-  barrier.srcAccessMask = 0;
-  barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // read also?
-
-  vkCmdPipelineBarrier(
-      commandBuffer,
-      sourceStage,
-      destinationStage,
-      0,
-      0,
-      nullptr,
-      0,
-      nullptr,
-      1,
-      &barrier);
-
-  app.endSingleTimeCommands(commandBuffer);
+  // TODO: abstract this into SamplerOptions struct with good default values!
 
   VkSamplerCreateInfo samplerInfo{};
   samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

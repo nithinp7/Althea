@@ -173,7 +173,7 @@ DescriptorAssignment& DescriptorAssignment::bindStorageImage(
       std::make_unique<VkDescriptorImageInfo>());
   VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
 
-  textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   textureImageInfo.imageView = imageView;
   textureImageInfo.sampler = sampler;
 
