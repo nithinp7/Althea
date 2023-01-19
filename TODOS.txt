@@ -12,6 +12,9 @@ visible
 -Either handle errors and bulk de-allocate...
 -OR come up with idiomatic way to avoid unclear allocation state.
 
+-Avoid or automate shaderc "git-sync-deps
+-Avoid python dependency
+
 -Refactor Texture and Cubemap to all use the Image class (remove ImageUtilities)
 
 -In the future, will need to consider UBOs that might have to be "ocassionally"

@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/ThirdParty)
 set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_SYSTEM_NAME}-x${CESIUM_ARCHITECTURE})
 
-include_directories(Include Src Games)
+# include_directories(Include Src Games)
 
 function(glob_files out_var_name regexes)
     set(files "")
@@ -28,15 +28,17 @@ function(glob_files out_var_name regexes)
 endfunction()
 
 glob_files(SRC_FILES_LIST Src/*.cpp Games/*.cpp)
-glob_files(TST Src/*.cpp)
-message("${SRC_FILES_LIST}")
-glob_files(SHADER_FILES Shaders/*[.vert|.tesc|.tese|.geom|.frag|.comp])
+glob_files(HEADER_FILES_LIST Include/*.h)
 
-add_executable(Althea ${SRC_FILES_LIST})
+# add_executable(Althea ${SRC_FILES_LIST})
+add_library(Althea ${SRC_FILES_LIST})
+# target_link_libraries (${PROJECT_NAME} Althea)
 
 target_compile_definitions(Althea PRIVATE MAX_UV_COORDS=4)
 
 find_package(Vulkan REQUIRED) # error
+
+set(SHADERC_SKIP_TESTS ON)
 
 add_subdirectory(Extern/glm)
 add_subdirectory(Extern/glfw)
@@ -49,8 +51,9 @@ set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURC
 add_library(hash_library Extern/hash-library/sha256.cpp)
 set_target_properties(hash_library PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/hash-library/sha256.h")
 
-target_include_directories (${PROJECT_NAME}
+target_include_directories (Althea
     PUBLIC
+      Include
       ${Vulkan_INCLUDE_DIRS}
       ${GLFW_INCLUDE_DIRS}
       Extern/glm
@@ -61,7 +64,7 @@ target_include_directories (${PROJECT_NAME}
       Extern/hash-library)
 
 target_compile_definitions(
-    ${PROJECT_NAME}
+    Althea
     PUBLIC
         GLM_FORCE_DEPTH_ZERO_TO_ONE # Don't use OpenGL conventions for depth projections
         GLM_FORCE_RADIANS
@@ -75,12 +78,12 @@ target_compile_definitions(
         SHADERC_SKIP_COPYRIGHT_CHECK
 )
 
-target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES})
-target_link_libraries (${PROJECT_NAME} glfw)
-target_link_libraries (${PROJECT_NAME} MikkTSpace)
-target_link_libraries (${PROJECT_NAME} VulkanMemoryAllocator)
-target_link_libraries (${PROJECT_NAME} shaderc)
-target_link_libraries (${PROJECT_NAME} hash_library)
+target_link_libraries (Althea ${Vulkan_LIBRARIES})
+target_link_libraries (Althea glfw)
+target_link_libraries (Althea MikkTSpace)
+target_link_libraries (Althea VulkanMemoryAllocator)
+target_link_libraries (Althea shaderc)
+target_link_libraries (Althea hash_library)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
@@ -115,6 +118,6 @@ list(
 
 foreach(TARGET ${CESIUM_TARGETS})
   get_target_property(TARGET_INCLUDE_DIR  ${TARGET} PUBLIC_HEADER)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${TARGET_INCLUDE_DIR}) 
-  target_link_libraries (${PROJECT_NAME} ${TARGET})
+  target_include_directories(Althea PUBLIC ${TARGET_INCLUDE_DIR}) 
+  target_link_libraries (Althea ${TARGET})
 endforeach()
