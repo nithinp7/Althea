@@ -25,7 +25,7 @@ function(glob_files out_var_name regexes)
     set(${ARGV0} "${files}" PARENT_SCOPE)
 endfunction()
 
-glob_files(SRC_FILES_LIST Src/*.cpp Games/*.cpp)
+glob_files(SRC_FILES_LIST Src/*.cpp)
 glob_files(HEADER_FILES_LIST Include/Althea/*.h)
 
 add_library(Althea ${SRC_FILES_LIST})
