@@ -10,8 +10,8 @@ namespace AltheaEngine {
 
 /*static*/
 void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
-  builder.addVertexShader("/Shaders/Skybox.vert")
-      .addFragmentShader("/Shaders/Skybox.frag")
+  builder.addVertexShader(GEngineDirectory + "/Shaders/Skybox.vert")
+      .addFragmentShader(GEngineDirectory + "/Shaders/Skybox.frag")
 
       .setCullMode(VK_CULL_MODE_FRONT_BIT)
       .setDepthTesting(false);

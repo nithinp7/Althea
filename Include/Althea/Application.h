@@ -32,12 +32,13 @@ namespace AltheaEngine {
 class IGameInstance;
 
 extern std::string GProjectDirectory;
+extern std::string GEngineDirectory;
 
 // TODO: Standardize the conventions in this class ALTHEA_API with the rest of the
 // repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
 public:
-  Application(const std::string& projectDirectory);
+  Application(const std::string& projectDirectory, const std::string& engineDirectory);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();

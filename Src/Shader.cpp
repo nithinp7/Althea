@@ -37,7 +37,7 @@ void Shader::ShaderDeleter::operator()(
 }
 
 ShaderBuilder::ShaderBuilder(const std::string& path, shaderc_shader_kind kind)
-    : _path(GProjectDirectory + path), _kind(kind) {
+    : _path(path), _kind(kind) {
 
   // Note we do not fail gracefully when an invalid path is given. We only
   // fail gracefully during compilation errors.

@@ -15,11 +15,13 @@
 namespace AltheaEngine {
 
 std::string GProjectDirectory = "";
+std::string GEngineDirectory = "";
 
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
-Application::Application(const std::string& projectDir)
-    : configParser(projectDir + "/Config/ConfigFile.txt") {
+Application::Application(const std::string& projectDir, const std::string& engineDir)
+    : configParser(engineDir + "/Config/ConfigFile.txt") {
   GProjectDirectory = projectDir;
+  GEngineDirectory = engineDir;
 }
 
 void Application::run() {

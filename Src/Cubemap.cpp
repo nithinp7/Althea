@@ -18,7 +18,7 @@ Cubemap::Cubemap(
   std::array<CesiumGltf::ImageCesium, 6> cubemapImages;
   for (uint32_t i = 0; i < 6; ++i) {
     std::vector<char> rawImage =
-        Utilities::readFile(GProjectDirectory + cubemapPaths[i]);
+        Utilities::readFile(cubemapPaths[i]);
     CesiumGltfReader::ImageReaderResult result =
         CesiumGltfReader::GltfReader::readImage(
             gsl::span<const std::byte>(

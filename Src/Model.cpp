@@ -147,10 +147,8 @@ resolveExternalData(
 
 Model::Model(
     const Application& app,
-    const std::string& name,
+    const std::string& path,
     DescriptorSetAllocator& materialAllocator) {
-  std::string path = GProjectDirectory + name;
-
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
 

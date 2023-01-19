@@ -44,13 +44,13 @@ gsl::span<const std::byte> charVecToByteSpan(const std::vector<char>& buffer) {
 void initDefaultTextures(const Application& app) {
   // TODO: Should have separate, engine directory...
   std::vector<char> rawNormal1x1 =
-      Utilities::readFile(GProjectDirectory + NORMAL_1x1_PATH);
+      Utilities::readFile(GEngineDirectory + NORMAL_1x1_PATH);
   std::vector<char> rawGreen1x1 =
-      Utilities::readFile(GProjectDirectory + GREEN_1x1_PATH);
+      Utilities::readFile(GEngineDirectory + GREEN_1x1_PATH);
   std::vector<char> rawWhite1x1 =
-      Utilities::readFile(GProjectDirectory + WHITE_1x1_PATH);
+      Utilities::readFile(GEngineDirectory + WHITE_1x1_PATH);
   std::vector<char> rawBlack1x1 =
-      Utilities::readFile(GProjectDirectory + BLACK_1x1_PATH);
+      Utilities::readFile(GEngineDirectory + BLACK_1x1_PATH);
 
   // TODO: Use KTX2
   Ktx2TranscodeTargets noTranscodeTargets;

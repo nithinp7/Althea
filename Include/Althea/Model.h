@@ -25,7 +25,7 @@ class ALTHEA_API Model {
 public:
   Model(
       const Application& app,
-      const std::string& name,
+      const std::string& path,
       DescriptorSetAllocator& materialAllocator);
 
   size_t getPrimitivesCount() const;
