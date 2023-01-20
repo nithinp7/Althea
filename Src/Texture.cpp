@@ -46,8 +46,7 @@ void Texture::_initTexture(
     return;
   }
 
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  SamplerOptions samplerInfo{};
 
   switch (sampler.wrapS) {
   case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
@@ -72,8 +71,6 @@ void Texture::_initTexture(
   default:
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
   };
-
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
   if (sampler.magFilter) {
     switch (*sampler.magFilter) {
@@ -125,27 +122,12 @@ void Texture::_initTexture(
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
   }
 
-  samplerInfo.mipLodBias = 0.0f;
-  samplerInfo.minLod = 0.0f;
-  samplerInfo.maxLod = 0.0f;
-
-  if (useMipMaps && !image.mipPositions.empty()) {
-    samplerInfo.maxLod = static_cast<float>(image.mipPositions.size() - 1);
+  samplerInfo.mipCount = static_cast<uint32_t>(image.mipPositions.size());
+  if (samplerInfo.mipCount == 0) {
+    samplerInfo.mipCount = 1;
   }
-
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy =
-      app.getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
 
   this->_sampler = Sampler(app, samplerInfo);
-
-  uint32_t mipCount = static_cast<uint32_t>(image.mipPositions.size());
-  if (mipCount == 0) {
-    mipCount = 1;
-  }
 
   this->_allocation = app.createTextureImage(
       image,
@@ -155,7 +137,7 @@ void Texture::_initTexture(
       app,
       this->_allocation.getImage(),
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      mipCount,
+      samplerInfo.mipCount,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_COLOR_BIT);

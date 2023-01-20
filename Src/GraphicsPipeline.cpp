@@ -20,12 +20,6 @@ GraphicsPipeline::GraphicsPipeline(
   this->_shaders.reserve(shaderCount);
   for (size_t i = 0; i < shaderCount; ++i) {
     ShaderBuilder& shaderBuilder = this->_builder._shaderBuilders[i];
-    // Shader compiler errors should be checked before creating pipeline.
-    if (shaderBuilder.hasErrors()) {
-      throw std::runtime_error("Attempting to build pipeline with shader that "
-                               "could not be compiled.");
-    }
-
     this->_shaders.emplace_back(app, shaderBuilder);
 
     // Link shader module to corresponding shader stage description

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Allocator.h"
 #include "Library.h"
 
-#include "Allocator.h"
-
+#include <CesiumGltf/ImageCesium.h>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -32,6 +32,11 @@ class ALTHEA_API Image {
 public:
   Image() = default;
   Image(const Application& app, const ImageOptions& options);
+  Image(
+      const Application& app,
+      const CesiumGltf::ImageCesium& image,
+      VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                     VK_IMAGE_USAGE_SAMPLED_BIT);
 
   VkImage getImage() const { return this->_image.getImage(); }
 
@@ -61,8 +66,10 @@ public:
       size_t srcOffset,
       uint32_t mipLevel);
 
+  const ImageOptions& getOptions() const { return this->_options; }
+
 private:
-  ImageOptions _options;
+  ImageOptions _options{};
 
   VkAccessFlags _accessMask;
   VkImageLayout _layout;

@@ -17,8 +17,7 @@ Cubemap::Cubemap(
     bool srgb) {
   std::array<CesiumGltf::ImageCesium, 6> cubemapImages;
   for (uint32_t i = 0; i < 6; ++i) {
-    std::vector<char> rawImage =
-        Utilities::readFile(cubemapPaths[i]);
+    std::vector<char> rawImage = Utilities::readFile(cubemapPaths[i]);
     CesiumGltfReader::ImageReaderResult result =
         CesiumGltfReader::GltfReader::readImage(
             gsl::span<const std::byte>(
@@ -53,32 +52,12 @@ void Cubemap::_initCubemap(
   // TODO: determine order expected by vulkan
   // Front, Back, Up, Down, Left Right?
 
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-
-  uint32_t mipCount =
+  SamplerOptions samplerInfo{};
+  samplerInfo.mipCount =
       static_cast<uint32_t>(cubemapImages[0].mipPositions.size());
-  if (mipCount == 0) {
-    mipCount = 1;
+  if (samplerInfo.mipCount == 0) {
+    samplerInfo.mipCount = 1;
   }
-
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  samplerInfo.mipLodBias = 0.0f;
-  samplerInfo.minLod = 0.0f;
-  samplerInfo.maxLod = static_cast<float>(mipCount - 1);
-
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy =
-      app.getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
 
   this->_allocation = app.createCubemapImage(
       cubemapImages,
@@ -89,7 +68,7 @@ void Cubemap::_initCubemap(
       app,
       this->_allocation.getImage(),
       srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      mipCount,
+      samplerInfo.mipCount,
       6,
       VK_IMAGE_VIEW_TYPE_CUBE,
       VK_IMAGE_ASPECT_COLOR_BIT);

@@ -12,7 +12,9 @@ Shader::Shader(const Application& app, const ShaderBuilder& builder) {
   if (builder.hasErrors()) {
     // Compilation errors should be caught during the builder stage.
     throw std::runtime_error(
-        "Attempting to create a shader module with compile errors!");
+        "Attempting to create a shader module with the following compilation "
+        "errors: " +
+        builder.getErrors());
   }
 
   VkShaderModuleCreateInfo createInfo{};

@@ -2,14 +2,13 @@
 
 #include "Application.h"
 
+#include <glm/common.hpp>
+
 #include <stdexcept>
 
 namespace AltheaEngine {
-Image::Image(const Application& app, const ImageOptions& options)
-    : _options(options),
-      _accessMask(0),
-      _layout(VK_IMAGE_LAYOUT_UNDEFINED),
-      _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
+static ImageAllocation
+createImage(const Application& app, const ImageOptions& options) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -21,7 +20,7 @@ Image::Image(const Application& app, const ImageOptions& options)
   imageInfo.arrayLayers = options.layerCount;
   imageInfo.format = options.format;
   imageInfo.tiling = options.tiling;
-  imageInfo.initialLayout = this->_layout;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage = options.usage;
   // TODO: might need to change this when using async
   // background-compute queues
@@ -33,7 +32,82 @@ Image::Image(const Application& app, const ImageOptions& options)
   allocInfo.flags = 0;
   allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
-  this->_image = app.getAllocator().createImage(imageInfo, allocInfo);
+  return app.getAllocator().createImage(imageInfo, allocInfo);
+}
+
+Image::Image(const Application& app, const ImageOptions& options)
+    : _options(options),
+      _accessMask(0),
+      _layout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
+  this->_image = createImage(app, options);
+}
+
+Image::Image(
+    const Application& app,
+    const CesiumGltf::ImageCesium& image,
+    VkImageUsageFlags usageFlags)
+    : _accessMask(0),
+      _layout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
+  ImageOptions& options = this->_options;
+  options.width = static_cast<uint32_t>(image.width);
+  options.height = static_cast<uint32_t>(image.height);
+  options.mipCount = static_cast<uint32_t>(image.mipPositions.size());
+  if (options.mipCount == 0) {
+    options.mipCount = 1;
+  }
+
+  // All ImageCesium objects that come from readImage have this format
+  // TODO: handle KTX2 images and images not from readImage...
+  options.format = VK_FORMAT_R8G8B8A8_UNORM;
+  // TODO: is this always true
+  options.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  // Add the transfer bit since we will be uploading from a staging buffer.
+  options.usage = usageFlags | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+  // Upload image into staging buffer
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+  VkDeviceSize bufferSize = image.pixelData.size();
+
+  BufferAllocation stagingBuffer = app.createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      stagingInfo);
+
+  void* data = stagingBuffer.mapMemory();
+  std::memcpy((char*)data, image.pixelData.data(), bufferSize);
+  stagingBuffer.unmapMemory();
+
+  // Allocate device-only memory for the image
+  this->_image = createImage(app, options);
+
+  VkCommandBuffer commandBuffer = app.beginSingleTimeCommands();
+
+  this->transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+  if (options.mipCount == 1) {
+    this->copyMipFromBuffer(commandBuffer, stagingBuffer.getBuffer(), 0, 0);
+  } else {
+    for (uint32_t mipIndex = 0; mipIndex < options.mipCount; ++mipIndex) {
+      const CesiumGltf::ImageCesiumMipPosition& mipPos =
+          image.mipPositions[mipIndex];
+      this->copyMipFromBuffer(
+          commandBuffer,
+          stagingBuffer.getBuffer(),
+          mipPos.byteOffset,
+          mipIndex);
+    }
+  }
+
+  app.endSingleTimeCommands(commandBuffer);
 }
 
 void Image::transitionLayout(
@@ -95,7 +169,17 @@ void Image::copyMipFromBuffer(
   region.imageSubresource.layerCount = this->_options.layerCount;
 
   region.imageOffset = {0, 0, 0};
-  region.imageExtent = {this->_options.width, this->_options.height, 1};
+  region.imageExtent = {
+      this->_options.width >> mipLevel,
+      this->_options.height >> mipLevel,
+      1};
+  if (region.imageExtent.width == 0) {
+    region.imageExtent.width = 1;
+  }
+
+  if (region.imageExtent.height == 0) {
+    region.imageExtent.height = 1;
+  }
 
   vkCmdCopyBufferToImage(
       commandBuffer,
