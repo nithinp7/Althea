@@ -60,7 +60,7 @@ More pictures to come soon!
 - [ ] Use spir-v reflection via shaderc to code-gen pipeline layouts / binding declarations in application-level C++.
 
 #### Vulkan Backend
-- [ ] API to leverage compute pipeline.
+- [x] API to leverage compute pipeline.
 - [ ] API to leverage raytrace pipeline.
 - [ ] Pipeline caching - validation based on UUID and checksum hash.
 
@@ -69,15 +69,15 @@ More pictures to come soon!
 - [x] Update to a newer, tagged version of Cesium Native on a fork.
 - [ ] Decouple application-level code from rendering engine.
 - [x] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
-- [ ] Cleanly decouple engine code from "application" code. Likewise for resources (shaders, textures, etc.)
-- [ ] Integrate a hash-based checksum library to detect file edits during loading.
+- [x] Cleanly decouple engine code from "application" code. Likewise for resources (shaders, textures, etc.)
+- [x] Integrate a hash-based checksum library to detect file edits during loading.
 - [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, compiled shaders etc.)
 - [ ] Multi-threaded rendering / job system
 - [ ] Async model loading / uploading, eventually geometry "streaming"
 
 #### Editor Features
 - [ ] Basic Imgui-based editor capabilities (e.g., transform gizmos, load models etc.)
-- [ ] Shader hot-reloading
+- [x] Shader hot-reloading
 - [ ] Shader includes and specializations (should both be possible with shaderc)
 - [ ] Debug visualizations (dynamic switching to debug shaders)
 

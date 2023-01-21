@@ -12,6 +12,8 @@ visible
 -Either handle errors and bulk de-allocate...
 -OR come up with idiomatic way to avoid unclear allocation state.
 
+-addTextureBinding should not have default shaderStage argument
+
 Build-related:
 -Avoid or automate shaderc "git-sync-deps
 -Avoid python dependency
