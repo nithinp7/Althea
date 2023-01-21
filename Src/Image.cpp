@@ -101,6 +101,8 @@ void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {
   readBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   readBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
+  uint32_t previousMipWidth = this->_options.width;
+  uint32_t previousMipHeight = this->_options.height;
   for (uint32_t mipLevel = 1; mipLevel < this->_options.mipCount; ++mipLevel) {
     uint32_t mipWidth = this->_options.width >> mipLevel;
     if (mipWidth == 0) {
@@ -133,11 +135,21 @@ void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {
     region.srcSubresource.layerCount = this->_options.layerCount;
     region.srcSubresource.mipLevel = mipLevel - 1;
     region.srcSubresource.aspectMask = this->_options.aspectMask;
+    region.srcOffsets[0] = {0, 0, 0};
+    region.srcOffsets[1] = {
+        static_cast<int32_t>(previousMipWidth),
+        static_cast<int32_t>(previousMipHeight),
+        1};
 
     region.dstSubresource.baseArrayLayer = 0;
     region.dstSubresource.layerCount = this->_options.layerCount;
     region.dstSubresource.mipLevel = mipLevel;
     region.dstSubresource.aspectMask = this->_options.aspectMask;
+    region.dstOffsets[0] = {0, 0, 0};
+    region.dstOffsets[1] = {
+        static_cast<int32_t>(mipWidth),
+        static_cast<int32_t>(mipHeight),
+        1};
 
     vkCmdBlitImage(
         commandBuffer,
@@ -148,6 +160,9 @@ void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {
         1,
         &region,
         VK_FILTER_LINEAR);
+
+    previousMipWidth = mipWidth;
+    previousMipHeight = mipHeight;
   }
 
   // Since all other transitions happen in bulk across all mips, we transition
