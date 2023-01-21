@@ -1,12 +1,14 @@
 #pragma once
 
 #include "Allocator.h"
+#include "SingleTimeCommandBuffer.h"
 #include "Library.h"
 
-#include <CesiumGltf/ImageCesium.h>
+#include <gsl/span>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <memory>
 
 namespace AltheaEngine {
 class Application;
@@ -31,14 +33,55 @@ struct ALTHEA_API ImageOptions {
 class ALTHEA_API Image {
 public:
   Image() = default;
-  Image(const Application& app, const ImageOptions& options);
+
+  /**
+   * @brief Create an image and upload the first mip. All layers for the first
+   * mip should be present. If options.mipCount > 1, the mip chain will be
+   * generated on the GPU.
+   *
+   * @param app The application.
+   * @param commandBuffer The command buffer to use for uploading the image and
+   * optionally creating mipmaps.
+   * @param mip0 The source buffer to upload the first mip from.
+   * @param options Options for how this image should be created.
+   */
   Image(
       const Application& app,
-      const CesiumGltf::ImageCesium& image,
-      VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                     VK_IMAGE_USAGE_SAMPLED_BIT);
+      SingleTimeCommandBuffer& commandBuffer,
+      gsl::span<const std::byte> mip0,
+      const ImageOptions& options);
+      
+  /**
+   * @brief Create an image.
+   *
+   * @param app The application.
+   * @param options Options for how this image should be created.
+   */
+  Image(const Application& app, const ImageOptions& options);
 
   VkImage getImage() const { return this->_image.getImage(); }
+
+  /**
+   * @brief Upload the first mip level for this GPU image, from CPU memory. Must
+   * include all present layers back-to-back in memory.
+   *
+   * @param app A reference to the application, to allow for staging buffer
+   * allocation.
+   * @param commandBuffer The command buffer to use for the upload.
+   * @param mip0 The buffer view to upload the first mip from.
+   */
+  void upload(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      gsl::span<const std::byte> mip0);
+
+  /**
+   * @brief Generate mipmaps for this image. The first mip should have already 
+   * been uploaded before calling this function.
+   * 
+   * @param commandBuffer The command buffer to use when blitting the mipchain.
+   */
+  void generateMipMaps(SingleTimeCommandBuffer& commandBuffer);
 
   // For now, only possible to transition all mips and layers together
   // TODO: is this reasonable?
@@ -61,7 +104,7 @@ public:
    * @param mipLevel The mip level that should be populated.
    */
   void copyMipFromBuffer(
-      VkCommandBuffer commandBuffer,
+      SingleTimeCommandBuffer& commandBuffer,
       VkBuffer srcBuffer,
       size_t srcOffset,
       uint32_t mipLevel);

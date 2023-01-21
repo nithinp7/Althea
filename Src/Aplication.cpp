@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "DefaultTextures.h"
 #include "IGameInstance.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,7 +19,9 @@ std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
-Application::Application(const std::string& projectDir, const std::string& engineDir)
+Application::Application(
+    const std::string& projectDir,
+    const std::string& engineDir)
     : configParser(engineDir + "/Config/ConfigFile.txt") {
   GProjectDirectory = projectDir;
   GEngineDirectory = engineDir;
@@ -685,8 +688,8 @@ void Application::cleanupSwapChain() {
 }
 
 void Application::cleanupDepthResource() {
-  pDepthImageView.reset();
-  pDepthImageAllocation.reset();
+  depthImageView = ImageView();
+  depthImage = Image();
 }
 
 void Application::recreateSwapChain() {
@@ -748,104 +751,110 @@ bool Application::hasStencilComponent() const {
 
 void Application::createDepthResource() {
   depthImageFormat = findDepthFormat();
-  pDepthImageAllocation = std::make_unique<ImageAllocation>(createImage(
-      swapChainExtent.width,
-      swapChainExtent.height,
-      1,
-      1,
-      depthImageFormat,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-  pDepthImageView = std::make_unique<ImageView>(
+  ImageOptions options{};
+  options.width = swapChainExtent.width;
+  options.height = swapChainExtent.height;
+  // TODO: change mipcount? HZB?
+  options.mipCount = 1;
+  options.layerCount = 1;
+  options.format = depthImageFormat;
+  // TODO: stencil bit?
+  options.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  options.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+  SingleTimeCommandBuffer commandBuffer(*this);
+
+  depthImage = Image(*this, options);
+  depthImageView = ImageView(
       *this,
-      pDepthImageAllocation->getImage(),
+      depthImage.getImage(),
       depthImageFormat,
       1,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_DEPTH_BIT);
-  transitionImageLayout(
-      pDepthImageAllocation->getImage(),
-      depthImageFormat,
-      1,
-      1,
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+      options.aspectMask);
+
+  depthImage.transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 }
 
 void Application::createCommandPool() {
-  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+      QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
-  VkCommandPoolCreateInfo poolInfo{};
-  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+      VkCommandPoolCreateInfo poolInfo{};
+      poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+      poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+      poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-  if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to create command pool!");
-  }
+      if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
+          VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command pool!");
+      }
 }
 
 void Application::createCommandBuffers() {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool = commandPool;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+      VkCommandBufferAllocateInfo allocInfo{};
+      allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+      allocInfo.commandPool = commandPool;
+      allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+      allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-  commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to create command buffers!");
-  }
+      commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+      if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) !=
+          VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command buffers!");
+      }
 }
 
 void Application::createSyncObjects() {
-  VkSemaphoreCreateInfo semaphoreInfo{};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+      VkSemaphoreCreateInfo semaphoreInfo{};
+      semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-  VkFenceCreateInfo fenceInfo{};
-  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+      VkFenceCreateInfo fenceInfo{};
+      fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+      fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    if (vkCreateSemaphore(
-            device,
-            &semaphoreInfo,
-            nullptr,
-            &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(
-            device,
-            &semaphoreInfo,
-            nullptr,
-            &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) !=
-            VK_SUCCESS) {
-      throw std::runtime_error("Failed to create sync objects!");
-    }
-  }
+      imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+      renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+      inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+      for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        if (vkCreateSemaphore(
+                device,
+                &semaphoreInfo,
+                nullptr,
+                &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(
+                device,
+                &semaphoreInfo,
+                nullptr,
+                &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) !=
+                VK_SUCCESS) {
+          throw std::runtime_error("Failed to create sync objects!");
+        }
+      }
 }
 
 void Application::recordCommandBuffer(
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = 0;
-  beginInfo.pInheritanceInfo = nullptr;
+      VkCommandBufferBeginInfo beginInfo{};
+      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+      beginInfo.flags = 0;
+      beginInfo.pInheritanceInfo = nullptr;
 
-  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to begin recording command buffer!");
-  }
+      if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to begin recording command buffer!");
+      }
 
-  this->gameInstance->draw(*this, commandBuffer, frame);
+      this->gameInstance->draw(*this, commandBuffer, frame);
 
-  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to record command buffer!");
-  }
+      if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to record command buffer!");
+      }
 }
 } // namespace AltheaEngine

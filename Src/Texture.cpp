@@ -1,5 +1,7 @@
 #include "Texture.h"
 
+#include "Utilities.h"
+
 #include <CesiumGltf/Image.h>
 #include <CesiumGltf/ImageCesium.h>
 #include <CesiumGltf/Model.h>
@@ -13,6 +15,7 @@
 namespace AltheaEngine {
 Texture::Texture(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::Model& model,
     const CesiumGltf::Texture& texture,
     bool srgb) {
@@ -24,19 +27,21 @@ Texture::Texture(
   const CesiumGltf::Sampler& sampler = model.samplers[texture.sampler];
   const CesiumGltf::ImageCesium& image = model.images[texture.source].cesium;
 
-  this->_initTexture(app, image, sampler, srgb);
+  this->_initTexture(app, commandBuffer, image, sampler, srgb);
 }
 
 Texture::Texture(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::ImageCesium& image,
     const CesiumGltf::Sampler& sampler,
     bool srgb) {
-  this->_initTexture(app, image, sampler, srgb);
+  this->_initTexture(app, commandBuffer, image, sampler, srgb);
 }
 
 void Texture::_initTexture(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::ImageCesium& image,
     const CesiumGltf::Sampler& sampler,
     bool srgb) {
@@ -122,22 +127,39 @@ void Texture::_initTexture(
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
   }
 
-  samplerInfo.mipCount = static_cast<uint32_t>(image.mipPositions.size());
-  if (samplerInfo.mipCount == 0) {
-    samplerInfo.mipCount = 1;
-  }
+  uint32_t mipCount = useMipMaps ? Utilities::computeMipCount(
+                                       static_cast<uint32_t>(image.width),
+                                       static_cast<uint32_t>(image.height))
+                                 : 1;
+
+  samplerInfo.mipCount = mipCount;
 
   this->_sampler = Sampler(app, samplerInfo);
 
-  this->_allocation = app.createTextureImage(
-      image,
-      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM);
+  gsl::span<const std::byte> mip0View(image.pixelData);
+  if (!image.mipPositions.empty()) {
+    const CesiumGltf::ImageCesiumMipPosition& mip0pos = image.mipPositions[0];
+    mip0View = gsl::span<const std::byte>(
+        &image.pixelData[mip0pos.byteOffset],
+        mip0pos.byteSize);
+  }
 
+  ImageOptions options{};
+  options.width = static_cast<uint32_t>(image.width);
+  options.height = static_cast<uint32_t>(image.height);
+  options.mipCount = mipCount;
+  options.format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+  options.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  if (useMipMaps) {
+    options.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  }
+
+  this->_image = Image(app, commandBuffer, mip0View, options);
   this->_imageView = ImageView(
       app,
-      this->_allocation.getImage(),
-      srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-      samplerInfo.mipCount,
+      this->_image.getImage(),
+      options.format,
+      mipCount,
       1,
       VK_IMAGE_VIEW_TYPE_2D,
       VK_IMAGE_ASPECT_COLOR_BIT);

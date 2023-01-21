@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Library.h"
-
 #include "ConfigParser.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
+#include "Library.h"
 #include "Primitive.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <CesiumGltf/Model.h>
 #include <glm/glm.hpp>
@@ -25,6 +25,7 @@ class ALTHEA_API Model {
 public:
   Model(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const std::string& path,
       DescriptorSetAllocator& materialAllocator);
 
@@ -37,6 +38,7 @@ private:
 
   void _loadNode(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const CesiumGltf::Model& model,
       const CesiumGltf::Node& node,
       const glm::mat4& transform,

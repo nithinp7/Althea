@@ -19,10 +19,11 @@ void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
 
 Skybox::Skybox(
     Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const std::array<std::string, 6>& skyboxImagePaths,
     bool srgb)
     : _device(app.getDevice()) {
-  this->_pCubemap = std::make_shared<Cubemap>(app, skyboxImagePaths, srgb);
+  this->_pCubemap = std::make_shared<Cubemap>(app, commandBuffer, skyboxImagePaths, srgb);
 }
 
 void Skybox::draw(const DrawContext& context) const {

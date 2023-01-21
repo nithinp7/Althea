@@ -147,6 +147,7 @@ resolveExternalData(
 
 Model::Model(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const std::string& path,
     DescriptorSetAllocator& materialAllocator) {
   // TODO: just for testing
@@ -205,6 +206,7 @@ Model::Model(
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
         this->_loadNode(
             app,
+            commandBuffer,
             this->_model,
             this->_model.nodes[nodeId],
             transform,
@@ -217,6 +219,7 @@ Model::Model(
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
         this->_loadNode(
             app,
+            commandBuffer,
             this->_model,
             this->_model.nodes[nodeId],
             transform,
@@ -226,6 +229,7 @@ Model::Model(
   } else if (this->_model.nodes.size()) {
     this->_loadNode(
         app,
+        commandBuffer,
         this->_model,
         this->_model.nodes[0],
         transform,
@@ -235,6 +239,7 @@ Model::Model(
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
         this->_primitives.emplace_back(
             app,
+            commandBuffer,
             this->_model,
             primitive,
             transform,
@@ -254,6 +259,7 @@ void Model::draw(const DrawContext& context) const {
 
 void Model::_loadNode(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::Model& model,
     const CesiumGltf::Node& node,
     const glm::mat4& transform,
@@ -343,6 +349,7 @@ void Model::_loadNode(
     for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
       this->_primitives.emplace_back(
           app,
+          commandBuffer,
           this->_model,
           primitive,
           nodeTransform,
@@ -354,6 +361,7 @@ void Model::_loadNode(
     if (childNodeId >= 0 && childNodeId < model.nodes.size()) {
       this->_loadNode(
           app,
+          commandBuffer,
           model,
           model.nodes[childNodeId],
           nodeTransform,

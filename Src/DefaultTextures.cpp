@@ -1,6 +1,7 @@
 #include "DefaultTextures.h"
 
 #include "Utilities.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <CesiumGltf/Sampler.h>
 #include <CesiumGltfReader/GltfReader.h>
@@ -70,6 +71,8 @@ void initDefaultTextures(const Application& app) {
     return;
   }
 
+  SingleTimeCommandBuffer commandBuffer(app);
+
   CesiumGltf::Sampler sampler;
   sampler.magFilter = CesiumGltf::Sampler::MagFilter::LINEAR;
   sampler.minFilter = CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR;
@@ -77,13 +80,13 @@ void initDefaultTextures(const Application& app) {
   sampler.wrapT = CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE;
 
   GNormalTexture1x1 =
-      std::make_shared<Texture>(app, *normalResult.image, sampler, false);
+      std::make_shared<Texture>(app, commandBuffer, *normalResult.image, sampler, false);
   GGreenTexture1x1 =
-      std::make_shared<Texture>(app, *greenResult.image, sampler, false);
+      std::make_shared<Texture>(app, commandBuffer, *greenResult.image, sampler, false);
   GWhiteTexture1x1 =
-      std::make_shared<Texture>(app, *whiteResult.image, sampler, false);
+      std::make_shared<Texture>(app, commandBuffer, *whiteResult.image, sampler, false);
   GBlackTexture1x1 =
-      std::make_shared<Texture>(app, *blackResult.image, sampler, false);
+      std::make_shared<Texture>(app, commandBuffer, *blackResult.image, sampler, false);
 }
 
 void destroyDefaultTextures() {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Allocator.h"
+#include "Library.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -16,7 +16,10 @@ class ALTHEA_API IndexBuffer {
 public:
   IndexBuffer() = default;
 
-  IndexBuffer(const Application& app, std::vector<uint32_t>&& indices);
+  IndexBuffer(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      std::vector<uint32_t>&& indices);
 
   const std::vector<uint32_t>& getIndices() const { return this->_indices; }
 

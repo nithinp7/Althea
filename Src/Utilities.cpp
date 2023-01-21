@@ -1,5 +1,8 @@
 #include "Utilities.h"
 
+#include <glm/common.hpp>
+#include <glm/glm.hpp>
+
 #include <fstream>
 
 namespace AltheaEngine {
@@ -21,5 +24,11 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
   file.close();
 
   return buffer;
+}
+
+/*static*/
+uint32_t Utilities::computeMipCount(uint32_t width, uint32_t height) {
+  return 1 + static_cast<uint32_t>(
+                 glm::ceil(glm::log2((double)glm::max(width, height))));
 }
 } // namespace AltheaEngine

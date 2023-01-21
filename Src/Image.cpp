@@ -1,6 +1,7 @@
 #include "Image.h"
 
 #include "Application.h"
+#include "BufferUtilities.h"
 
 #include <glm/common.hpp>
 
@@ -35,6 +36,35 @@ createImage(const Application& app, const ImageOptions& options) {
   return app.getAllocator().createImage(imageInfo, allocInfo);
 }
 
+Image::Image(
+    const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
+    gsl::span<const std::byte> mip0,
+    const ImageOptions& options)
+    : _options(options),
+      _accessMask(0),
+      _layout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
+  // TODO: Should the client be responsible for managing these usage
+  // bits instead, even though provided API (e.g., uploadImage) won't
+  // work if the wrong usage is given?
+  // Maybe usage should be abstracted in an Althea enum, so the actual
+  // Vk usage can be derived in the Image constructor.
+
+  // Add extra usage flag bits for internal usages of the image.
+  this->_options.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  if (this->_options.mipCount > 1) {
+    this->_options.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  }
+
+  this->_image = createImage(app, options);
+  this->upload(app, commandBuffer, mip0);
+
+  if (this->_options.mipCount > 1) {
+    this->generateMipMaps(commandBuffer);
+  }
+}
+
 Image::Image(const Application& app, const ImageOptions& options)
     : _options(options),
       _accessMask(0),
@@ -43,71 +73,103 @@ Image::Image(const Application& app, const ImageOptions& options)
   this->_image = createImage(app, options);
 }
 
-Image::Image(
+void Image::upload(
     const Application& app,
-    const CesiumGltf::ImageCesium& image,
-    VkImageUsageFlags usageFlags)
-    : _accessMask(0),
-      _layout(VK_IMAGE_LAYOUT_UNDEFINED),
-      _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
-  ImageOptions& options = this->_options;
-  options.width = static_cast<uint32_t>(image.width);
-  options.height = static_cast<uint32_t>(image.height);
-  options.mipCount = static_cast<uint32_t>(image.mipPositions.size());
-  if (options.mipCount == 0) {
-    options.mipCount = 1;
-  }
+    SingleTimeCommandBuffer& commandBuffer,
+    gsl::span<const std::byte> srcBuffer) {
+  VkBuffer stagingBuffer = commandBuffer.createStagingBuffer(app, srcBuffer);
+  this->copyMipFromBuffer(commandBuffer, stagingBuffer, 0, 0);
+}
 
-  // All ImageCesium objects that come from readImage have this format
-  // TODO: handle KTX2 images and images not from readImage...
-  options.format = VK_FORMAT_R8G8B8A8_UNORM;
-  // TODO: is this always true
-  options.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  // Add the transfer bit since we will be uploading from a staging buffer.
-  options.usage = usageFlags | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {
+  // TODO: Technically, image blitting may not be supported for certain formats
+  // on certain hardware, should check support on the physical device
 
-  // Upload image into staging buffer
-  VmaAllocationCreateInfo stagingInfo{};
-  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+  // Will re-use this barrier to enable transfer reading
+  VkImageMemoryBarrier readBarrier{};
+  readBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  readBarrier.image = this->_image.getImage();
+  readBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  readBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  readBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  readBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+  readBarrier.subresourceRange.aspectMask = this->_options.aspectMask;
+  readBarrier.subresourceRange.baseMipLevel = 0;
+  readBarrier.subresourceRange.levelCount = 1;
+  readBarrier.subresourceRange.baseArrayLayer = 0;
+  readBarrier.subresourceRange.layerCount = this->_options.layerCount;
+  readBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  readBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  VkDeviceSize bufferSize = image.pixelData.size();
-
-  BufferAllocation stagingBuffer = app.createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      stagingInfo);
-
-  void* data = stagingBuffer.mapMemory();
-  std::memcpy((char*)data, image.pixelData.data(), bufferSize);
-  stagingBuffer.unmapMemory();
-
-  // Allocate device-only memory for the image
-  this->_image = createImage(app, options);
-
-  VkCommandBuffer commandBuffer = app.beginSingleTimeCommands();
-
-  this->transitionLayout(
-      commandBuffer,
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      VK_ACCESS_TRANSFER_WRITE_BIT,
-      VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-  if (options.mipCount == 1) {
-    this->copyMipFromBuffer(commandBuffer, stagingBuffer.getBuffer(), 0, 0);
-  } else {
-    for (uint32_t mipIndex = 0; mipIndex < options.mipCount; ++mipIndex) {
-      const CesiumGltf::ImageCesiumMipPosition& mipPos =
-          image.mipPositions[mipIndex];
-      this->copyMipFromBuffer(
-          commandBuffer,
-          stagingBuffer.getBuffer(),
-          mipPos.byteOffset,
-          mipIndex);
+  for (uint32_t mipLevel = 1; mipLevel < this->_options.mipCount; ++mipLevel) {
+    uint32_t mipWidth = this->_options.width >> mipLevel;
+    if (mipWidth == 0) {
+      mipWidth = 1;
     }
+
+    uint32_t mipHeight = this->_options.height >> mipLevel;
+    if (mipHeight == 0) {
+      mipHeight = 1;
+    }
+
+    // Execute barrier to prepare the previous mip for reading
+    readBarrier.subresourceRange.baseMipLevel = mipLevel - 1;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &readBarrier);
+
+    // Blit the previous mip into this one.
+    VkImageBlit region{};
+    region.srcSubresource.baseArrayLayer = 0;
+    region.srcSubresource.layerCount = this->_options.layerCount;
+    region.srcSubresource.mipLevel = mipLevel - 1;
+    region.srcSubresource.aspectMask = this->_options.aspectMask;
+
+    region.dstSubresource.baseArrayLayer = 0;
+    region.dstSubresource.layerCount = this->_options.layerCount;
+    region.dstSubresource.mipLevel = mipLevel;
+    region.dstSubresource.aspectMask = this->_options.aspectMask;
+
+    vkCmdBlitImage(
+        commandBuffer,
+        this->_image.getImage(),
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        this->_image.getImage(),
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region,
+        VK_FILTER_LINEAR);
   }
 
-  app.endSingleTimeCommands(commandBuffer);
+  // Since all other transitions happen in bulk across all mips, we transition
+  // the last mip here unnecessarily for consistency.
+  readBarrier.subresourceRange.baseMipLevel = this->_options.mipCount - 1;
+  vkCmdPipelineBarrier(
+      commandBuffer,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      0,
+      0,
+      nullptr,
+      0,
+      nullptr,
+      1,
+      &readBarrier);
+
+  // Update information about current layout to properly conduct
+  // future transitions.
+  this->_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  this->_accessMask = VK_ACCESS_TRANSFER_READ_BIT;
+  this->_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 }
 
 void Image::transitionLayout(
@@ -153,10 +215,16 @@ void Image::transitionLayout(
 }
 
 void Image::copyMipFromBuffer(
-    VkCommandBuffer commandBuffer,
+    SingleTimeCommandBuffer& commandBuffer,
     VkBuffer srcBuffer,
     size_t srcOffset,
     uint32_t mipLevel) {
+
+  this->transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT);
 
   VkBufferImageCopy region{};
   region.bufferOffset = srcOffset;

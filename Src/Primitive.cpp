@@ -21,6 +21,7 @@
 namespace AltheaEngine {
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::Model& model,
     const std::optional<CesiumGltf::TextureInfo>& texture,
     std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>&
@@ -43,6 +44,7 @@ static std::shared_ptr<Texture> createTexture(
         &gltfTexture,
         std::make_shared<Texture>(
             app,
+            commandBuffer,
             model,
             model.textures[texture->index],
             srgb));
@@ -252,6 +254,7 @@ typedef std::unordered_map<std::string, int32_t>::const_iterator
 
 Primitive::Primitive(
     const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
     const glm::mat4& nodeTransform,
@@ -338,6 +341,7 @@ Primitive::Primitive(
           *material.pbrMetallicRoughness;
       this->_textureSlots.pBaseTexture = createTexture(
           app,
+          commandBuffer,
           model,
           pbr.baseColorTexture,
           textureMap,
@@ -353,6 +357,7 @@ Primitive::Primitive(
 
       this->_textureSlots.pMetallicRoughnessTexture = createTexture(
           app,
+          commandBuffer,
           model,
           pbr.metallicRoughnessTexture,
           textureMap,
@@ -369,6 +374,7 @@ Primitive::Primitive(
 
     this->_textureSlots.pNormalMapTexture = createTexture(
         app,
+        commandBuffer,
         model,
         material.normalTexture,
         textureMap,
@@ -385,6 +391,7 @@ Primitive::Primitive(
 
     this->_textureSlots.pOcclusionTexture = createTexture(
         app,
+        commandBuffer,
         model,
         material.occlusionTexture,
         textureMap,
@@ -399,6 +406,7 @@ Primitive::Primitive(
 
     this->_textureSlots.pEmissiveTexture = createTexture(
         app,
+        commandBuffer,
         model,
         material.emissiveTexture,
         textureMap,
@@ -522,8 +530,8 @@ Primitive::Primitive(
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 
-  this->_vertexBuffer = VertexBuffer(app, std::move(vertices));
-  this->_indexBuffer = IndexBuffer(app, std::move(indices));
+  this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
+  this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
   this->_material.assign()
       .bindInlineConstants(this->_constants)

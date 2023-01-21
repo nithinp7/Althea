@@ -6,6 +6,7 @@
 #include "DrawContext.h"
 #include "FrameContext.h"
 #include "Material.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -24,6 +25,7 @@ public:
 
   Skybox(
       Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const std::array<std::string, 6>& skyboxImagePaths,
       bool srgb);
 

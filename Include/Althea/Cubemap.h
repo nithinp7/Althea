@@ -2,9 +2,10 @@
 
 #include "Library.h"
 
-#include "Allocator.h"
+#include "Image.h"
 #include "ImageView.h"
 #include "Sampler.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <CesiumGltf/ImageCesium.h>
 #include <vulkan/vulkan.h>
@@ -19,14 +20,16 @@ class ALTHEA_API Cubemap {
 public:
   Cubemap(
       Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const std::array<std::string, 6>& cubemapPaths,
       bool srgb);
   Cubemap(
       Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const std::array<CesiumGltf::ImageCesium, 6>& images,
       bool srgb);
 
-  VkImage getImage() const { return this->_allocation.getImage(); }
+  VkImage getImage() const { return this->_image.getImage(); }
 
   VkImageView getImageView() const { return this->_imageView; }
 
@@ -35,11 +38,11 @@ public:
 private:
   void _initCubemap(
       Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const std::array<CesiumGltf::ImageCesium, 6>& images,
       bool srgb);
 
-  ImageAllocation _allocation;
-
+  Image _image;
   ImageView _imageView;
   Sampler _sampler;
 };

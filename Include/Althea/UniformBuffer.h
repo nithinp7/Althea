@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Allocator.h"
+#include "BufferUtilities.h"
+#include "Library.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -17,12 +18,16 @@ template <typename TUniforms> class ALTHEA_API UniformBuffer {
 public:
   UniformBuffer() = default;
 
-  UniformBuffer(const Application& app)
-      : _allocation(app.createUniformBuffer(sizeof(TUniforms))) {}
+  UniformBuffer(const Application& app, SingleTimeCommandBuffer& commandBuffer) {
+    this->_createUniformBuffer(app, commandBuffer);
+  }
 
-  UniformBuffer(const Application& app, const TUniforms& uniforms)
-      : _allocation(app.createUniformBuffer(sizeof(TUniforms))) {
-    updateUniforms(uniforms);
+  UniformBuffer(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      const TUniforms& uniforms) {
+    this->_createUniformBuffer(app, commandBuffer);
+    this->updateUniforms(uniforms);
   }
 
   // TODO: TUniforms& getUniforms()
@@ -43,6 +48,23 @@ public:
   size_t getSize() const { return sizeof(TUniforms); }
 
 private:
+  void
+  _createUniformBuffer(const Application& app, SingleTimeCommandBuffer& commandBuffer) {
+    // TODO: This assumes that the uniform buffer will be _often_ rewritten
+    // and perhaps in a random pattern. We should prefer a different type of
+    // memory if the uniform buffer will mostly be persistent.
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+    this->_allocation = BufferUtilities::createBuffer(
+        app,
+        commandBuffer,
+        sizeof(TUniforms),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        allocInfo);
+  }
+
   TUniforms _uniforms;
   BufferAllocation _allocation;
 };

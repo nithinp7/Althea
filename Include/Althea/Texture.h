@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Library.h"
-
-#include "Allocator.h"
 #include "Application.h"
+#include "Image.h"
 #include "ImageView.h"
+#include "Library.h"
 #include "Sampler.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -21,16 +21,18 @@ class ALTHEA_API Texture {
 public:
   Texture(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const CesiumGltf::Model& model,
       const CesiumGltf::Texture& texture,
       bool srgb);
   Texture(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  VkImage getImage() const { return this->_allocation.getImage(); }
+  VkImage getImage() const { return this->_image.getImage(); }
 
   VkImageView getImageView() const { return this->_imageView; }
 
@@ -39,12 +41,12 @@ public:
 private:
   void _initTexture(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const CesiumGltf::ImageCesium& image,
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  ImageAllocation _allocation;
-
+  Image _image;
   ImageView _imageView;
   Sampler _sampler;
 };

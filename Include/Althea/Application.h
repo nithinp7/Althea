@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Allocator.h"
 #include "CameraController.h"
 #include "ConfigParser.h"
 #include "DeletionTasks.h"
 #include "FrameContext.h"
+#include "Image.h"
 #include "ImageView.h"
 #include "InputManager.h"
+#include "Library.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include "vk_mem_alloc.h"
@@ -34,11 +34,13 @@ class IGameInstance;
 extern std::string GProjectDirectory;
 extern std::string GEngineDirectory;
 
-// TODO: Standardize the conventions in this class ALTHEA_API with the rest of the
-// repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
+// TODO: Standardize the conventions in this class ALTHEA_API with the rest of
+// the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
 public:
-  Application(const std::string& projectDirectory, const std::string& engineDirectory);
+  Application(
+      const std::string& projectDirectory,
+      const std::string& engineDirectory);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();
@@ -91,9 +93,8 @@ private:
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
-  // TODO: These should not no longer need to be wrapped in unique_ptrs
-  std::unique_ptr<ImageAllocation> pDepthImageAllocation;
-  std::unique_ptr<ImageView> pDepthImageView;
+  Image depthImage;
+  ImageView depthImageView;
   VkFormat depthImageFormat;
 
   VkCommandPool commandPool;
@@ -192,7 +193,7 @@ public:
 
   VkFormat getDepthImageFormat() const { return depthImageFormat; }
 
-  VkImageView getDepthImageView() const { return *pDepthImageView; }
+  VkImageView getDepthImageView() const { return depthImageView; }
 
   bool hasStencilComponent() const;
 
@@ -206,63 +207,8 @@ public:
     deletionTasks.addDeletionTask(std::move(task));
   }
 
+  VkQueue getGraphicsQueue() const { return this->graphicsQueue; }
+
   uint32_t getCurrentFrameRingBufferIndex() const { return this->currentFrame; }
-
-  // Command Utilities
-  VkCommandBuffer beginSingleTimeCommands() const;
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
-
-  // Buffer Utilities
-  // TODO: might no longer need after using VMA
-  uint32_t findMemoryType(
-      uint32_t typeFilter,
-      const VkMemoryPropertyFlags& properties) const;
-  void copyBuffer(
-      const VkBuffer& srcBuffer,
-      const VkBuffer& dstBuffer,
-      VkDeviceSize size) const;
-  BufferAllocation createBuffer(
-      VkDeviceSize size,
-      VkBufferUsageFlags usage,
-      const VmaAllocationCreateInfo& allocInfo) const;
-  BufferAllocation
-  createVertexBuffer(const void* pSrc, VkDeviceSize bufferSize) const;
-  BufferAllocation
-  createIndexBuffer(const void* pSrc, VkDeviceSize bufferSize) const;
-  BufferAllocation createUniformBuffer(VkDeviceSize bufferSize) const;
-
-  // Image Utilities
-  ImageAllocation createTextureImage(
-      const CesiumGltf::ImageCesium& imageSrc,
-      VkFormat format) const;
-  ImageAllocation createCubemapImage(
-      const std::array<CesiumGltf::ImageCesium, 6>& imageSrc,
-      VkFormat format) const;
-
-  ImageAllocation createImage(
-      uint32_t width,
-      uint32_t height,
-      uint32_t mipCount,
-      uint32_t layerCount,
-      VkFormat format,
-      VkImageTiling tiling,
-      VkImageUsageFlags usage,
-      VkImageCreateFlags createFlags = 0) const;
-
-  void transitionImageLayout(
-      VkImage image,
-      VkFormat format,
-      uint32_t mipCount,
-      uint32_t layerCount,
-      VkImageLayout oldLayout,
-      VkImageLayout newLayout) const;
-  void copyBufferToImage(
-      VkBuffer buffer,
-      size_t bufferOffset,
-      VkImage image,
-      uint32_t width,
-      uint32_t height,
-      uint32_t mipLevel,
-      uint32_t layerCount) const;
 };
 } // namespace AltheaEngine

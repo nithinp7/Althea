@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "Texture.h"
 #include "VertexBuffer.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
@@ -89,6 +90,7 @@ private:
 public:
   Primitive(
       const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
       const glm::mat4& nodeTransform,
