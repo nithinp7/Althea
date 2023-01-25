@@ -20,10 +20,10 @@
 #include <vector>
 
 namespace CesiumGltf {
-struct ALTHEA_API Model;
-struct ALTHEA_API MeshPrimitive;
-struct ALTHEA_API Texture;
-struct ALTHEA_API TextureInfo;
+struct Model;
+struct MeshPrimitive;
+struct Texture;
+struct TextureInfo;
 } // namespace CesiumGltf
 
 namespace AltheaEngine {

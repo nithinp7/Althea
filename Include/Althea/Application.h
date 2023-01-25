@@ -25,7 +25,7 @@
 #include <vector>
 
 namespace CesiumGltf {
-struct ALTHEA_API ImageCesium;
+struct ImageCesium;
 };
 
 namespace AltheaEngine {

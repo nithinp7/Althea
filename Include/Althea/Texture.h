@@ -10,10 +10,10 @@
 #include <vulkan/vulkan.h>
 
 namespace CesiumGltf {
-struct ALTHEA_API Model;
-struct ALTHEA_API Texture;
-struct ALTHEA_API ImageCesium;
-struct ALTHEA_API Sampler;
+struct Model;
+struct Texture;
+struct ImageCesium;
+struct Sampler;
 } // namespace CesiumGltf
 
 namespace AltheaEngine {
