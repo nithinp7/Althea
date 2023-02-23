@@ -63,7 +63,10 @@ void Cubemap::_initCubemap(
   // Pack all the first mips from each layer back-to-back.
   size_t offset = 0;
   for (uint32_t layerIndex = 0; layerIndex < 6; ++layerIndex) {
-    memcpy(&buffer[offset], cubemapImages[layerIndex].pixelData.data(), layerSize);
+    memcpy(
+        &buffer[offset],
+        cubemapImages[layerIndex].pixelData.data(),
+        layerSize);
     offset += layerSize;
   }
 
@@ -75,9 +78,17 @@ void Cubemap::_initCubemap(
   options.layerCount = 6;
   options.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                   VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  options.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
   this->_image = Image(app, commandBuffer, buffer, options);
 
+  // Assume cubemap will be used in a fragment shader
+  this->_image.transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      VK_ACCESS_SHADER_READ_BIT,
+      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+      
   SamplerOptions samplerInfo{};
   samplerInfo.mipCount = options.mipCount;
 

@@ -75,7 +75,7 @@ void initDefaultTextures(const Application& app) {
 
   CesiumGltf::Sampler sampler;
   sampler.magFilter = CesiumGltf::Sampler::MagFilter::LINEAR;
-  sampler.minFilter = CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR;
+  sampler.minFilter = CesiumGltf::Sampler::MinFilter::LINEAR;
   sampler.wrapS = CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE;
   sampler.wrapT = CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE;
 
