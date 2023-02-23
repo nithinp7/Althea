@@ -272,4 +272,58 @@ void Image::copyMipFromBuffer(
       1,
       &region);
 }
+
+void Image::copyMipToBuffer(
+    VkCommandBuffer commandBuffer,
+    VkBuffer dstBuffer,
+    size_t dstOffset,
+    uint32_t mipLevel) {
+  this->transitionLayout(
+      commandBuffer,
+      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      VK_ACCESS_TRANSFER_READ_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+  VkBufferImageCopy region{};
+  // region.stype = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2;
+
+  region.imageSubresource.aspectMask = this->_options.aspectMask;
+  region.imageSubresource.mipLevel = mipLevel;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = this->_options.layerCount;
+
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {
+      this->_options.width >> mipLevel,
+      this->_options.height >> mipLevel,
+      1};
+  if (region.imageExtent.width == 0) {
+    region.imageExtent.width = 1;
+  }
+
+  if (region.imageExtent.height == 0) {
+    region.imageExtent.height = 1;
+  }
+
+  region.bufferOffset = dstOffset;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+
+  // VkCopyImageToBufferInfo copyInfo{};
+  // copyInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2;
+  // copyInfo.dstBuffer = dstBuffer;
+  // copyInfo.pRegions = &region;
+  // copyInfo.regionCount = 1;
+  // copyInfo.srcImage = this->_image.getImage();
+  // copyInfo.srcImageLayout = this->_layout;
+
+  // vkCmdCopyImageToBuffer2(commandBuffer, &copyInfo);
+  vkCmdCopyImageToBuffer(
+      commandBuffer,
+      this->_image.getImage(),
+      this->_layout,
+      dstBuffer,
+      1,
+      &region);
+}
 } // namespace AltheaEngine

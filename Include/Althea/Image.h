@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Allocator.h"
-#include "SingleTimeCommandBuffer.h"
 #include "Library.h"
+#include "SingleTimeCommandBuffer.h"
 
 #include <gsl/span>
 #include <vulkan/vulkan.h>
@@ -50,7 +50,7 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       gsl::span<const std::byte> mip0,
       const ImageOptions& options);
-      
+
   /**
    * @brief Create an image.
    *
@@ -76,9 +76,9 @@ public:
       gsl::span<const std::byte> mip0);
 
   /**
-   * @brief Generate mipmaps for this image. The first mip should have already 
+   * @brief Generate mipmaps for this image. The first mip should have already
    * been uploaded before calling this function.
-   * 
+   *
    * @param commandBuffer The command buffer to use when blitting the mipchain.
    */
   void generateMipMaps(SingleTimeCommandBuffer& commandBuffer);
@@ -107,6 +107,12 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       VkBuffer srcBuffer,
       size_t srcOffset,
+      uint32_t mipLevel);
+
+  void copyMipToBuffer(
+      VkCommandBuffer commandBuffer,
+      VkBuffer dstBuffer,
+      size_t dstOffset,
       uint32_t mipLevel);
 
   const ImageOptions& getOptions() const { return this->_options; }
