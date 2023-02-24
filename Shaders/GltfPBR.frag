@@ -13,7 +13,7 @@ layout(location=8) in vec3 direction;
 
 layout(location=0) out vec4 outColor;
 
-layout(set=0, binding=0) uniform samplerCube skyboxTexture; 
+layout(set=0, binding=0) uniform sampler2D environmentMap; 
 
 layout(set=0, binding=1) uniform UniformBufferObject {
   mat4 projection;
@@ -50,6 +50,13 @@ layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
 
+vec3 sampleEnvMap(vec3 direction) {
+  float yaw = atan(direction.z, direction.x);
+  float pitch = -atan(direction.y, length(direction.xz));
+  vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
+
+  return texture(environmentMap, uv).rgb;
+}
 
 float vary(float period, float rangeMin, float rangeMax) {
   float halfRange = 0.5 * (rangeMax - rangeMin);
@@ -186,7 +193,7 @@ void main() {
   vec3 normal = normalize(fragTBN * tangentSpaceNormal);
 
   vec3 reflectedDirection = reflect(normalize(direction), normal);
-  vec4 reflectedColor = texture(skyboxTexture, reflectedDirection);
+  vec3 reflectedColor = sampleEnvMap(reflectedDirection);
   // vec4 reflectedColor = textureLod(skyboxTexture, reflectedDirection, vary(14.0, 8.0));
 
   float ambientOcclusion = 
@@ -202,9 +209,9 @@ void main() {
   float metallic = metallicRoughness.x;
   float roughness = metallicRoughness.y;
 
-  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor.rgb, metallic, roughness, ambientOcclusion);
+  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor, metallic, roughness, ambientOcclusion);
 
-  outColor = vec4(material * reflectedColor.rgb, 1.0);
+  outColor = vec4(material, 1.0);
 
   // outColor = vec4(material, 1.0);
   // outColor = vec4(reflectedColor.rgb * metallic, 1.0);
