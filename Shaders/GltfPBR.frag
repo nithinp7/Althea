@@ -14,8 +14,9 @@ layout(location=8) in vec3 direction;
 layout(location=0) out vec4 outColor;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
+layout(set=0, binding=1) uniform sampler2D irradianceMap;
 
-layout(set=0, binding=1) uniform UniformBufferObject {
+layout(set=0, binding=2) uniform UniformBufferObject {
   mat4 projection;
   mat4 inverseProjection;
   mat4 view;
@@ -56,6 +57,14 @@ vec3 sampleEnvMap(vec3 direction) {
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
   return texture(environmentMap, uv).rgb;
+}
+
+vec3 sampleIrrMap(vec3 normal) {
+  float yaw = atan(normal.z, normal.x);
+  float pitch = -atan(normal.y, length(normal.xz));
+  vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
+
+  return texture(irradianceMap, uv).rgb;
 }
 
 float vary(float period, float rangeMin, float rangeMax) {
@@ -115,6 +124,7 @@ vec3 pbrMaterial(
     vec3 N, 
     vec3 baseColor, 
     vec3 reflectedColor, 
+    vec3 irradianceColor,
     float metallic, 
     float roughness,
     float ambientOcclusion) {
@@ -142,7 +152,8 @@ vec3 pbrMaterial(
   // current viewing angle.
   // TODO: ?? Can VdotH be negative??
   // TODO: What is the difference when using LdotH instead?
-  vec3 F = fresnelSchlick(VdotH, F0);
+  // vec3 F = fresnelSchlick(VdotH, F0);
+  vec3 F = fresnelSchlick(NdotV, F0);
   
   float a = roughness * roughness;
   float a2 = a * a;
@@ -154,13 +165,10 @@ vec3 pbrMaterial(
   vec3 diffuseColor = (1.0 - F) * mix(baseColor, vec3(0.0), metallic);
   vec3 specularColor = 
       ndfGgx(NdotH, a2) * F * geometrySmith(NdotL, NdotV, kDirect) / (4.0 * NdotL * NdotV + 0.0001);
-  vec3 ambient = vec3(0.03) * baseColor * ambientOcclusion;
+  // vec3 ambient = vec3(0.03) * baseColor * ambientOcclusion;
+  vec3 ambient = irradianceColor * baseColor * ambientOcclusion;
 
   vec3 color = (diffuseColor + specularColor * reflectedColor) * NdotL + ambient;
-
-  // Tone-map / HDR / gamma??
-  // color = color / (color + vec3(1.0));
-  // color = pow(color, vec3(1.0 / 2.2));
 
   return color;
 }
@@ -194,6 +202,7 @@ void main() {
 
   vec3 reflectedDirection = reflect(normalize(direction), normal);
   vec3 reflectedColor = sampleEnvMap(reflectedDirection);
+  vec3 irradianceColor = sampleIrrMap(normal);
   // vec4 reflectedColor = textureLod(skyboxTexture, reflectedDirection, vary(14.0, 8.0));
 
   float ambientOcclusion = 
@@ -209,7 +218,21 @@ void main() {
   float metallic = metallicRoughness.x;
   float roughness = metallicRoughness.y;
 
-  vec3 material = pbrMaterial(normalize(-direction), globals.lightDir, normal, baseColor.rgb, reflectedColor, metallic, roughness, ambientOcclusion);
+  vec3 material = 
+      pbrMaterial(
+        normalize(-direction), 
+        globals.lightDir, 
+        normal, 
+        baseColor.rgb, 
+        reflectedColor, 
+        irradianceColor,
+        metallic, 
+        roughness, 
+        ambientOcclusion);
+
+  // Tone-map / HDR / gamma??
+  // material = material / (material + vec3(1.0));
+  // color = pow(color, vec3(1.0 / 2.2));
 
   outColor = vec4(material, 1.0);
 

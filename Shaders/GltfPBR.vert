@@ -16,7 +16,7 @@ layout(location=4) out vec2 emissiveUV;
 layout(location=5) out mat3 vertTbn;
 layout(location=8) out vec3 direction;
 
-layout(set=0, binding=1) uniform UniformBufferObject {
+layout(set=0, binding=2) uniform UniformBufferObject {
   mat4 projection;
   mat4 inverseProjection;
   mat4 view;
