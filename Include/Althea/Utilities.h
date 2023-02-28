@@ -21,6 +21,13 @@ public:
   static std::vector<char> readFile(const std::string& filename);
   static uint32_t computeMipCount(uint32_t width, uint32_t height);
 
+  static CesiumGltf::ImageCesium loadPng(const std::string& path);
+  static void savePng(
+      const std::string& path,
+      int width,
+      int height,
+      gsl::span<const std::byte> data);
+
   static CesiumGltf::ImageCesium loadHdri(const std::string& path);
   static void saveHdri(
       const std::string& path,
