@@ -58,7 +58,7 @@ Image::Image(
   }
 
   this->_image = createImage(app, options);
-  this->upload(app, commandBuffer, mip0);
+  this->uploadMip(app, commandBuffer, mip0, 0);
 
   if (this->_options.mipCount > 1) {
     this->generateMipMaps(commandBuffer);
@@ -73,12 +73,13 @@ Image::Image(const Application& app, const ImageOptions& options)
   this->_image = createImage(app, options);
 }
 
-void Image::upload(
+void Image::uploadMip(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
-    gsl::span<const std::byte> srcBuffer) {
-  VkBuffer stagingBuffer = commandBuffer.createStagingBuffer(app, srcBuffer);
-  this->copyMipFromBuffer(commandBuffer, stagingBuffer, 0, 0);
+    gsl::span<const std::byte> src,
+    uint32_t mipIndex) {
+  VkBuffer stagingBuffer = commandBuffer.createStagingBuffer(app, src);
+  this->copyMipFromBuffer(commandBuffer, stagingBuffer, 0, mipIndex);
 }
 
 void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {

@@ -52,7 +52,7 @@ struct ALTHEA_API PrimitiveConstants {
   int32_t emissiveTextureCoordinateIndex{};
 
   float normalScale = 1.0f;
-  float metallicFactor = 1.0f;
+  float metallicFactor = 0.0f;
   float roughnessFactor = 1.0f;
   float occlusionStrength = 1.0f;
 

@@ -62,18 +62,20 @@ public:
   VkImage getImage() const { return this->_image.getImage(); }
 
   /**
-   * @brief Upload the first mip level for this GPU image, from CPU memory. Must
+   * @brief Upload the a mip level for this GPU image, from CPU memory. Must
    * include all present layers back-to-back in memory.
    *
    * @param app A reference to the application, to allow for staging buffer
    * allocation.
    * @param commandBuffer The command buffer to use for the upload.
-   * @param mip0 The buffer view to upload the first mip from.
+   * @param src The buffer view to upload the first mip from.
+   * @param mipIndex The index of this mip.
    */
-  void upload(
+  void uploadMip(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
-      gsl::span<const std::byte> mip0);
+      gsl::span<const std::byte> src,
+      uint32_t mipIndex);
 
   /**
    * @brief Generate mipmaps for this image. The first mip should have already

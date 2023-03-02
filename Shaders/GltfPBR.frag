@@ -57,7 +57,7 @@ vec3 sampleEnvMap(vec3 direction, float roughness) {
   float pitch = -atan(direction.y, length(direction.xz));
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
-  return textureLod(environmentMap, uv, 6.0 * roughness).rgb;
+  return textureLod(environmentMap, uv, 4.0 * roughness + 1.0).rgb;
 }
 
 vec3 sampleIrrMap(vec3 normal) {
@@ -167,7 +167,7 @@ vec3 pbrMaterial(
   vec3 specularColor = 
       ndfGgx(NdotH, a2) * F * geometrySmith(NdotL, NdotV, kDirect) / (4.0 * NdotL * NdotV + 0.0001);
   // vec3 ambient = vec3(0.03) * baseColor * ambientOcclusion;
-  vec3 ambientDiffuse = irradianceColor * baseColor;// * ambientOcclusion;
+  // vec3 ambientDiffuse = irradianceColor * baseColor;// * ambientOcclusion;
 
   vec2 envBRDF = texture(brdfLut, vec2(NdotV, roughness)).rg;
   vec3 ambientSpecular = reflectedColor * (F * envBRDF.x + envBRDF.y);
@@ -206,8 +206,6 @@ void main() {
 
   float ambientOcclusion = 
       texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;
-
-  // float intensity = 2.0 * max(0, dot(lightDir, normal)) + 0.1;
   vec4 baseColor = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
 
   vec2 metallicRoughness = 
@@ -215,34 +213,28 @@ void main() {
       vec2(constants.metallicFactor, constants.roughnessFactor);
 
   float metallic = metallicRoughness.x;
-  float roughness = metallicRoughness.y;
+  float roughness = metallicRoughness.y;//pow(metallicRoughness.y, 2.0);// 0.5 * sin(globals.time) + 0.5;//metallicRoughness.y;
 
   vec3 reflectedDirection = reflect(normalize(direction), normal);
   vec3 reflectedColor = sampleEnvMap(reflectedDirection, roughness);
   vec3 irradianceColor = sampleIrrMap(normal);
-  // vec4 reflectedColor = textureLod(skyboxTexture, reflectedDirection, vary(14.0, 8.0));
 
   vec3 material = 
       pbrMaterial(
-        normalize(-direction),
+        normalize(direction),
         globals.lightDir, 
         normal, 
         baseColor.rgb, 
         reflectedColor, 
         irradianceColor,
         metallic, 
-        1.0,//roughness, 
+        roughness, 
         ambientOcclusion);
 
-  // Tone-map / HDR / gamma??
+  float exposure = 0.5;
+  material = vec3(1.0) - exp(-material * exposure);
+  // HDR tonemap
   // material = material / (material + vec3(1.0));
-  // color = pow(color, vec3(1.0 / 2.2));
 
   outColor = vec4(material, 1.0);
-
-  // outColor = vec4(material, 1.0);
-  // outColor = vec4(reflectedColor.rgb * metallic, 1.0);
-  // outColor = vec4(ambientOcclusion * metallicRoughness, 0.0, 1.0);
-  // outColor = vec4(vec3(ambientOcclusion) * reflectedColor.rgb, 1.0);
-  // outColor = vec4(normal, 1.0);
 }

@@ -15,11 +15,14 @@ vec3 sampleEnvMap(vec3 direction) {
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
   // return texture(irradianceMap, uv).rgb;
-  return texture(environmentMap, uv).rgb;
+  // return texture(environmentMap, uv).rgb;
+  return textureLod(environmentMap, uv, 0.0).rgb;
 } 
 
 void main() {
-  vec3 hdrSample = sampleEnvMap(direction);
-  color = vec4(hdrSample, 1.0);
-
+  color = vec4(sampleEnvMap(direction), 1.0);
+  
+  // color.rgb = color.rgb / (vec3(1.0) + color.rgb);
+  float exposure = 0.5;
+  color.rgb = vec3(1.0) - exp(-color.rgb * exposure);
 }

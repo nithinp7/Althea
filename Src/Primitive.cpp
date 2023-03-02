@@ -62,7 +62,7 @@ void TextureSlots::fillEmptyWithDefaults() {
     this->pNormalMapTexture = GNormalTexture1x1;
 
   if (!this->pMetallicRoughnessTexture)
-    this->pMetallicRoughnessTexture = GGreenTexture1x1;
+    this->pMetallicRoughnessTexture = GWhiteTexture1x1;//GGreenTexture1x1;
 
   if (!this->pOcclusionTexture) {
     this->pOcclusionTexture = GWhiteTexture1x1;
