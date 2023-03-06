@@ -6,17 +6,14 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 
 ## Progress
 
+##### Physically based rendering of glTF models with HDR image-based lighting.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=900/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet2.png" width=900/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.png" width=900/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=900/>
+
 ##### Shader hot-reloading in action!
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
-
-##### Physically based rendering of the glTF flight helmet model.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.gif" width=800/>
-
-##### The Sponza lion statue with environment mapping and normal mapping.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaLion_EnvMapNormalMap.png" width=800/>
-
-##### A curtain in the Sponza scene with environment mapping and normal mapping..
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaCurtain_EnvMapNormalMap.png" width=800/>
 
 More pictures to come soon!
 
@@ -45,7 +42,7 @@ More pictures to come soon!
 ## Roadmap
 #### Engine Features
 - [x] PBR glTF materials (with image-based reflections).
-- [ ] Image-based lighting.
+- [x] Image-based lighting.
 - [ ] Physically-based atmosphere and sun 
 - [ ] Volumetric clouds
 - [ ] Global illumination
