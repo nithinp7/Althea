@@ -7,10 +7,11 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 ## Progress
 
 ##### Physically based rendering of glTF models with HDR image-based lighting.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=900/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet2.png" width=900/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.png" width=900/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=900/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet2.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=800/>
 
 ##### Shader hot-reloading in action!
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
