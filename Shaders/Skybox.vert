@@ -7,6 +7,9 @@ layout(set=0, binding=4) uniform UniformBufferObject {
   mat4 inverseProjection;
   mat4 view;
   mat4 inverseView;
+  vec3 lightDir;
+  float time;
+  float exposure;
 } ubo;
 
 void main() {

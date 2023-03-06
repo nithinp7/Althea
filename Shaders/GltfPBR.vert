@@ -23,6 +23,7 @@ layout(set=0, binding=4) uniform UniformBufferObject {
   mat4 inverseView;
   vec3 lightDir;
   float time;
+  float exposure;
 } globals;
 
 // TODO: may be too big for inline block

@@ -25,6 +25,7 @@ layout(set=0, binding=4) uniform UniformBufferObject {
   mat4 inverseView;
   vec3 lightDir;
   float time;
+  float exposure;
 } globals;
 
 // TODO: may be too big for inline block
@@ -233,10 +234,6 @@ void main() {
         roughness, 
         ambientOcclusion);
 
-  float exposure = 0.3;
-  material = vec3(1.0) - exp(-material * exposure);
-  // HDR tonemap
-  // material = material / (material + vec3(1.0));
-
+  material = vec3(1.0) - exp(-material * globals.exposure);
   outColor = vec4(material, 1.0);
 }

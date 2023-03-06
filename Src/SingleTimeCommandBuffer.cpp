@@ -41,6 +41,11 @@ SingleTimeCommandBuffer::~SingleTimeCommandBuffer() {
       1,
       &this->_commandBuffer);
 
+  // Execute all post-completion tasks
+  for (std::function<void()>& f : this->_postCompletionTasks) {
+    f();
+  }
+
   // The staging buffers now get released safely.
 }
 
@@ -52,5 +57,9 @@ VkBuffer SingleTimeCommandBuffer::createStagingBuffer(
       this->_commandBuffer,
       buffer));
   return this->_stagingBuffers.back().getBuffer();
+}
+
+void SingleTimeCommandBuffer::addPostCompletionTask(std::function<void()>&& task) {
+  this->_postCompletionTasks.push_back(std::move(task));
 }
 } // namespace AltheaEngine

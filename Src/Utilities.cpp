@@ -35,6 +35,12 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
 }
 
 /*static*/
+bool Utilities::checkFileExists(const std::string& filename) {
+  std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary);
+  return file.good();
+}
+
+/*static*/
 uint32_t Utilities::computeMipCount(uint32_t width, uint32_t height) {
   return 1 + static_cast<uint32_t>(
                  glm::ceil(glm::log2((double)glm::max(width, height))));

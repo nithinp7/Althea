@@ -8,6 +8,16 @@ layout(location=0) out vec4 color;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap;
 
+layout(set=0, binding=4) uniform UniformBufferObject {
+  mat4 projection;
+  mat4 inverseProjection;
+  mat4 view;
+  mat4 inverseView;
+  vec3 lightDir;
+  float time;
+  float exposure;
+} ubo;
+
 vec3 sampleEnvMap(vec3 direction) {
   float yaw = atan(direction.z, direction.x);
   float pitch = -atan(direction.y, length(direction.xz));
@@ -21,7 +31,5 @@ void main() {
   
   // color.rgb = color.rgb / (vec3(1.0) + color.rgb);
   
-  // TODO: put exposure in uniform
-  float exposure = 0.3;
-  color.rgb = vec3(1.0) - exp(-color.rgb * exposure);
+  color.rgb = vec3(1.0) - exp(-color.rgb * ubo.exposure);
 }

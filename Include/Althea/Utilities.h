@@ -19,6 +19,8 @@ namespace AltheaEngine {
 class ALTHEA_API Utilities {
 public:
   static std::vector<char> readFile(const std::string& filename);
+  static bool checkFileExists(const std::string& filename);
+  
   static uint32_t computeMipCount(uint32_t width, uint32_t height);
 
   static CesiumGltf::ImageCesium loadPng(const std::string& path);
