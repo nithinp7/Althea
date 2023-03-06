@@ -1,0 +1,181 @@
+
+#version 450
+
+#define PI 3.14159265359
+#define MAX_SAMPLES 10000
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(set=0, binding=0) uniform sampler2D environmentMap;
+layout(set=0, binding=1) uniform writeonly image2D prefilteredMip;
+
+layout(push_constant) uniform PushConstants {
+  float envMapWidth;
+  float envMapHeight;
+  float width;
+  float height;
+  float roughness;
+} pushConstants;
+
+
+// Useful functions for transforming directions
+// TODO: check if the exact tangent, bitangent coords matter
+void coordinateSystem(in vec3 v1, out vec3 v2, out vec3 v3) {
+    if (abs(v1.x) > abs(v1.y))
+            v2 = vec3(-v1.z, 0, v1.x) / sqrt(v1.x * v1.x + v1.z * v1.z);
+        else
+            v2 = vec3(0, v1.z, -v1.y) / sqrt(v1.y * v1.y + v1.z * v1.z);
+        v3 = cross(v1, v2);
+}
+
+mat3 LocalToWorld(vec3 nor) {
+    vec3 tan, bit;
+    coordinateSystem(nor, tan, bit);
+    return mat3(tan, bit, nor);
+}
+
+// Random number generator and sample warping
+// from ShaderToy https://www.shadertoy.com/view/4tXyWN
+uvec2 seed;
+float rng() {
+    seed += uvec2(1);
+    uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
+    uint  n = 1103515245U * ( (q.x) ^ (q.y >> 3U) );
+    return float(n) * (1.0 / float(0xffffffffU));
+}
+
+vec3 squareToDiskConcentric(vec2 xi) {
+  vec2 remappedRange = 2.0 * xi - 1.0;
+
+  if (remappedRange.x == 0.0 && remappedRange.y == 0.0) {
+    return vec3(0.0);
+  }
+
+  float theta;
+  float r;
+  if (abs(remappedRange.x) > abs(remappedRange.y)) {
+    r = remappedRange.x;
+    theta = 0.25 * PI * remappedRange.y / remappedRange.x;
+  } else {
+    r = remappedRange.y;
+    theta = 0.5 * PI - 0.25 * PI * remappedRange.x / remappedRange.y;
+  }
+
+  return r * vec3(cos(theta), sin(theta), 0.0);
+}
+
+vec3 squareToHemisphereCosine(vec2 xi) {
+    vec3 diskSample = squareToDiskConcentric(xi);
+    return vec3(
+        diskSample.x, 
+        diskSample.y, 
+        sqrt(clamp(1.0 - length(diskSample), 0.0, 1.0)));
+}
+
+vec3 sampleHemisphereCosine() {
+  return squareToHemisphereCosine(vec2(rng(), rng()));
+}
+
+float distributionGGX(float NdotH, float a2)
+{
+    float denom  = (NdotH * NdotH * (a2 - 1.0) + 1.0);	
+    return a2 / (PI * denom * denom);
+}
+
+vec3 sampleGGX(float a2) {
+  vec2 xi = vec2(rng(), rng());
+
+  float phi = 2.0 * PI * xi.x;
+  float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a2 - 1.0) * xi.y));
+  float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+  return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+
+// Samples environment map given direction, as if it was a cubemap
+// X is to the right, Y is up, and Z is to the back,
+// so (0, 0, -1) points towards the center of the environment map.
+vec3 sampleEnvMap(vec3 dir, float mip) {
+  float pitch = 0.0;
+  float yaw = 0.0;
+
+  // Can only safely determine yaw if the xz projection has
+  // a magnitude greater than epsilon
+  float lenXz = length(dir.xz);
+  if (lenXz > 0.001) {
+    yaw = atan(dir.z, dir.x);
+    pitch = atan(dir.y / lenXz);
+  } else if (dir.y > 0.0) {
+    pitch = 0.5 * PI;
+  } else {
+    pitch = -0.5 * PI;
+  }
+
+  vec2 uv = vec2(
+      yaw / (2.0 * PI) + 0.5,
+      pitch / PI + 0.5);
+
+  vec3 color = textureLod(environmentMap, uv, mip).rgb;
+  // color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
+
+  return color;//color / (color + vec3(1.0));
+}
+
+// Irradiance map generation 
+
+void main() {
+  seed = uvec2(gl_GlobalInvocationID.xy);
+  ivec2 texelPos = ivec2(gl_GlobalInvocationID.xy);
+  vec2 texelUv = vec2(texelPos) / vec2(pushConstants.width, pushConstants.height);
+
+  float yaw = PI * (2.0 * texelUv.x - 1.0);
+  float pitch = PI * (texelUv.y - 0.5);
+  
+  vec3 N = vec3(cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw));
+  // ???
+  vec3 R = N;
+  vec3 V = R;
+
+  float a = pushConstants.roughness;
+  float a2 = a * a;
+
+  mat3 localToWorld = LocalToWorld(N);
+
+  vec3 prefilteredColor = vec3(0.0);
+  float totalWeight = 0.0;
+  int sampleCount = 0;
+  for (int i = 0; i < MAX_SAMPLES; ++i) {
+    vec3 H = localToWorld * sampleGGX(a2);
+    vec3 L = normalize(2.0 * dot(V, H) * H - V);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float HDotV = max(dot(H, V), 0.0);
+
+    float D = distributionGGX(NdotH, a2);
+    float pdf = D * NdotH / (4.0 * HDotV + 0.00001);
+
+    float saTexel = 4.0 * PI / (6.0 * pushConstants.envMapWidth * pushConstants.envMapHeight);
+    float saSample = 1.0 / (float(MAX_SAMPLES) * pdf + 0.0001);
+
+    float mipLevel = 
+        pushConstants.roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+
+    if (NdotL > 0.0) {
+      prefilteredColor += sampleEnvMap(L, mipLevel) * NdotL;
+      totalWeight += NdotL;
+    }
+  }
+
+  vec4 color = vec4(prefilteredColor / totalWeight, 1.0);
+
+  // HDR to linear
+  // color.rgb = color.rgb / (color.rgb + vec3(1.0));
+  // Gamma correct
+  // color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
+
+  imageStore(prefilteredMip, texelPos, color);
+}
+
+
+
+
