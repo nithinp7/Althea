@@ -14,10 +14,11 @@ layout(location=8) in vec3 direction;
 layout(location=0) out vec4 outColor;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
-layout(set=0, binding=1) uniform sampler2D irradianceMap;
-layout(set=0, binding=2) uniform sampler2D brdfLut;
+layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
+layout(set=0, binding=2) uniform sampler2D irradianceMap;
+layout(set=0, binding=3) uniform sampler2D brdfLut;
 
-layout(set=0, binding=3) uniform UniformBufferObject {
+layout(set=0, binding=4) uniform UniformBufferObject {
   mat4 projection;
   mat4 inverseProjection;
   mat4 view;
@@ -52,12 +53,13 @@ layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
 
-vec3 sampleEnvMap(vec3 direction, float roughness) {
-  float yaw = atan(direction.z, direction.x);
-  float pitch = -atan(direction.y, length(direction.xz));
+vec3 sampleEnvMap(vec3 reflectedDirection, float roughness) {
+  float yaw = atan(reflectedDirection.z, reflectedDirection.x);
+  float pitch = -atan(reflectedDirection.y, length(reflectedDirection.xz));
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
-  return textureLod(environmentMap, uv, 4.0 * roughness + 1.0).rgb;
+  // return textureLod(environmentMap, uv, 4.0 * roughness).rgb;
+  return textureLod(prefilteredMap, uv, 4.0 * roughness).rgb;
 }
 
 vec3 sampleIrrMap(vec3 normal) {
@@ -98,8 +100,8 @@ float ndfGgx(float NdotH, float a2) {
 // The ratio of light that will get reflected vs refracted.
 // F0 - The base reflectivity when viewing straight down along the
 // surface normal.
-vec3 fresnelSchlick(float VdotH, vec3 F0, float roughness) {
-  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - VdotH, 5.0);
+vec3 fresnelSchlick(float NdotV, vec3 F0, float roughness) {
+  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 }
 
 float geometrySchlickGgx(float NdotV, float k) {
@@ -137,7 +139,7 @@ vec3 pbrMaterial(
   float LdotH = dot(L, H);
 
   float NdotL = max(dot(N, L), 0.0);
-  float NdotV = max(dot(N, V), 0.0);
+  float NdotV = max(dot(N, -V), 0.0);
   float NdotH = max(dot(N, H), 0.0);
 
   // F0 is the portion of the incoming light that gets reflected when viewing
@@ -213,7 +215,7 @@ void main() {
       vec2(constants.metallicFactor, constants.roughnessFactor);
 
   float metallic = metallicRoughness.x;
-  float roughness = metallicRoughness.y;//pow(metallicRoughness.y, 2.0);// 0.5 * sin(globals.time) + 0.5;//metallicRoughness.y;
+  float roughness = metallicRoughness.y;// 0.5 * sin(globals.time) + 0.5;//metallicRoughness.y;
 
   vec3 reflectedDirection = reflect(normalize(direction), normal);
   vec3 reflectedColor = sampleEnvMap(reflectedDirection, roughness);
@@ -231,7 +233,7 @@ void main() {
         roughness, 
         ambientOcclusion);
 
-  float exposure = 0.5;
+  float exposure = 0.3;
   material = vec3(1.0) - exp(-material * exposure);
   // HDR tonemap
   // material = material / (material + vec3(1.0));
