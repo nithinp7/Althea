@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Library.h"
-
 #include "DescriptorSet.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
 #include "GraphicsPipeline.h"
+#include "Library.h"
 #include "PerFrameResources.h"
 
 #include <gsl/span>
@@ -140,6 +139,8 @@ public:
 
   ActiveRenderPass&
   setGlobalDescriptorSets(gsl::span<const VkDescriptorSet> sets);
+
+  const DrawContext& getDrawContext() const { return this->_drawContext; }
 
 private:
   uint32_t _currentSubpass = 0;

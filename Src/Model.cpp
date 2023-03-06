@@ -249,6 +249,12 @@ Model::Model(
   }
 }
 
+void Model::setModelTransform(const glm::mat4& modelTransform) {
+  for (Primitive& primitive : this->_primitives) {
+    primitive.setModelTransform(modelTransform);
+  }
+}
+
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
 
 void Model::draw(const DrawContext& context) const {

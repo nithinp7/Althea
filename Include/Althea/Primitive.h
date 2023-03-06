@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Library.h"
-
 #include "DrawContext.h"
 #include "IndexBuffer.h"
+#include "Library.h"
 #include "Material.h"
+#include "SingleTimeCommandBuffer.h"
 #include "Texture.h"
 #include "VertexBuffer.h"
-#include "SingleTimeCommandBuffer.h"
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
@@ -77,6 +76,7 @@ public:
 private:
   VkDevice _device;
 
+  glm::mat4 _modelTransform;
   glm::mat4 _relativeTransform;
   bool _flipFrontFace = false;
 
@@ -96,6 +96,7 @@ public:
       const glm::mat4& nodeTransform,
       DescriptorSetAllocator& materialAllocator);
 
+  void setModelTransform(const glm::mat4& model);
   void draw(const DrawContext& context) const;
 };
 } // namespace AltheaEngine

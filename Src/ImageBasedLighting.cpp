@@ -149,8 +149,8 @@ IBLResources createResources(
 
   SamplerOptions irrSamplerOptions{};
   irrSamplerOptions.mipCount = irrMapOptions.mipCount;
-  irrSamplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  irrSamplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  irrSamplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  irrSamplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
   irrSamplerOptions.minFilter = VK_FILTER_LINEAR;
 
   resources.irradianceMap.sampler = Sampler(app, irrSamplerOptions);
@@ -186,8 +186,8 @@ IBLResources createResources(
 
   SamplerOptions brdfSamplerOptions{};
   brdfSamplerOptions.mipCount = brdfOptions.mipCount;
-  brdfSamplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  brdfSamplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  brdfSamplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  brdfSamplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
   brdfSamplerOptions.minFilter = VK_FILTER_LINEAR;
 
   resources.brdfLut.sampler = Sampler(app, brdfSamplerOptions);

@@ -23,12 +23,15 @@ class DescriptorSetAllocator;
 
 class ALTHEA_API Model {
 public:
+  Model(const Model& rhs) = delete;
+  Model(Model&& rhs) = default;
   Model(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       const std::string& path,
       DescriptorSetAllocator& materialAllocator);
 
+  void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;
   void draw(const DrawContext& context) const;
 

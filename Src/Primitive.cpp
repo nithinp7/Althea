@@ -62,7 +62,7 @@ void TextureSlots::fillEmptyWithDefaults() {
     this->pNormalMapTexture = GNormalTexture1x1;
 
   if (!this->pMetallicRoughnessTexture)
-    this->pMetallicRoughnessTexture = GWhiteTexture1x1;//GGreenTexture1x1;
+    this->pMetallicRoughnessTexture = GWhiteTexture1x1; // GGreenTexture1x1;
 
   if (!this->pOcclusionTexture) {
     this->pOcclusionTexture = GWhiteTexture1x1;
@@ -260,6 +260,7 @@ Primitive::Primitive(
     const glm::mat4& nodeTransform,
     DescriptorSetAllocator& materialAllocator)
     : _device(app.getDevice()),
+      _modelTransform(1.0f),
       _relativeTransform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material(app, materialAllocator) {
@@ -542,12 +543,18 @@ Primitive::Primitive(
       .bindTexture(*this->_textureSlots.pEmissiveTexture);
 }
 
+void Primitive::setModelTransform(const glm::mat4& model) {
+  this->_modelTransform = model;
+}
+
 void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
   context.bindDescriptorSets(this->_material);
-  context.updatePushConstants(this->_relativeTransform, 0);
+  context.updatePushConstants(
+      this->_modelTransform * this->_relativeTransform,
+      0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }
 } // namespace AltheaEngine
