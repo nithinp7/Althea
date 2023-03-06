@@ -2,7 +2,7 @@
 
 ### Nithin Pranesh
 
-Althea is a glTF-based rendering engine built in Vulkan. The goal is to create an intuitive, user-facing rendering API at a reasonable abstraction level, while still leveraging Vulkan's benefits. The progress so far and the tentative roadmap are discussed below.
+Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering testbed for further graphics projects. The progress so far and the tentative roadmap are discussed below.
 
 ## Progress
 
