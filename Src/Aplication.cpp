@@ -429,6 +429,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
          deviceFeatures.features.geometryShader &&
          deviceFeatures.features.samplerAnisotropy &&
+         deviceFeatures.features.fillModeNonSolid &&
          inlineBlockFeatures.inlineUniformBlock &&
          extendedDynamicStateFeatures
              .extendedDynamicState2; // &&
@@ -479,6 +480,7 @@ void Application::createLogicalDevice() {
   VkPhysicalDeviceFeatures deviceFeatures{};
   deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.geometryShader = VK_TRUE;
+  deviceFeatures.fillModeNonSolid = VK_TRUE;
 
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
@@ -783,78 +785,78 @@ void Application::createDepthResource() {
 }
 
 void Application::createCommandPool() {
-      QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
-      VkCommandPoolCreateInfo poolInfo{};
-      poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-      poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-      poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+  VkCommandPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-      if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
-          VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool!");
-      }
+  if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("Failed to create command pool!");
+  }
 }
 
 void Application::createCommandBuffers() {
-      VkCommandBufferAllocateInfo allocInfo{};
-      allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-      allocInfo.commandPool = commandPool;
-      allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-      allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.commandPool = commandPool;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-      commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-      if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) !=
-          VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command buffers!");
-      }
+  commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+  if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("Failed to create command buffers!");
+  }
 }
 
 void Application::createSyncObjects() {
-      VkSemaphoreCreateInfo semaphoreInfo{};
-      semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VkSemaphoreCreateInfo semaphoreInfo{};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-      VkFenceCreateInfo fenceInfo{};
-      fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-      fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  VkFenceCreateInfo fenceInfo{};
+  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-      imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-      renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-      inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-      for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        if (vkCreateSemaphore(
-                device,
-                &semaphoreInfo,
-                nullptr,
-                &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(
-                device,
-                &semaphoreInfo,
-                nullptr,
-                &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) !=
-                VK_SUCCESS) {
-          throw std::runtime_error("Failed to create sync objects!");
-        }
-      }
+  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    if (vkCreateSemaphore(
+            device,
+            &semaphoreInfo,
+            nullptr,
+            &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+        vkCreateSemaphore(
+            device,
+            &semaphoreInfo,
+            nullptr,
+            &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+        vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) !=
+            VK_SUCCESS) {
+      throw std::runtime_error("Failed to create sync objects!");
+    }
+  }
 }
 
 void Application::recordCommandBuffer(
     VkCommandBuffer commandBuffer,
     const FrameContext& frame) {
-      VkCommandBufferBeginInfo beginInfo{};
-      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-      beginInfo.flags = 0;
-      beginInfo.pInheritanceInfo = nullptr;
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = nullptr;
 
-      if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to begin recording command buffer!");
-      }
+  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to begin recording command buffer!");
+  }
 
-      this->gameInstance->draw(*this, commandBuffer, frame);
+  this->gameInstance->draw(*this, commandBuffer, frame);
 
-      if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to record command buffer!");
-      }
+  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to record command buffer!");
+  }
 }
 } // namespace AltheaEngine
