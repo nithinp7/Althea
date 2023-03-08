@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Allocator.h"
+#include "DynamicVertexBuffer.h"
 #include "FrameContext.h"
 #include "IndexBuffer.h"
+#include "Library.h"
 #include "Material.h"
 #include "VertexBuffer.h"
 
@@ -21,8 +21,8 @@ class Subpass;
  * @brief A transient context object that helps setup and execute draw calls.
  *
  * This object should only ever be managed by an ActiveRenderPass. References
- * used in this class ALTHEA_API may be invalid if a DrawContext object is used outside the
- * lifetime of an ActiveRenderPass.
+ * used in this class ALTHEA_API may be invalid if a DrawContext object is used
+ * outside the lifetime of an ActiveRenderPass.
  */
 class ALTHEA_API DrawContext {
 public:
@@ -128,6 +128,10 @@ public:
     this->bindVertexBuffer(vertexBuffer);
     this->draw(static_cast<uint32_t>(vertexBuffer.getVertexCount()));
   }
+
+  const FrameContext& getFrame() const { return *this->_pFrame; }
+
+  VkCommandBuffer getCommandBuffer() const { return this->_commandBuffer; }
 
 private:
   friend class ActiveRenderPass;

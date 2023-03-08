@@ -23,6 +23,9 @@ class Application;
 class ALTHEA_API DynamicBuffer {
 public:
   DynamicBuffer() = default;
+  DynamicBuffer(DynamicBuffer&& rhs);
+  DynamicBuffer& operator=(DynamicBuffer&& rhs);
+
   DynamicBuffer(
       const Application& app,
       VkCommandBuffer commandBuffer,
@@ -30,10 +33,7 @@ public:
       size_t bufferSize);
   ~DynamicBuffer();
 
-  void updateData(
-      const Application& app,
-      VkCommandBuffer commandBuffer,
-      gsl::span<const std::byte> data);
+  void updateData(uint32_t ringBufferIndex, gsl::span<const std::byte> data);
 
   size_t getSize() const { return this->_bufferSize; }
 

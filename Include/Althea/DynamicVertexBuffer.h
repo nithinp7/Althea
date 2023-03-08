@@ -25,10 +25,8 @@ public:
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             vertexCount * sizeof(TVertex)) {}
 
-  void updateVertices(
-      const Application& app,
-      VkCommandBuffer commandBuffer,
-      gsl::span<const TVertex> vertices) {
+  void
+  updateVertices(uint32_t ringBufferIndex, gsl::span<const TVertex> vertices) {
     if (vertices.size() != this->_vertexCount) {
       throw std::runtime_error("Attempting to update DynamicVertexBuffer with "
                                "incorrect number of vertices.");
@@ -38,7 +36,7 @@ public:
         reinterpret_cast<const std::byte*>(vertices.data()),
         sizeof(TVertex) * this->_vertexCount);
 
-    this->_buffer.updateData(app, commandBuffer, bufferView);
+    this->_buffer.updateData(ringBufferIndex, bufferView);
   }
 
   VkBuffer getBuffer() const {
@@ -51,10 +49,10 @@ public:
     return this->_buffer.getAllocation();
   }
 
-  void bind(const Application& app, VkCommandBuffer commandBuffer) const {
+  void bind(uint32_t ringBufferIndex, VkCommandBuffer commandBuffer) const {
     VkBuffer vkBuffer = this->getBuffer();
-    VkDeviceSize offset = sizeof(TVertex) * this->_vertexCount *
-                          app.getCurrentFrameRingBufferIndex();
+    VkDeviceSize offset =
+        sizeof(TVertex) * this->_vertexCount * ringBufferIndex;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vkBuffer, &offset);
   }
 
