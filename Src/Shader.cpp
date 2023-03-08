@@ -4,9 +4,73 @@
 #include "Utilities.h"
 #include "sha256.h"
 
+#include <filesystem>
 #include <stdexcept>
 
 namespace AltheaEngine {
+namespace {
+struct IncludedShader {
+  std::string sourceName;
+  std::vector<char> sourceContent;
+};
+
+class AltheaShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
+private:
+  std::string _folderPath;
+
+public:
+  AltheaShaderIncluder(const std::string& folderPath)
+      : _folderPath(folderPath) {}
+
+  virtual shaderc_include_result* GetInclude(
+      const char* requested_source,
+      shaderc_include_type type,
+      const char* requesting_source,
+      size_t include_depth) override {
+
+    IncludedShader* pIncludedShader = new IncludedShader();
+    pIncludedShader->sourceName = std::string(requested_source);
+
+    std::string includedShaderPath;
+    if (type == shaderc_include_type_relative) {
+      includedShaderPath = this->_folderPath + pIncludedShader->sourceName;
+    } else { // type == shaderc_include_type_standard
+      // TODO: formalize this as configurable shader "include paths"
+
+      // First search the project shader directory
+      includedShaderPath =
+          GProjectDirectory + "/Shaders/" + pIncludedShader->sourceName;
+      if (!Utilities::checkFileExists(includedShaderPath)) {
+        // Then search the engine shader directory
+        includedShaderPath =
+            GEngineDirectory + "/Shaders/" + pIncludedShader->sourceName;
+        if (!Utilities::checkFileExists(includedShaderPath)) {
+          // Else, assume the shader is in the same directory
+          includedShaderPath = this->_folderPath + pIncludedShader->sourceName;
+        }
+      }
+    }
+
+    pIncludedShader->sourceContent = Utilities::readFile(includedShaderPath);
+
+    shaderc_include_result* pResult = new shaderc_include_result();
+
+    pResult->source_name = pIncludedShader->sourceName.c_str();
+    pResult->source_name_length = pIncludedShader->sourceName.length();
+    pResult->content = pIncludedShader->sourceContent.data();
+    pResult->content_length = pIncludedShader->sourceContent.size();
+    pResult->user_data = (void*)pIncludedShader;
+
+    return pResult;
+  }
+
+  virtual void ReleaseInclude(shaderc_include_result* data) override {
+    IncludedShader* pIncludedShader = (IncludedShader*)data->user_data;
+    delete pIncludedShader;
+    delete data;
+  }
+};
+} // namespace
 
 Shader::Shader(const Application& app, const ShaderBuilder& builder) {
   if (builder.hasErrors()) {
@@ -40,6 +104,8 @@ void Shader::ShaderDeleter::operator()(
 
 ShaderBuilder::ShaderBuilder(const std::string& path, shaderc_shader_kind kind)
     : _path(path), _kind(kind) {
+  this->_folderPath =
+      std::filesystem::path(this->_path).parent_path().string() + "/";
 
   // Note we do not fail gracefully when an invalid path is given. We only
   // fail gracefully during compilation errors.
@@ -58,6 +124,11 @@ bool ShaderBuilder::recompile() {
   // Compile the glsl shader into spirv bytecode
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
+
+  // TODO: Hot-reloading does not currently work for "included" shader files
+  // dummy changes need to be made in the main shader file
+  options.SetIncluder(
+      std::make_unique<AltheaShaderIncluder>(this->_folderPath));
 
   shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
       this->_glslCode.data(),

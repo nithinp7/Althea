@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Library.h"
-
 #include "UniqueVkHandle.h"
 
 #include <shaderc/shaderc.hpp>
@@ -74,6 +73,8 @@ private:
   friend class Shader;
 
   std::string _path;
+  std::string _folderPath;
+
   shaderc_shader_kind _kind;
 
   std::string _errors;
