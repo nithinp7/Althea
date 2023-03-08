@@ -65,7 +65,6 @@ More pictures to come soon!
 #### Behind the scenes
 - [x] Vulkan Memory Allocator integration.
 - [x] Update to a newer, tagged version of Cesium Native on a fork.
-- [ ] Decouple application-level code from rendering engine.
 - [x] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
 - [x] Cleanly decouple engine code from "application" code. Likewise for resources (shaders, textures, etc.)
 - [x] Integrate a hash-based checksum library to detect file edits during loading.
@@ -75,9 +74,7 @@ More pictures to come soon!
 
 #### Editor Features
 - [ ] Basic Imgui-based editor capabilities (e.g., transform gizmos, load models etc.)
-- [x] Shader hot-reloading
-- [ ] Shader includes and specializations (should both be possible with shaderc)
-- [ ] Debug visualizations (dynamic switching to debug shaders)
+- [x] Shader hot-reloading and shader include directives
 
 #### Usability / Maintainability
 - [ ] Integrate unit-testing framework, write unit tests
