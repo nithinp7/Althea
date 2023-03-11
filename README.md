@@ -4,6 +4,10 @@
 
 Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and the tentative roadmap are discussed below.
 
+## Get Started
+
+Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDemo) to get started!
+
 ## Progress
 
 ##### Physically based rendering of glTF models with HDR image-based lighting.
