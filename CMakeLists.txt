@@ -37,7 +37,10 @@ find_package(Vulkan REQUIRED) # error
 
 set(SHADERC_SKIP_TESTS ON)
 
-add_subdirectory(Extern/glm)
+if (NOT TARGET glm)
+  add_subdirectory(Extern/glm)
+endif()
+
 add_subdirectory(Extern/glfw)
 add_subdirectory(Extern/VulkanMemoryAllocator)
 add_subdirectory(Extern/shaderc)
