@@ -85,7 +85,7 @@ target_link_libraries (Althea PUBLIC VulkanMemoryAllocator)
 target_link_libraries (Althea PUBLIC shaderc)
 target_link_libraries (Althea PUBLIC hash_library)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CESIUM_DEBUG_POSTFIX "d")
 set(CESIUM_RELEASE_POSTFIX "")
