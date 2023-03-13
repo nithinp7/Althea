@@ -414,13 +414,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
-  VkPhysicalDeviceExtendedDynamicState2FeaturesEXT
-      extendedDynamicStateFeatures{};
-  extendedDynamicStateFeatures.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
-
   deviceFeatures.pNext = &inlineBlockFeatures;
-  inlineBlockFeatures.pNext = &extendedDynamicStateFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -430,9 +424,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.geometryShader &&
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
-         inlineBlockFeatures.inlineUniformBlock &&
-         extendedDynamicStateFeatures
-             .extendedDynamicState2; // &&
+         inlineBlockFeatures.inlineUniformBlock; // &&
                                      // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
