@@ -12,6 +12,10 @@ DynamicBuffer::DynamicBuffer(DynamicBuffer&& rhs)
 }
 
 DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
+  if (this->_pMappedMemory) {
+    this->_allocation.unmapMemory();
+  }
+
   this->_bufferSize = rhs._bufferSize;
   this->_allocation = std::move(rhs._allocation);
   this->_pMappedMemory = rhs._pMappedMemory;

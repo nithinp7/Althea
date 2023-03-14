@@ -15,7 +15,12 @@ class Application;
 class ALTHEA_API IndexBuffer {
 public:
   IndexBuffer() = default;
-
+  IndexBuffer(
+      const Application& app,
+      VkCommandBuffer commandBuffer,
+      VkBuffer srcBuffer,
+      size_t bufferOffset,
+      size_t bufferSize);
   IndexBuffer(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,

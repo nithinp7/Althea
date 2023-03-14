@@ -25,6 +25,8 @@ public:
   DynamicBuffer() = default;
   DynamicBuffer(DynamicBuffer&& rhs);
   DynamicBuffer& operator=(DynamicBuffer&& rhs);
+  DynamicBuffer(const DynamicBuffer& rhs) = delete;
+  DynamicBuffer& operator=(const DynamicBuffer& rhs) = delete;
 
   DynamicBuffer(
       const Application& app,
