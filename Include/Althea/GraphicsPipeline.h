@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Library.h"
-
 #include "DescriptorSet.h"
+#include "Library.h"
 #include "PerFrameResources.h"
 #include "PipelineLayout.h"
 #include "Shader.h"
@@ -24,6 +23,7 @@ class ShaderManager;
 struct ALTHEA_API PipelineContext {
   VkRenderPass renderPass;
   uint32_t subpassIndex;
+  VkExtent2D extent;
 };
 
 enum class ALTHEA_API VertexAttributeType { INT, FLOAT, VEC2, VEC3, VEC4 };

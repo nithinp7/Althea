@@ -8,19 +8,23 @@
 namespace AltheaEngine {
 Subpass::Subpass(
     const Application& app,
+    VkExtent2D extent,
     VkRenderPass renderPass,
     uint32_t subpassIndex,
     SubpassBuilder&& builder)
     : _pipeline(
           app,
-          PipelineContext{renderPass, subpassIndex},
+          PipelineContext{renderPass, subpassIndex, extent},
           std::move(builder.pipelineBuilder)) {}
 
 RenderPass::RenderPass(
     const Application& app,
+    const VkExtent2D& extent,
     std::vector<Attachment>&& attachments,
     std::vector<SubpassBuilder>&& subpassBuilders)
-    : _attachments(std::move(attachments)), _device(app.getDevice()) {
+    : _attachments(std::move(attachments)),
+      _device(app.getDevice()),
+      _extent(extent) {
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
     const Attachment& attachment = this->_attachments[i];
@@ -155,15 +159,13 @@ RenderPass::RenderPass(
        ++subpassIndex) {
     this->_subpasses.emplace_back(
         app,
+        extent,
         this->_renderPass,
         subpassIndex,
         std::move(subpassBuilders[subpassIndex]));
   }
 
   // Create frame buffers for this render pass.
-
-  // TODO: Support frame buffer extents other than swap chain image size?
-  VkExtent2D extent = app.getSwapChainExtent();
   if (this->_firstAttachmentFromSwapChain) {
     // This frame buffer will be used for presenting and the first attachment
     // will be from the swapchain. So we will need a different frame buffer for
@@ -223,11 +225,7 @@ ActiveRenderPass RenderPass::begin(
     const Application& app,
     const VkCommandBuffer& commandBuffer,
     const FrameContext& frame) {
-  return ActiveRenderPass(
-      *this,
-      commandBuffer,
-      frame,
-      app.getSwapChainExtent());
+  return ActiveRenderPass(*this, commandBuffer, frame, this->_extent);
 }
 
 ActiveRenderPass::ActiveRenderPass(
@@ -250,6 +248,8 @@ ActiveRenderPass::ActiveRenderPass(
   if (this->_renderPass._firstAttachmentFromSwapChain) {
     renderPassInfo.framebuffer =
         this->_renderPass._frameBuffers[this->_frame.swapChainImageIndex];
+  } else {
+    renderPassInfo.framebuffer = this->_renderPass._frameBuffers[0];
   }
 
   renderPassInfo.renderArea.offset = {0, 0};

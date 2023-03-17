@@ -41,7 +41,7 @@ struct ALTHEA_API Attachment {
   VkClearValue clearValue;
 
   /**
-   * @brief The image required to construct ALTHEA_API the frame buffer for
+   * @brief The image required to construct the frame buffer for
    * this render pass.
    *
    * If this attachment will be used for presentation, leave this empty.
@@ -68,6 +68,7 @@ class ALTHEA_API Subpass {
 public:
   Subpass(
       const Application& app,
+      VkExtent2D extent,
       VkRenderPass renderPass,
       uint32_t subpassIndex,
       SubpassBuilder&& builder);
@@ -86,6 +87,7 @@ class ALTHEA_API RenderPass {
 public:
   RenderPass(
       const Application& app,
+      const VkExtent2D& extent,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
@@ -113,6 +115,8 @@ private:
   std::vector<VkFramebuffer> _frameBuffers;
 
   VkDevice _device;
+  // TODO: Seems weird baking the extent into the render pass...
+  VkExtent2D _extent;
 
   bool _firstAttachmentFromSwapChain = false;
 };
