@@ -2,7 +2,6 @@
 #version 450
 
 #define PI 3.14159265359
-#define MAX_SAMPLES 1000
 
 layout(local_size_x = 16, local_size_y = 16) in;
 // layout(set=0, binding=0, rgba8) uniform readonly image2D environmentMap;
@@ -76,7 +75,7 @@ vec3 sampleHemisphereCosine() {
 // Samples environment map given direction, as if it was a cubemap
 // X is to the right, Y is up, and Z is to the back,
 // so (0, 0, -1) points towards the center of the environment map.
-vec3 sampleEnvMap(vec3 dir) {
+vec3 sampleEnvMap(vec3 dir, float mip) {
   float pitch = 0.0;
   float yaw = 0.0;
 
@@ -96,7 +95,7 @@ vec3 sampleEnvMap(vec3 dir) {
       yaw / (2.0 * PI) + 0.5,
       pitch / PI + 0.5);
 
-  vec3 color = texture(environmentMap, uv).rgb;
+  vec3 color = textureLod(environmentMap, uv, mip).rgb;
   //color = color / (color + vec3(1.0));
   // color = pow(color, vec3(2.2));
   return color;
@@ -116,18 +115,34 @@ void main() {
   mat3 localToWorld = LocalToWorld(nor);
 
   vec3 irradiance = vec3(0.0);
-  int sampleCount = 0;
-  for (int i = 0; i < MAX_SAMPLES; ++i) {
-    vec3 sampleDir = (localToWorld * sampleHemisphereCosine());
-    float cosTheta = dot(sampleDir, nor);
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    // TODO: Is this sinTheta term correct?
-    irradiance += sampleEnvMap(sampleDir) * sinTheta * cosTheta;
+
+  int thetaSamples = 300;
+  int phiSamples = 
+      int(pushConstants.height * thetaSamples / pushConstants.width);
+
+  // Choose mip so that we roughly get 1 sample per pixel.
+  float mip = log2(pushConstants.width / float(thetaSamples));
+
+  for (int i = 0; i < thetaSamples; ++i) {
+    float theta = i * 2 * PI / thetaSamples;
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+  
+    for (int j = 0; j < phiSamples; ++j) {
+      float phi = j * 0.5 * PI / phiSamples;
+      float cosPhi = cos(phi);
+      float sinPhi = sin(phi);
+
+      vec3 sampleDir = 
+          localToWorld * vec3(cosTheta * sinPhi, sinTheta * sinPhi, cosPhi);
+
+      irradiance += sampleEnvMap(sampleDir, mip) * cosPhi * sinPhi;
+    }
   }
 
   // The PI term here is used to compensate for the cosine-weighted
   // sampling bias.
-  vec4 color = vec4(PI * irradiance / float(MAX_SAMPLES), 1.0);
+  vec4 color = vec4(PI * irradiance / float(thetaSamples) / float(phiSamples), 1.0);
 
   // color.rgb = sampleEnvMap(localToWorld * sampleHemisphereCosine());
 
