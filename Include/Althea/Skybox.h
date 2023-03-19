@@ -21,7 +21,7 @@ class GraphicsPipelineBuilder;
 
 class ALTHEA_API Skybox {
 public:
-  static void buildPipeline(Application& app, GraphicsPipelineBuilder& builder);
+  static void buildPipeline(GraphicsPipelineBuilder& builder);
 
   Skybox(
       Application& app,

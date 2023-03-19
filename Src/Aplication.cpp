@@ -410,11 +410,16 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceFeatures2 deviceFeatures{};
   deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+  VkPhysicalDeviceMultiviewFeatures multiviewFeatures{};
+  multiviewFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
-  deviceFeatures.pNext = &inlineBlockFeatures;
+  deviceFeatures.pNext = &multiviewFeatures;
+  multiviewFeatures.pNext = &inlineBlockFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -424,8 +429,10 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.geometryShader &&
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
-         inlineBlockFeatures.inlineUniformBlock; // &&
-                                     // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
+         inlineBlockFeatures.inlineUniformBlock &&
+         multiviewFeatures
+             .multiview; // &&
+                         // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -481,6 +488,12 @@ void Application::createLogicalDevice() {
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind =
   // VK_TRUE;
 
+  VkPhysicalDeviceMultiviewFeatures multiviewFeatures{};
+  multiviewFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+  multiviewFeatures.multiview = VK_TRUE;
+  multiviewFeatures.pNext = &inlineBlockFeatures;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.queueCreateInfoCount =
@@ -493,7 +506,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &inlineBlockFeatures;
+  createInfo.pNext = &multiviewFeatures;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =

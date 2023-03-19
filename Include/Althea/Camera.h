@@ -2,8 +2,6 @@
 
 #include "Library.h"
 
-#include "Library.h"
-
 #include <glm/glm.hpp>
 
 namespace AltheaEngine {

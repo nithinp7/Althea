@@ -18,9 +18,10 @@
 namespace AltheaEngine {
 class Application;
 
-enum class ALTHEA_API AttachmentType {
-  Color,
-  Depth
+enum ALTHEA_API AttachmentTypeFlags {
+  ATTACHMENT_FLAG_COLOR = 1,
+  ATTACHMENT_FLAG_CUBEMAP = 2,
+  ATTACHMENT_FLAG_DEPTH = 4,
   // Stencil
 };
 
@@ -28,7 +29,7 @@ struct ALTHEA_API Attachment {
   /**
    * @brief The type of attachment to create.
    */
-  AttachmentType type;
+  int flags;
 
   /**
    * @brief The image format of this attachment.
@@ -68,7 +69,7 @@ class ALTHEA_API Subpass {
 public:
   Subpass(
       const Application& app,
-      VkExtent2D extent,
+      const VkExtent2D& extent,
       VkRenderPass renderPass,
       uint32_t subpassIndex,
       SubpassBuilder&& builder);
@@ -103,9 +104,7 @@ public:
 private:
   friend class ActiveRenderPass;
 
-  void _createFrameBuffer(
-      const VkExtent2D& extent,
-      const std::optional<VkImageView>& swapChainImageView);
+  void _createFrameBuffer(const std::optional<VkImageView>& swapChainImageView);
 
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;

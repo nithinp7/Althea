@@ -8,15 +8,9 @@ layout(location=0) out vec4 color;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap;
 
-layout(set=0, binding=4) uniform UniformBufferObject {
-  mat4 projection;
-  mat4 inverseProjection;
-  mat4 view;
-  mat4 inverseView;
-  vec3 lightDir;
-  float time;
-  float exposure;
-} ubo;
+#define GLOBAL_UNIFORMS_SET 0
+#define GLOBAL_UNIFORMS_BINDING 4
+#include "GlobalUniforms.glsl"
 
 vec3 sampleEnvMap(vec3 direction) {
   float yaw = atan(direction.z, direction.x);
@@ -31,5 +25,7 @@ void main() {
   
   // color.rgb = color.rgb / (vec3(1.0) + color.rgb);
   
-  color.rgb = vec3(1.0) - exp(-color.rgb * ubo.exposure);
+#ifndef SKIP_TONEMAP
+  color.rgb = vec3(1.0) - exp(-color.rgb * globals.exposure);
+#endif
 }

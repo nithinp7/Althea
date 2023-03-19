@@ -9,7 +9,7 @@
 namespace AltheaEngine {
 
 /*static*/
-void Skybox::buildPipeline(Application& app, GraphicsPipelineBuilder& builder) {
+void Skybox::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.addVertexShader(GEngineDirectory + "/Shaders/Skybox.vert")
       .addFragmentShader(GEngineDirectory + "/Shaders/Skybox.frag")
 
@@ -23,7 +23,8 @@ Skybox::Skybox(
     const std::array<std::string, 6>& skyboxImagePaths,
     bool srgb)
     : _device(app.getDevice()) {
-  this->_pCubemap = std::make_shared<Cubemap>(app, commandBuffer, skyboxImagePaths, srgb);
+  this->_pCubemap =
+      std::make_shared<Cubemap>(app, commandBuffer, skyboxImagePaths, srgb);
 }
 
 void Skybox::draw(const DrawContext& context) const {

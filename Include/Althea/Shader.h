@@ -8,10 +8,13 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace AltheaEngine {
 class Application;
+
+typedef std::unordered_map<std::string, std::string> ShaderDefines;
 
 class ShaderBuilder;
 
@@ -34,7 +37,10 @@ class ALTHEA_API ShaderBuilder {
 public:
   ShaderBuilder() = default;
 
-  ShaderBuilder(const std::string& path, shaderc_shader_kind kind);
+  ShaderBuilder(
+      const std::string& path,
+      shaderc_shader_kind kind,
+      const std::unordered_map<std::string, std::string>& defines = {});
 
   /**
    * @brief Reload and recompile this shader.
@@ -76,6 +82,8 @@ private:
   std::string _folderPath;
 
   shaderc_shader_kind _kind;
+
+  ShaderDefines _defines;
 
   std::string _errors;
   std::string _glslFileHash;

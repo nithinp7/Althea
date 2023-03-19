@@ -102,8 +102,11 @@ void Shader::ShaderDeleter::operator()(
   vkDestroyShaderModule(device, shaderModule, nullptr);
 }
 
-ShaderBuilder::ShaderBuilder(const std::string& path, shaderc_shader_kind kind)
-    : _path(path), _kind(kind) {
+ShaderBuilder::ShaderBuilder(
+    const std::string& path,
+    shaderc_shader_kind kind,
+    const std::unordered_map<std::string, std::string>& defines)
+    : _path(path), _kind(kind), _defines(defines) {
   this->_folderPath =
       std::filesystem::path(this->_path).parent_path().string() + "/";
 
@@ -129,6 +132,15 @@ bool ShaderBuilder::recompile() {
   // dummy changes need to be made in the main shader file
   options.SetIncluder(
       std::make_unique<AltheaShaderIncluder>(this->_folderPath));
+
+  // Add shader defines
+  for (auto& it : this->_defines) {
+    if (it.second == "") {
+      options.AddMacroDefinition(it.first);
+    } else {
+      options.AddMacroDefinition(it.first, it.second);
+    }
+  }
 
   shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
       this->_glslCode.data(),

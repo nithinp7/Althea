@@ -8,7 +8,7 @@
 namespace AltheaEngine {
 Subpass::Subpass(
     const Application& app,
-    VkExtent2D extent,
+    const VkExtent2D& extent,
     VkRenderPass renderPass,
     uint32_t subpassIndex,
     SubpassBuilder&& builder)
@@ -25,6 +25,8 @@ RenderPass::RenderPass(
     : _attachments(std::move(attachments)),
       _device(app.getDevice()),
       _extent(extent) {
+
+  bool isCubemap = false;
   std::vector<VkAttachmentDescription> vkAttachments(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
     const Attachment& attachment = this->_attachments[i];
@@ -65,9 +67,13 @@ RenderPass::RenderPass(
     // or used as a render target.
     vkAttachment.finalLayout =
         forPresent ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        : attachment.type == AttachmentType::Depth
+        : (attachment.flags & ATTACHMENT_FLAG_DEPTH)
             ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
             : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    if (attachment.flags & ATTACHMENT_FLAG_CUBEMAP) {
+      isCubemap = true;
+    }
   }
 
   std::vector<VkSubpassDescription> vkSubpasses;
@@ -145,6 +151,27 @@ RenderPass::RenderPass(
       static_cast<uint32_t>(subpassDependencies.size());
   renderPassInfo.pDependencies = subpassDependencies.data();
 
+  // Use the multi-view extension to render cubemaps
+  std::vector<uint32_t> viewMasks;
+  VkRenderPassMultiviewCreateInfo multiViewInfo{};
+  multiViewInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
+  multiViewInfo.subpassCount = renderPassInfo.subpassCount;
+  multiViewInfo.pViewMasks = nullptr;
+  multiViewInfo.correlationMaskCount = 0;
+  multiViewInfo.pCorrelationMasks = nullptr;
+  multiViewInfo.dependencyCount = 0;
+  multiViewInfo.pViewOffsets = nullptr;
+
+  if (isCubemap) {
+    viewMasks.resize(renderPassInfo.subpassCount);
+    for (uint32_t& mask : viewMasks) {
+      mask = 0b111111;
+    }
+
+    multiViewInfo.pViewMasks = viewMasks.data();
+    renderPassInfo.pNext = &multiViewInfo;
+  }
+
   if (vkCreateRenderPass(
           this->_device,
           &renderPassInfo,
@@ -171,10 +198,10 @@ RenderPass::RenderPass(
     // will be from the swapchain. So we will need a different frame buffer for
     // each image in the swapchain.
     for (const ImageView& swapChainImageView : app.getSwapChainImageViews()) {
-      this->_createFrameBuffer(extent, swapChainImageView);
+      this->_createFrameBuffer(swapChainImageView);
     }
   } else {
-    this->_createFrameBuffer(extent, std::nullopt);
+    this->_createFrameBuffer(std::nullopt);
   }
 }
 
@@ -187,7 +214,6 @@ RenderPass::~RenderPass() {
 }
 
 void RenderPass::_createFrameBuffer(
-    const VkExtent2D& extent,
     const std::optional<VkImageView>& swapChainImageView) {
   std::vector<VkImageView> attachmentImageViews(this->_attachments.size());
   for (size_t i = 0; i < this->_attachments.size(); ++i) {
@@ -207,8 +233,8 @@ void RenderPass::_createFrameBuffer(
   framebufferInfo.attachmentCount =
       static_cast<uint32_t>(attachmentImageViews.size());
   framebufferInfo.pAttachments = attachmentImageViews.data();
-  framebufferInfo.width = extent.width;
-  framebufferInfo.height = extent.height;
+  framebufferInfo.width = this->_extent.width;
+  framebufferInfo.height = this->_extent.height;
   framebufferInfo.layers = 1;
 
   VkFramebuffer& frameBuffer = this->_frameBuffers.emplace_back();

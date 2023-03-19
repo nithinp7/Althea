@@ -14,6 +14,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace AltheaEngine {
@@ -32,13 +33,13 @@ enum class ALTHEA_API PrimitiveType { TRIANGLES, LINES, POINTS };
 
 class ALTHEA_API GraphicsPipelineBuilder {
 public:
-  GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath);
+  GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath, const ShaderDefines& defines = {});
   GraphicsPipelineBuilder&
-  addTessellationControlShader(const std::string& shaderPath);
+  addTessellationControlShader(const std::string& shaderPath, const ShaderDefines& defines = {});
   GraphicsPipelineBuilder&
-  addTessellationEvaluationShader(const std::string& shaderPath);
-  GraphicsPipelineBuilder& addGeometryShader(const std::string& shaderPath);
-  GraphicsPipelineBuilder& addFragmentShader(const std::string& shaderPath);
+  addTessellationEvaluationShader(const std::string& shaderPath, const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addGeometryShader(const std::string& shaderPath, const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addFragmentShader(const std::string& shaderPath, const ShaderDefines& defines = {});
 
   /**
    * @brief Add a vertex input binding - can be a vertex buffer or instance
@@ -138,6 +139,8 @@ private:
 
   std::vector<VkVertexInputBindingDescription> _vertexInputBindings;
   std::vector<VkVertexInputAttributeDescription> _attributeDescriptions;
+
+  std::unordered_map<std::string, std::string> _shaderDefines;
 
   VkCullModeFlags _cullMode = VK_CULL_MODE_BACK_BIT;
   VkFrontFace _frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;

@@ -2,23 +2,40 @@
 
 #include "Application.h"
 
+#include <stdexcept>
+
 namespace AltheaEngine {
 RenderTarget::RenderTarget(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    const VkExtent2D& extent) {
+    const VkExtent2D& extent,
+    RenderTargetType type) {
   ImageOptions imageOptions{};
   imageOptions.width = extent.width;
   imageOptions.height = extent.height;
 
-  // TODO: generate mips?
   imageOptions.mipCount = 1;
+
+  if (type == RenderTargetType::SceneCapture2D) {
+    imageOptions.layerCount = 1;
+  } else if (type == RenderTargetType::SceneCaptureCube) {
+    if (extent.width != extent.height) {
+      throw std::runtime_error("Attempting to create a RenderTarget cubemap "
+                               "with mismatched width and height.");
+    }
+
+    imageOptions.layerCount = 6;
+  }
 
   // TODO: Verify this works as expected
   imageOptions.format = VK_FORMAT_R32G32B32A32_SFLOAT;
   imageOptions.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   imageOptions.usage =
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  if (type == RenderTargetType::SceneCaptureCube) {
+    imageOptions.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+  }
 
   this->_color.image = Image(app, imageOptions);
 
@@ -38,7 +55,8 @@ RenderTarget::RenderTarget(
       imageOptions.format,
       imageOptions.mipCount,
       imageOptions.layerCount,
-      VK_IMAGE_VIEW_TYPE_2D,
+      type == RenderTargetType::SceneCaptureCube ? VK_IMAGE_VIEW_TYPE_CUBE
+                                                 : VK_IMAGE_VIEW_TYPE_2D,
       imageOptions.aspectMask);
 
   ImageOptions depthImageOptions{};
@@ -46,11 +64,15 @@ RenderTarget::RenderTarget(
   depthImageOptions.height = imageOptions.height;
   // TODO: change mipcount? HZB?
   depthImageOptions.mipCount = 1;
-  depthImageOptions.layerCount = 1;
+  depthImageOptions.layerCount = imageOptions.layerCount;
   depthImageOptions.format = app.getDepthImageFormat();
   // TODO: stencil bit?
   depthImageOptions.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
   depthImageOptions.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+  if (type == RenderTargetType::SceneCaptureCube) {
+    depthImageOptions.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+  }
 
   this->_depthImage = Image(app, depthImageOptions);
   this->_depthImageView = ImageView(
@@ -58,8 +80,9 @@ RenderTarget::RenderTarget(
       this->_depthImage.getImage(),
       app.getDepthImageFormat(),
       1,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
+      depthImageOptions.layerCount,
+      type == RenderTargetType::SceneCaptureCube ? VK_IMAGE_VIEW_TYPE_CUBE
+                                                 : VK_IMAGE_VIEW_TYPE_2D,
       depthImageOptions.aspectMask);
 
   this->_depthImage.transitionLayout(
