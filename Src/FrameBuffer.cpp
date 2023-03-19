@@ -1,4 +1,4 @@
-#include "Framebuffer.h"
+#include "FrameBuffer.h"
 
 #include "Application.h"
 

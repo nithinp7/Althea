@@ -100,6 +100,10 @@ public:
       const FrameContext& frame,
       VkFramebuffer frameBuffer);
 
+  operator VkRenderPass() const {
+    return this->_renderPass;
+  }
+
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
 
