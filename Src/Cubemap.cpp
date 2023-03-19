@@ -88,19 +88,19 @@ void Cubemap::_initCubemap(
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT,
       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-      
+
   SamplerOptions samplerInfo{};
   samplerInfo.mipCount = options.mipCount;
 
   this->_sampler = Sampler(app, samplerInfo);
-  this->_imageView = ImageView(
-      app,
-      this->_image.getImage(),
-      options.format,
-      options.mipCount,
-      6,
-      VK_IMAGE_VIEW_TYPE_CUBE,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  ImageViewOptions viewOptions{};
+  viewOptions.format = options.format;
+  viewOptions.mipCount = options.mipCount;
+  viewOptions.layerCount = 6;
+  viewOptions.type = VK_IMAGE_VIEW_TYPE_CUBE;
+
+  this->_imageView = ImageView(app, this->_image.getImage(), viewOptions);
 }
 
 } // namespace AltheaEngine

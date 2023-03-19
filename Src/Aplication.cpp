@@ -429,6 +429,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.geometryShader &&
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
+         deviceFeatures.features.imageCubeArray &&
          inlineBlockFeatures.inlineUniformBlock &&
          multiviewFeatures
              .multiview; // &&
@@ -480,6 +481,7 @@ void Application::createLogicalDevice() {
   deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fillModeNonSolid = VK_TRUE;
+  deviceFeatures.imageCubeArray = VK_TRUE;
 
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
@@ -677,15 +679,11 @@ void Application::createSwapChain() {
   swapChainExtent = extent;
 
   swapChainImageViews.resize(swapChainImages.size());
+  ImageViewOptions swapChainViewOptions{};
+  swapChainViewOptions.format = swapChainImageFormat;
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
-    swapChainImageViews[i] = ImageView(
-        *this,
-        swapChainImages[i],
-        swapChainImageFormat,
-        1,
-        1,
-        VK_IMAGE_VIEW_TYPE_2D,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+    swapChainImageViews[i] =
+        ImageView(*this, swapChainImages[i], swapChainViewOptions);
   }
 }
 
@@ -772,14 +770,11 @@ void Application::createDepthResource() {
   SingleTimeCommandBuffer commandBuffer(*this);
 
   depthImage = Image(*this, options);
-  depthImageView = ImageView(
-      *this,
-      depthImage.getImage(),
-      depthImageFormat,
-      1,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      options.aspectMask);
+
+  ImageViewOptions depthViewOptions{};
+  depthViewOptions.format = depthImageFormat;
+  depthViewOptions.aspectFlags = options.aspectMask;
+  depthImageView = ImageView(*this, depthImage.getImage(), depthViewOptions);
 
   depthImage.transitionLayout(
       commandBuffer,

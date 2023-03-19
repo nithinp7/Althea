@@ -8,26 +8,23 @@ namespace AltheaEngine {
 ImageView::ImageView(
     const Application& app,
     VkImage image,
-    VkFormat format,
-    uint32_t mipCount,
-    uint32_t layerCount,
-    VkImageViewType type,
-    VkImageAspectFlags aspectFlags) {
+    const ImageViewOptions& options)
+    : _options(options) {
 
   VkImageViewCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   createInfo.image = image;
-  createInfo.viewType = type;
-  createInfo.format = format;
+  createInfo.viewType = options.type;
+  createInfo.format = options.format;
   createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
   createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
   createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
   createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-  createInfo.subresourceRange.aspectMask = aspectFlags;
-  createInfo.subresourceRange.baseMipLevel = 0;
-  createInfo.subresourceRange.levelCount = mipCount;
-  createInfo.subresourceRange.baseArrayLayer = 0;
-  createInfo.subresourceRange.layerCount = layerCount;
+  createInfo.subresourceRange.aspectMask = options.aspectFlags;
+  createInfo.subresourceRange.baseMipLevel = options.mipBias;
+  createInfo.subresourceRange.levelCount = options.mipCount;
+  createInfo.subresourceRange.baseArrayLayer = options.baseLayer;
+  createInfo.subresourceRange.layerCount = options.layerCount;
 
   VkDevice device = app.getDevice();
   VkImageView view;

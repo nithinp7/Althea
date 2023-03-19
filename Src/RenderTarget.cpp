@@ -5,11 +5,13 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
-RenderTarget::RenderTarget(
+RenderTargetCollection::RenderTargetCollection(
     const Application& app,
     VkCommandBuffer commandBuffer,
     const VkExtent2D& extent,
-    RenderTargetType type) {
+    RenderTargetType type,
+    uint32_t targetCount)
+    : _targetCount(targetCount) {
   ImageOptions imageOptions{};
   imageOptions.width = extent.width;
   imageOptions.height = extent.height;
@@ -17,14 +19,14 @@ RenderTarget::RenderTarget(
   imageOptions.mipCount = 1;
 
   if (type == RenderTargetType::SceneCapture2D) {
-    imageOptions.layerCount = 1;
+    imageOptions.layerCount = targetCount;
   } else if (type == RenderTargetType::SceneCaptureCube) {
     if (extent.width != extent.height) {
       throw std::runtime_error("Attempting to create a RenderTarget cubemap "
                                "with mismatched width and height.");
     }
 
-    imageOptions.layerCount = 6;
+    imageOptions.layerCount = 6 * targetCount;
   }
 
   // TODO: Verify this works as expected
@@ -37,7 +39,7 @@ RenderTarget::RenderTarget(
     imageOptions.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
   }
 
-  this->_color.image = Image(app, imageOptions);
+  this->_colorImage = Image(app, imageOptions);
 
   SamplerOptions samplerOptions{};
   samplerOptions.mipCount = imageOptions.mipCount;
@@ -47,17 +49,42 @@ RenderTarget::RenderTarget(
   samplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
   samplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-  this->_color.sampler = Sampler(app, samplerOptions);
+  this->_colorImageSampler = Sampler(app, samplerOptions);
 
-  this->_color.view = ImageView(
+  // Each image view will correspond to a unique render target within
+  // the same overall image.
+  uint32_t viewLayersPerTarget =
+      type == RenderTargetType::SceneCaptureCube ? 6 : 1;
+  ImageViewOptions colorTargetViewOptions{};
+  colorTargetViewOptions.format = imageOptions.format;
+  colorTargetViewOptions.mipCount = imageOptions.mipCount;
+  colorTargetViewOptions.layerCount = viewLayersPerTarget;
+  colorTargetViewOptions.type = type == RenderTargetType::SceneCaptureCube
+                                    ? VK_IMAGE_VIEW_TYPE_CUBE
+                                    : VK_IMAGE_VIEW_TYPE_2D,
+  colorTargetViewOptions.aspectFlags = imageOptions.aspectMask;
+  this->_colorTargetImageViews.reserve(targetCount);
+  for (uint32_t i = 0; i < targetCount; ++i) {
+    colorTargetViewOptions.baseLayer = i * viewLayersPerTarget;
+    this->_colorTargetImageViews.emplace_back(
+        app,
+        this->_colorImage.getImage(),
+        colorTargetViewOptions);
+  }
+
+  // We also create one texture array image view for shader sampling.
+  ImageViewOptions colorTextureArrayViewOptions{};
+  colorTextureArrayViewOptions.format = imageOptions.format;
+  colorTextureArrayViewOptions.mipCount = imageOptions.mipCount;
+  colorTextureArrayViewOptions.layerCount = targetCount * viewLayersPerTarget;
+  colorTextureArrayViewOptions.type = type == RenderTargetType::SceneCaptureCube
+                                          ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+                                          : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+  colorTextureArrayViewOptions.aspectFlags = imageOptions.aspectMask;
+  this->_colorTextureArrayView = ImageView(
       app,
-      this->_color.image.getImage(),
-      imageOptions.format,
-      imageOptions.mipCount,
-      imageOptions.layerCount,
-      type == RenderTargetType::SceneCaptureCube ? VK_IMAGE_VIEW_TYPE_CUBE
-                                                 : VK_IMAGE_VIEW_TYPE_2D,
-      imageOptions.aspectMask);
+      this->_colorImage.getImage(),
+      colorTextureArrayViewOptions);
 
   ImageOptions depthImageOptions{};
   depthImageOptions.width = imageOptions.width;
@@ -75,15 +102,23 @@ RenderTarget::RenderTarget(
   }
 
   this->_depthImage = Image(app, depthImageOptions);
-  this->_depthImageView = ImageView(
-      app,
-      this->_depthImage.getImage(),
-      app.getDepthImageFormat(),
-      1,
-      depthImageOptions.layerCount,
-      type == RenderTargetType::SceneCaptureCube ? VK_IMAGE_VIEW_TYPE_CUBE
-                                                 : VK_IMAGE_VIEW_TYPE_2D,
-      depthImageOptions.aspectMask);
+
+  // Each depth view will correspond to a unique render target within
+  // the same overall image.
+  ImageViewOptions depthViewOptions{};
+  depthViewOptions.format = app.getDepthImageFormat();
+  depthViewOptions.layerCount = viewLayersPerTarget;
+  depthViewOptions.aspectFlags = depthImageOptions.aspectMask;
+  depthViewOptions.type = type == RenderTargetType::SceneCaptureCube
+                              ? VK_IMAGE_VIEW_TYPE_CUBE
+                              : VK_IMAGE_VIEW_TYPE_2D;
+  this->_depthTargetImageViews.reserve(targetCount);
+  for (uint32_t i = 0; i < targetCount; ++i) {
+    this->_depthTargetImageViews.emplace_back(
+        app,
+        this->_depthImage.getImage(),
+        depthViewOptions);
+  }
 
   this->_depthImage.transitionLayout(
       commandBuffer,
@@ -93,16 +128,18 @@ RenderTarget::RenderTarget(
       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 }
 
-void RenderTarget::transitionToAttachment(VkCommandBuffer commandBuffer) {
-  this->_color.image.transitionLayout(
+void RenderTargetCollection::transitionToAttachment(
+    VkCommandBuffer commandBuffer) {
+  this->_colorImage.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
 
-void RenderTarget::transitionToTexture(VkCommandBuffer commandBuffer) {
-  this->_color.image.transitionLayout(
+void RenderTargetCollection::transitionToTexture(
+    VkCommandBuffer commandBuffer) {
+  this->_colorImage.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT,
