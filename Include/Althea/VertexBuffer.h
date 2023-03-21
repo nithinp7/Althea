@@ -18,6 +18,8 @@ template <typename TVertex> class ALTHEA_API VertexBuffer {
 public:
   VertexBuffer() = default;
 
+  // TODO: Create a from-buffer constructor similar to IndexBuffer
+
   VertexBuffer(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
@@ -48,6 +50,43 @@ public:
         this->_allocation.getBuffer(),
         0,
         verticesView.size());
+  }
+
+  VertexBuffer(
+      Application& app,
+      VkCommandBuffer commandBuffer,
+      std::vector<TVertex>&& vertices)
+      : _vertices(std::move(vertices)) {
+    gsl::span<const std::byte> verticesView(
+        reinterpret_cast<const std::byte*>(this->_vertices.data()),
+        sizeof(TVertex) * this->_vertices.size());
+
+    BufferAllocation* pStagingAllocation = new BufferAllocation(
+        BufferUtilities::createStagingBuffer(app, commandBuffer, verticesView));
+
+    VmaAllocationCreateInfo deviceAllocInfo{};
+    deviceAllocInfo.flags = 0;
+    deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+    this->_allocation = BufferUtilities::createBuffer(
+        app,
+        commandBuffer,
+        verticesView.size(),
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        deviceAllocInfo);
+
+    BufferUtilities::copyBuffer(
+        commandBuffer,
+        pStagingAllocation->getBuffer(),
+        0,
+        this->_allocation.getBuffer(),
+        0,
+        verticesView.size());
+    
+    // Delete staging buffer allocation once the transfer is complete
+    app.addDeletiontask(
+        {[pStagingAllocation]() { delete pStagingAllocation; },
+        app.getCurrentFrameRingBufferIndex()});
   }
 
   const std::vector<TVertex>& getVertices() const { return this->_vertices; }
