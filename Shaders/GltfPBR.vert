@@ -15,6 +15,7 @@ layout(location=3) out vec2 occlusionUV;
 layout(location=4) out vec2 emissiveUV;
 layout(location=5) out mat3 vertTbn;
 layout(location=8) out vec3 direction;
+layout(location=9) out vec3 worldPosition;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
@@ -44,6 +45,7 @@ layout(push_constant) uniform PushConstants {
 
 void main() {
   vec4 worldPos = pushConstants.model * vec4(position, 1.0);
+  worldPosition = worldPos.xyz;
 
 #ifdef CUBEMAP_MULTIVIEW
   gl_Position = globals.projection * globals.views[gl_ViewIndex] * worldPos;

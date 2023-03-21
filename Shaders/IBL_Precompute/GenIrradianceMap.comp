@@ -5,7 +5,13 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 // layout(set=0, binding=0, rgba8) uniform readonly image2D environmentMap;
+
+#ifdef CUBEMAP_ENVMAP
+layout(set=0, binding=0) uniform samplerCube environmentMap;
+#else
 layout(set=0, binding=0) uniform sampler2D environmentMap;
+#endif
+
 layout(set=0, binding=1) uniform writeonly image2D irradianceMap;
 
 layout(push_constant) uniform PushConstants {
@@ -72,6 +78,12 @@ vec3 sampleHemisphereCosine() {
   return squareToHemisphereCosine(vec2(rng(), rng()));
 }
 
+
+#ifdef CUBEMAP_ENVMAP
+vec3 sampleEnvMap(vec3 dir, float mip) {
+  return textureLod(environmentMap, dir, mip).rgb;
+}
+#else
 // Samples environment map given direction, as if it was a cubemap
 // X is to the right, Y is up, and Z is to the back,
 // so (0, 0, -1) points towards the center of the environment map.
@@ -100,8 +112,12 @@ vec3 sampleEnvMap(vec3 dir, float mip) {
   // color = pow(color, vec3(2.2));
   return color;
 }
+#endif
 
 // Irradiance map generation 
+#ifndef THETA_SAMPLE_COUNT
+#define THETA_SAMPLE_COUNT 300
+#endif
 
 void main() {
   seed = uvec2(gl_GlobalInvocationID.xy);
@@ -116,7 +132,7 @@ void main() {
 
   vec3 irradiance = vec3(0.0);
 
-  int thetaSamples = 300;
+  int thetaSamples = THETA_SAMPLE_COUNT;
   int phiSamples = 
       int(pushConstants.height * thetaSamples / pushConstants.width);
 
