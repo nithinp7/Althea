@@ -167,6 +167,6 @@ void Texture::_initTexture(
   viewOptions.format = options.format;
   viewOptions.mipCount = mipCount;
 
-  this->_imageView = ImageView(app, this->_image.getImage(), viewOptions);
+  this->_imageView = ImageView(app, this->_image, viewOptions);
 }
 } // namespace AltheaEngine

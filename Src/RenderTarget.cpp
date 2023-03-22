@@ -68,7 +68,7 @@ RenderTargetCollection::RenderTargetCollection(
     colorTargetViewOptions.baseLayer = i * viewLayersPerTarget;
     this->_colorTargetImageViews.emplace_back(
         app,
-        this->_colorImage.getImage(),
+        this->_colorImage,
         colorTargetViewOptions);
   }
 
@@ -81,10 +81,8 @@ RenderTargetCollection::RenderTargetCollection(
                                           ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
                                           : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
   colorTextureArrayViewOptions.aspectFlags = imageOptions.aspectMask;
-  this->_colorTextureArrayView = ImageView(
-      app,
-      this->_colorImage.getImage(),
-      colorTextureArrayViewOptions);
+  this->_colorTextureArrayView =
+      ImageView(app, this->_colorImage, colorTextureArrayViewOptions);
 
   ImageOptions depthImageOptions{};
   depthImageOptions.width = imageOptions.width;
@@ -116,7 +114,7 @@ RenderTargetCollection::RenderTargetCollection(
   for (uint32_t i = 0; i < targetCount; ++i) {
     this->_depthTargetImageViews.emplace_back(
         app,
-        this->_depthImage.getImage(),
+        this->_depthImage,
         depthViewOptions);
   }
 

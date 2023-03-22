@@ -100,7 +100,7 @@ void Cubemap::_initCubemap(
   viewOptions.layerCount = 6;
   viewOptions.type = VK_IMAGE_VIEW_TYPE_CUBE;
 
-  this->_imageView = ImageView(app, this->_image.getImage(), viewOptions);
+  this->_imageView = ImageView(app, this->_image, viewOptions);
 }
 
 } // namespace AltheaEngine
