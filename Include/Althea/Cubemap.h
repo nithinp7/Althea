@@ -29,7 +29,7 @@ public:
       const std::array<CesiumGltf::ImageCesium, 6>& images,
       bool srgb);
 
-  VkImage getImage() const { return this->_image.getImage(); }
+  VkImage getImage() const { return this->_image; }
 
   VkImageView getImageView() const { return this->_imageView; }
 

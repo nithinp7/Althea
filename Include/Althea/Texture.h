@@ -32,7 +32,7 @@ public:
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  VkImage getImage() const { return this->_image.getImage(); }
+  VkImage getImage() const { return this->_image; }
 
   VkImageView getImageView() const { return this->_imageView; }
 

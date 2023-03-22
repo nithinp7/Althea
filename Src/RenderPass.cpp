@@ -14,7 +14,11 @@ Subpass::Subpass(
     SubpassBuilder&& builder)
     : _pipeline(
           app,
-          PipelineContext{renderPass, subpassIndex, extent},
+          PipelineContext{
+              renderPass,
+              subpassIndex,
+              extent,
+              static_cast<uint32_t>(builder.colorAttachments.size())},
           std::move(builder.pipelineBuilder)) {}
 
 RenderPass::RenderPass(

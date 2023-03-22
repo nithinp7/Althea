@@ -25,6 +25,7 @@ struct ALTHEA_API PipelineContext {
   VkRenderPass renderPass;
   uint32_t subpassIndex;
   VkExtent2D extent;
+  uint32_t colorAttachmentCount;
 };
 
 enum class ALTHEA_API VertexAttributeType { INT, FLOAT, VEC2, VEC3, VEC4 };

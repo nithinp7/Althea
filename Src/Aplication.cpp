@@ -774,7 +774,7 @@ void Application::createDepthResource() {
   ImageViewOptions depthViewOptions{};
   depthViewOptions.format = depthImageFormat;
   depthViewOptions.aspectFlags = options.aspectMask;
-  depthImageView = ImageView(*this, depthImage.getImage(), depthViewOptions);
+  depthImageView = ImageView(*this, depthImage, depthViewOptions);
 
   depthImage.transitionLayout(
       commandBuffer,

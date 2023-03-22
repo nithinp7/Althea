@@ -152,7 +152,7 @@ void precomputeResources(
   viewOptions.mipCount = imageOptions.mipCount;
 
   pResources->environmentMap.view =
-      ImageView(app, pResources->environmentMap.image.getImage(), viewOptions);
+      ImageView(app, pResources->environmentMap.image, viewOptions);
 
   // Create pre-filtered environment maps
   pResources->preFilteredMap.reserve(5);
@@ -173,7 +173,7 @@ void precomputeResources(
     ImageResource& mipImage = pResources->preFilteredMap.emplace_back();
     mipImage.image = Image(app, mipOptions);
     mipImage.sampler = Sampler(app, mipSamplerOptions);
-    mipImage.view = ImageView(app, mipImage.image.getImage(), mipViewOptions);
+    mipImage.view = ImageView(app, mipImage.image, mipViewOptions);
   }
 
   // Create device-only resource for irradiance map
@@ -191,10 +191,8 @@ void precomputeResources(
   pResources->irradianceMap.sampler = Sampler(app, samplerOptions);
 
   ImageViewOptions irrViewOptions = mipViewOptions;
-  pResources->irradianceMap.view = ImageView(
-      app,
-      pResources->irradianceMap.image.getImage(),
-      irrViewOptions);
+  pResources->irradianceMap.view =
+      ImageView(app, pResources->irradianceMap.image, irrViewOptions);
 
   // Init irradiance map generation pass
 
@@ -454,7 +452,7 @@ IBLResources createResources(
   envViewOptions.format = envMapOptions.format;
   envViewOptions.mipCount = envMapOptions.mipCount;
   resources.environmentMap.view =
-      ImageView(app, resources.environmentMap.image.getImage(), envViewOptions);
+      ImageView(app, resources.environmentMap.image, envViewOptions);
 
   // Prefiltered map
   std::vector<CesiumGltf::ImageCesium> prefilteredMips;
@@ -504,10 +502,8 @@ IBLResources createResources(
   ImageViewOptions prefViewOptions{};
   prefViewOptions.format = prefilteredMapOptions.format;
   prefViewOptions.mipCount = prefilteredMapOptions.mipCount;
-  resources.prefilteredMap.view = ImageView(
-      app,
-      resources.prefilteredMap.image.getImage(),
-      prefViewOptions);
+  resources.prefilteredMap.view =
+      ImageView(app, resources.prefilteredMap.image, prefViewOptions);
 
   // Irradiance map
   CesiumGltf::ImageCesium irrMapImg = Utilities::loadHdri(irradianceMapName);
@@ -543,7 +539,7 @@ IBLResources createResources(
   irrViewOptions.format = irrMapOptions.format;
   irrViewOptions.mipCount = irrMapOptions.mipCount;
   resources.irradianceMap.view =
-      ImageView(app, resources.irradianceMap.image.getImage(), irrViewOptions);
+      ImageView(app, resources.irradianceMap.image, irrViewOptions);
 
   // BRDF LUT
   CesiumGltf::ImageCesium brdf = Utilities::loadPng(
@@ -577,7 +573,7 @@ IBLResources createResources(
   ImageViewOptions brdfViewOptions{};
   brdfViewOptions.format = brdfOptions.format;
   resources.brdfLut.view =
-      ImageView(app, resources.brdfLut.image.getImage(), brdfViewOptions);
+      ImageView(app, resources.brdfLut.image, brdfViewOptions);
 
   return resources;
 }
