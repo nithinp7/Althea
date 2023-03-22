@@ -39,18 +39,16 @@ GraphicsPipeline::GraphicsPipeline(
 
   // VIEWPORT, SCISSOR, ETC
 
-  const VkExtent2D& extent = app.getSwapChainExtent();
-
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float)extent.width;
-  viewport.height = (float)extent.height;
+  viewport.width = (float)context.extent.width;
+  viewport.height = (float)context.extent.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = extent;
+  scissor.extent = context.extent;
 
   VkPipelineViewportStateCreateInfo viewportStateInfo{};
   viewportStateInfo.sType =
@@ -307,9 +305,13 @@ void GraphicsPipeline::recreatePipeline(Application& app) {
   *this = std::move(newPipeline);
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addVertexShader(const std::string& shaderPath) {
-  this->_shaderBuilders.emplace_back(shaderPath, shaderc_vertex_shader);
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
+  this->_shaderBuilders.emplace_back(
+      shaderPath,
+      shaderc_vertex_shader,
+      defines);
 
   VkPipelineShaderStageCreateInfo& vertShaderStageInfo =
       this->_shaderStages.emplace_back();
@@ -323,7 +325,8 @@ GraphicsPipelineBuilder::addVertexShader(const std::string& shaderPath) {
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
-    const std::string& shaderPath) {
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
@@ -331,14 +334,16 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
 
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::addTessellationEvaluationShader(
-    const std::string& shaderPath) {
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addGeometryShader(const std::string& shaderPath) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Geometry shaders not yet supported!");
   // VkPipelineShaderStageCreateInfo& geomShaderStageInfo =
   //    this->_shaderStages.emplace_back();
@@ -351,9 +356,13 @@ GraphicsPipelineBuilder::addGeometryShader(const std::string& shaderPath) {
   return *this;
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addFragmentShader(const std::string& shaderPath) {
-  this->_shaderBuilders.emplace_back(shaderPath, shaderc_fragment_shader);
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
+  this->_shaderBuilders.emplace_back(
+      shaderPath,
+      shaderc_fragment_shader,
+      defines);
 
   VkPipelineShaderStageCreateInfo& fragShaderStageInfo =
       this->_shaderStages.emplace_back();

@@ -18,9 +18,10 @@
 namespace AltheaEngine {
 class Application;
 
-enum class ALTHEA_API AttachmentType {
-  Color,
-  Depth
+enum ALTHEA_API AttachmentTypeFlags {
+  ATTACHMENT_FLAG_COLOR = 1,
+  ATTACHMENT_FLAG_CUBEMAP = 2,
+  ATTACHMENT_FLAG_DEPTH = 4,
   // Stencil
 };
 
@@ -28,7 +29,7 @@ struct ALTHEA_API Attachment {
   /**
    * @brief The type of attachment to create.
    */
-  AttachmentType type;
+  int flags;
 
   /**
    * @brief The image format of this attachment.
@@ -41,14 +42,15 @@ struct ALTHEA_API Attachment {
   VkClearValue clearValue;
 
   /**
-   * @brief The image required to construct ALTHEA_API the frame buffer for
-   * this render pass.
-   *
-   * If this attachment will be used for presentation, leave this empty.
-   * In that case, a frame buffer will be created for each swapchain image.
+   * @brief Whether this attachment will be used for presentation. If this is
+   * the case, a different frame buffer should be created for each swapchain
+   * image.
    */
-  std::optional<VkImageView> frameBufferImageView = std::nullopt;
+  bool forPresent = true;
 
+  // TODO: allow configuring loadOp
+
+  // TODO: clarify that the below affects storeOp
   /**
    * @brief This attachment is only used inside this render pass and the results
    * will not be used by subsequent uses of the image (e.g., depth attachment).
@@ -68,6 +70,7 @@ class ALTHEA_API Subpass {
 public:
   Subpass(
       const Application& app,
+      const VkExtent2D& extent,
       VkRenderPass renderPass,
       uint32_t subpassIndex,
       SubpassBuilder&& builder);
@@ -86,6 +89,7 @@ class ALTHEA_API RenderPass {
 public:
   RenderPass(
       const Application& app,
+      const VkExtent2D& extent,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses);
   ~RenderPass();
@@ -93,7 +97,12 @@ public:
   ActiveRenderPass begin(
       const Application& app,
       const VkCommandBuffer& commandBuffer,
-      const FrameContext& frame);
+      const FrameContext& frame,
+      VkFramebuffer frameBuffer);
+
+  operator VkRenderPass() const {
+    return this->_renderPass;
+  }
 
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
@@ -101,18 +110,14 @@ public:
 private:
   friend class ActiveRenderPass;
 
-  void _createFrameBuffer(
-      const VkExtent2D& extent,
-      const std::optional<VkImageView>& swapChainImageView);
-
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;
 
   VkRenderPass _renderPass;
 
-  std::vector<VkFramebuffer> _frameBuffers;
-
   VkDevice _device;
+  // TODO: Seems weird baking the extent into the render pass...
+  VkExtent2D _extent;
 
   bool _firstAttachmentFromSwapChain = false;
 };
@@ -123,7 +128,7 @@ public:
       const RenderPass& renderPass,
       const VkCommandBuffer& commandBuffer,
       const FrameContext& frame,
-      const VkExtent2D& extent);
+      VkFramebuffer frameBuffer);
   ~ActiveRenderPass();
 
   ActiveRenderPass& nextSubpass();

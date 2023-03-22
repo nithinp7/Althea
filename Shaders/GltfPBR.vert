@@ -16,17 +16,10 @@ layout(location=4) out vec2 emissiveUV;
 layout(location=5) out mat3 vertTbn;
 layout(location=8) out vec3 direction;
 
-layout(set=0, binding=4) uniform UniformBufferObject {
-  mat4 projection;
-  mat4 inverseProjection;
-  mat4 view;
-  mat4 inverseView;
-  vec3 lightDir;
-  float time;
-  float exposure;
-} globals;
+#define GLOBAL_UNIFORMS_SET 0
+#define GLOBAL_UNIFORMS_BINDING 4
+#include "GlobalUniforms.glsl"
 
-// TODO: may be too big for inline block
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
   vec3 emissiveFactor;
@@ -50,13 +43,17 @@ layout(push_constant) uniform PushConstants {
 } pushConstants;
 
 void main() {
-  vec3 cameraPos = globals.inverseView[3].xyz;
-
   vec4 worldPos = pushConstants.model * vec4(position, 1.0);
 
-  direction = worldPos.xyz - cameraPos;
-
+#ifdef CUBEMAP_MULTIVIEW
+  gl_Position = globals.projection * globals.views[gl_ViewIndex] * worldPos;
+  vec3 cameraPos = globals.inverseViews[gl_ViewIndex][3].xyz;
+#else
   gl_Position = globals.projection * globals.view * worldPos;
+  vec3 cameraPos = globals.inverseView[3].xyz;
+#endif
+
+  direction = worldPos.xyz - cameraPos;
 
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
   normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];

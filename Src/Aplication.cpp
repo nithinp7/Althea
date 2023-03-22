@@ -410,11 +410,16 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceFeatures2 deviceFeatures{};
   deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+  VkPhysicalDeviceMultiviewFeatures multiviewFeatures{};
+  multiviewFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
-  deviceFeatures.pNext = &inlineBlockFeatures;
+  deviceFeatures.pNext = &multiviewFeatures;
+  multiviewFeatures.pNext = &inlineBlockFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -424,8 +429,11 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.geometryShader &&
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
-         inlineBlockFeatures.inlineUniformBlock; // &&
-                                     // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
+         deviceFeatures.features.imageCubeArray &&
+         inlineBlockFeatures.inlineUniformBlock &&
+         multiviewFeatures
+             .multiview; // &&
+                         // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -473,6 +481,7 @@ void Application::createLogicalDevice() {
   deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fillModeNonSolid = VK_TRUE;
+  deviceFeatures.imageCubeArray = VK_TRUE;
 
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
@@ -480,6 +489,12 @@ void Application::createLogicalDevice() {
   inlineBlockFeatures.inlineUniformBlock = VK_TRUE;
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind =
   // VK_TRUE;
+
+  VkPhysicalDeviceMultiviewFeatures multiviewFeatures{};
+  multiviewFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+  multiviewFeatures.multiview = VK_TRUE;
+  multiviewFeatures.pNext = &inlineBlockFeatures;
 
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -493,7 +508,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &inlineBlockFeatures;
+  createInfo.pNext = &multiviewFeatures;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
@@ -664,15 +679,11 @@ void Application::createSwapChain() {
   swapChainExtent = extent;
 
   swapChainImageViews.resize(swapChainImages.size());
+  ImageViewOptions swapChainViewOptions{};
+  swapChainViewOptions.format = swapChainImageFormat;
   for (size_t i = 0; i < swapChainImages.size(); ++i) {
-    swapChainImageViews[i] = ImageView(
-        *this,
-        swapChainImages[i],
-        swapChainImageFormat,
-        1,
-        1,
-        VK_IMAGE_VIEW_TYPE_2D,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+    swapChainImageViews[i] =
+        ImageView(*this, swapChainImages[i], swapChainViewOptions);
   }
 }
 
@@ -759,14 +770,11 @@ void Application::createDepthResource() {
   SingleTimeCommandBuffer commandBuffer(*this);
 
   depthImage = Image(*this, options);
-  depthImageView = ImageView(
-      *this,
-      depthImage.getImage(),
-      depthImageFormat,
-      1,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      options.aspectMask);
+
+  ImageViewOptions depthViewOptions{};
+  depthViewOptions.format = depthImageFormat;
+  depthViewOptions.aspectFlags = options.aspectMask;
+  depthImageView = ImageView(*this, depthImage.getImage(), depthViewOptions);
 
   depthImage.transitionLayout(
       commandBuffer,
