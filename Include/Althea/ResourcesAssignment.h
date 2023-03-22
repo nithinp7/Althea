@@ -6,6 +6,7 @@
 #include "Texture.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
+#include "ImageResource.h"
 
 #include <vulkan/vulkan.h>
 
@@ -18,6 +19,8 @@ public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 
   ResourcesAssignment& bindTexture(const Texture& texture);
+  
+  ResourcesAssignment& bindTexture(const ImageResource& texture);
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
 
