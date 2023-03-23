@@ -57,6 +57,8 @@ GBufferResources::GBufferResources(const Application& app) {
   this->_metallicRoughnessOcclusion.view =
       ImageView(app, this->_metallicRoughnessOcclusion.image, viewOptions);
 
+  VkClearValue posClear;
+  posClear.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
   VkClearValue colorClear;
   colorClear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
   VkClearValue depthClear;
@@ -66,7 +68,7 @@ GBufferResources::GBufferResources(const Application& app) {
                                    Attachment{
                                        ATTACHMENT_FLAG_COLOR,
                                        VK_FORMAT_R16G16B16A16_SFLOAT,
-                                       colorClear,
+                                       posClear,
                                        false,
                                        false},
 
