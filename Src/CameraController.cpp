@@ -83,8 +83,8 @@ void CameraController::tick(float deltaTime) {
 
   this->_targetSpeed = glm::clamp(
       this->_targetSpeed + this->_acceleration * deltaTime,
-      0.25f,
-      8.0f);
+      this->_minSpeed,
+      this->_maxSpeed);
 
   const glm::mat4& transform = this->_camera.getTransform();
   glm::vec3 position(transform[3]);
@@ -128,6 +128,14 @@ void CameraController::tick(float deltaTime) {
 
   this->_camera.setPosition(newPosition);
   this->_camera.setRotation(this->_yaw, newPitch);
+}
+
+void CameraController::setMinSpeed(float speed) {
+  this->_minSpeed = speed;
+}
+
+void CameraController::setMaxSpeed(float speed) {
+  this->_maxSpeed = speed;
 }
 
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {

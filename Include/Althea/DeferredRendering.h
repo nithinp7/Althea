@@ -21,7 +21,7 @@ public:
 
   GBufferResources() = default;
   GBufferResources(const Application& app);
-  void bindTextures(ResourcesAssignment& assignment);
+  void bindTextures(ResourcesAssignment& assignment) const;
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTextures(VkCommandBuffer commandBuffer);
 

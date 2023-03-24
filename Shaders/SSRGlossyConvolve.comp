@@ -1,0 +1,41 @@
+
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+// Previous mip of the reflection buffer
+layout(set=0, binding=0) uniform sampler2D reflectionBuffer;
+layout(set=0, binding=1) uniform writeonly image2D filteredMip;
+
+layout(push_constant) uniform PushConstants {
+  uint width;
+  uint height;
+  float roughness;
+} pushConstants;
+
+void main() {
+  ivec2 texelPos = 
+      ivec2(gl_GlobalInvocationID.xy);
+  if (uint(texelPos.x) >= pushConstants.width || 
+      uint(texelPos.y) >= pushConstants.height) {
+    return;
+  }
+  
+  vec2 texelUv = 
+      vec2(texelPos) / vec2(pushConstants.width, pushConstants.height);
+
+  // Naive convolution
+  float maxRadius = 0.01 * pushConstants.roughness;
+  float dx = 1.0 / pushConstants.width;
+  float dy = 1.0 / pushConstants.height;
+
+  vec4 sum = vec4(0.0);
+  for (float i = -maxRadius; i <= maxRadius; i += dx) {
+    for (float j = -maxRadius; j <= maxRadius; j += dy) {
+      sum += textureLod(reflectionBuffer, texelUv + vec2(i, j), 0.0).rgba;
+    }
+  }
+
+  vec4 outColor = vec4(sum.rgb / sum.a, 1.0);
+  imageStore(filteredMip, texelPos, outColor);
+  // imageStore(filteredMip, texelPos, vec4(1.0, 0.0, 0.0, 1.0));
+}

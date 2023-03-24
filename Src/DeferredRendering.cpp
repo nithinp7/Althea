@@ -112,7 +112,7 @@ GBufferResources::GBufferResources(const Application& app) {
       app.getDepthImageView()};
 }
 
-void GBufferResources::bindTextures(ResourcesAssignment& assignment) {
+void GBufferResources::bindTextures(ResourcesAssignment& assignment) const {
   assignment.bindTexture(this->_position)
       .bindTexture(this->_normal)
       .bindTexture(this->_albedo)
