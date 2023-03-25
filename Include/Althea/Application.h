@@ -28,7 +28,7 @@ namespace CesiumGltf {
 struct ImageCesium;
 };
 
-namespace AltheaEngine {
+namespace AltheaEngine {   
 class IGameInstance;
 
 extern std::string GProjectDirectory;
@@ -79,6 +79,7 @@ private:
   GLFWwindow* window;
 
   VkInstance instance;
+  VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
   VkQueue graphicsQueue;

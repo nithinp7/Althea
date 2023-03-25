@@ -94,7 +94,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     prevProjection = currentProjection;
   }
 
-  return vec4(sampleEnvMap(rayDir), 0.0);
+  return vec4(sampleEnvMap(rayDir), 1.0);
 }
 
 void main() {
