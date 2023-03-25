@@ -147,15 +147,12 @@ void precomputeResources(
   samplerOptions.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
   pResources->environmentMap.sampler = Sampler(app, samplerOptions);
 
-  // TODO: create straight from image details?
-  pResources->environmentMap.view = ImageView(
-      app,
-      pResources->environmentMap.image.getImage(),
-      imageOptions.format,
-      imageOptions.mipCount,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  ImageViewOptions viewOptions{};
+  viewOptions.format = imageOptions.format;
+  viewOptions.mipCount = imageOptions.mipCount;
+
+  pResources->environmentMap.view =
+      ImageView(app, pResources->environmentMap.image, viewOptions);
 
   // Create pre-filtered environment maps
   pResources->preFilteredMap.reserve(5);
@@ -164,6 +161,8 @@ void precomputeResources(
   mipSamplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   mipSamplerOptions.mipCount = 1;
 
+  ImageViewOptions mipViewOptions{};
+  mipViewOptions.format = viewOptions.format;
   for (uint32_t mipIndex = 1; mipIndex < 6; ++mipIndex) {
     ImageOptions mipOptions = imageOptions;
     mipOptions.mipCount = 1;
@@ -174,14 +173,7 @@ void precomputeResources(
     ImageResource& mipImage = pResources->preFilteredMap.emplace_back();
     mipImage.image = Image(app, mipOptions);
     mipImage.sampler = Sampler(app, mipSamplerOptions);
-    mipImage.view = ImageView(
-        app,
-        mipImage.image.getImage(),
-        mipOptions.format,
-        1,
-        1,
-        VK_IMAGE_VIEW_TYPE_2D,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+    mipImage.view = ImageView(app, mipImage.image, mipViewOptions);
   }
 
   // Create device-only resource for irradiance map
@@ -197,14 +189,10 @@ void precomputeResources(
 
   pResources->irradianceMap.image = Image(app, irrMapOptions);
   pResources->irradianceMap.sampler = Sampler(app, samplerOptions);
-  pResources->irradianceMap.view = ImageView(
-      app,
-      pResources->irradianceMap.image.getImage(),
-      imageOptions.format,
-      1,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  ImageViewOptions irrViewOptions = mipViewOptions;
+  pResources->irradianceMap.view =
+      ImageView(app, pResources->irradianceMap.image, irrViewOptions);
 
   // Init irradiance map generation pass
 
@@ -460,15 +448,11 @@ IBLResources createResources(
   envSamplerOptions.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
   resources.environmentMap.sampler = Sampler(app, envSamplerOptions);
 
-  // TODO: create straight from image details?
-  resources.environmentMap.view = ImageView(
-      app,
-      resources.environmentMap.image.getImage(),
-      envMapOptions.format,
-      envMapOptions.mipCount,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  ImageViewOptions envViewOptions{};
+  envViewOptions.format = envMapOptions.format;
+  envViewOptions.mipCount = envMapOptions.mipCount;
+  resources.environmentMap.view =
+      ImageView(app, resources.environmentMap.image, envViewOptions);
 
   // Prefiltered map
   std::vector<CesiumGltf::ImageCesium> prefilteredMips;
@@ -514,14 +498,12 @@ IBLResources createResources(
   prefMapSamplerOptions.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
   resources.prefilteredMap.sampler = Sampler(app, prefMapSamplerOptions);
-  resources.prefilteredMap.view = ImageView(
-      app,
-      resources.prefilteredMap.image.getImage(),
-      prefilteredMapOptions.format,
-      prefilteredMapOptions.mipCount,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  ImageViewOptions prefViewOptions{};
+  prefViewOptions.format = prefilteredMapOptions.format;
+  prefViewOptions.mipCount = prefilteredMapOptions.mipCount;
+  resources.prefilteredMap.view =
+      ImageView(app, resources.prefilteredMap.image, prefViewOptions);
 
   // Irradiance map
   CesiumGltf::ImageCesium irrMapImg = Utilities::loadHdri(irradianceMapName);
@@ -552,14 +534,12 @@ IBLResources createResources(
   irrSamplerOptions.minFilter = VK_FILTER_LINEAR;
 
   resources.irradianceMap.sampler = Sampler(app, irrSamplerOptions);
-  resources.irradianceMap.view = ImageView(
-      app,
-      resources.irradianceMap.image.getImage(),
-      irrMapOptions.format,
-      irrMapOptions.mipCount,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  ImageViewOptions irrViewOptions{};
+  irrViewOptions.format = irrMapOptions.format;
+  irrViewOptions.mipCount = irrMapOptions.mipCount;
+  resources.irradianceMap.view =
+      ImageView(app, resources.irradianceMap.image, irrViewOptions);
 
   // BRDF LUT
   CesiumGltf::ImageCesium brdf = Utilities::loadPng(
@@ -589,14 +569,11 @@ IBLResources createResources(
   brdfSamplerOptions.minFilter = VK_FILTER_LINEAR;
 
   resources.brdfLut.sampler = Sampler(app, brdfSamplerOptions);
-  resources.brdfLut.view = ImageView(
-      app,
-      resources.brdfLut.image.getImage(),
-      brdfOptions.format,
-      1,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  ImageViewOptions brdfViewOptions{};
+  brdfViewOptions.format = brdfOptions.format;
+  resources.brdfLut.view =
+      ImageView(app, resources.brdfLut.image, brdfViewOptions);
 
   return resources;
 }

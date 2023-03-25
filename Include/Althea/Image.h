@@ -59,7 +59,7 @@ public:
    */
   Image(const Application& app, const ImageOptions& options);
 
-  VkImage getImage() const { return this->_image.getImage(); }
+  operator VkImage() const { return this->_image.getImage(); }
 
   /**
    * @brief Upload the a mip level for this GPU image, from CPU memory. Must

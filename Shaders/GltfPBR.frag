@@ -18,17 +18,10 @@ layout(set=0, binding=1) uniform sampler2D prefilteredMap;
 layout(set=0, binding=2) uniform sampler2D irradianceMap;
 layout(set=0, binding=3) uniform sampler2D brdfLut;
 
-layout(set=0, binding=4) uniform UniformBufferObject {
-  mat4 projection;
-  mat4 inverseProjection;
-  mat4 view;
-  mat4 inverseView;
-  vec3 lightDir;
-  float time;
-  float exposure;
-} globals;
+#define GLOBAL_UNIFORMS_SET 0
+#define GLOBAL_UNIFORMS_BINDING 4
+#include "GlobalUniforms.glsl"
 
-// TODO: may be too big for inline block
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
   vec3 emissiveFactor;
@@ -53,7 +46,7 @@ layout(set=1, binding=3) uniform sampler2D metallicRoughnessTexture;
 layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
-#include "PBR/PBRMaterial.frag"
+#include "PBR/PBRMaterial.glsl"
 
 void main() {
   vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
@@ -89,6 +82,9 @@ void main() {
         roughness, 
         ambientOcclusion);
 
+#ifndef SKIP_TONEMAP
   material = vec3(1.0) - exp(-material * globals.exposure);
+#endif
+
   outColor = vec4(material, 1.0);
 }

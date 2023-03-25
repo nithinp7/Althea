@@ -163,13 +163,10 @@ void Texture::_initTexture(
       VK_ACCESS_SHADER_READ_BIT,
       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-  this->_imageView = ImageView(
-      app,
-      this->_image.getImage(),
-      options.format,
-      mipCount,
-      1,
-      VK_IMAGE_VIEW_TYPE_2D,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  ImageViewOptions viewOptions{};
+  viewOptions.format = options.format;
+  viewOptions.mipCount = mipCount;
+
+  this->_imageView = ImageView(app, this->_image, viewOptions);
 }
 } // namespace AltheaEngine

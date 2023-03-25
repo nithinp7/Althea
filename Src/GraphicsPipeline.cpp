@@ -39,18 +39,16 @@ GraphicsPipeline::GraphicsPipeline(
 
   // VIEWPORT, SCISSOR, ETC
 
-  const VkExtent2D& extent = app.getSwapChainExtent();
-
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float)extent.width;
-  viewport.height = (float)extent.height;
+  viewport.width = (float)context.extent.width;
+  viewport.height = (float)context.extent.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = extent;
+  scissor.extent = context.extent;
 
   VkPipelineViewportStateCreateInfo viewportStateInfo{};
   viewportStateInfo.sType =
@@ -133,27 +131,34 @@ GraphicsPipeline::GraphicsPipeline(
   multisamplingInfo.alphaToOneEnable = VK_FALSE;
 
   // TODO: can this be generalized in a useful way?
+  // ... might need to pass in more detailed info about attachments
+  // through PipelineContext
   // Make alpha blending optional?
-  VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-  colorBlendAttachment.colorWriteMask =
-      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  colorBlendAttachment.blendEnable = VK_TRUE;
-  colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-  colorBlendAttachment.dstColorBlendFactor =
-      VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-  colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-  colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-  colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+  std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+  colorBlendAttachments.resize(context.colorAttachmentCount);
+  for (uint32_t i = 0; i < context.colorAttachmentCount; ++i) {
+    VkPipelineColorBlendAttachmentState& colorBlendAttachment =
+        colorBlendAttachments[i];
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor =
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+  }
 
   VkPipelineColorBlendStateCreateInfo colorBlendingInfo{};
   colorBlendingInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   colorBlendingInfo.logicOpEnable = VK_FALSE;
   colorBlendingInfo.logicOp = VK_LOGIC_OP_COPY; // Optional
-  colorBlendingInfo.attachmentCount = 1;
-  colorBlendingInfo.pAttachments = &colorBlendAttachment;
+  colorBlendingInfo.attachmentCount = context.colorAttachmentCount;
+  colorBlendingInfo.pAttachments = colorBlendAttachments.data();
   colorBlendingInfo.blendConstants[0] = 0.0f; // Optional
   colorBlendingInfo.blendConstants[1] = 0.0f; // Optional
   colorBlendingInfo.blendConstants[2] = 0.0f; // Optional
@@ -307,9 +312,13 @@ void GraphicsPipeline::recreatePipeline(Application& app) {
   *this = std::move(newPipeline);
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addVertexShader(const std::string& shaderPath) {
-  this->_shaderBuilders.emplace_back(shaderPath, shaderc_vertex_shader);
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
+  this->_shaderBuilders.emplace_back(
+      shaderPath,
+      shaderc_vertex_shader,
+      defines);
 
   VkPipelineShaderStageCreateInfo& vertShaderStageInfo =
       this->_shaderStages.emplace_back();
@@ -323,7 +332,8 @@ GraphicsPipelineBuilder::addVertexShader(const std::string& shaderPath) {
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
-    const std::string& shaderPath) {
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
@@ -331,14 +341,16 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
 
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::addTessellationEvaluationShader(
-    const std::string& shaderPath) {
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addGeometryShader(const std::string& shaderPath) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
   throw std::runtime_error("Geometry shaders not yet supported!");
   // VkPipelineShaderStageCreateInfo& geomShaderStageInfo =
   //    this->_shaderStages.emplace_back();
@@ -351,9 +363,13 @@ GraphicsPipelineBuilder::addGeometryShader(const std::string& shaderPath) {
   return *this;
 }
 
-GraphicsPipelineBuilder&
-GraphicsPipelineBuilder::addFragmentShader(const std::string& shaderPath) {
-  this->_shaderBuilders.emplace_back(shaderPath, shaderc_fragment_shader);
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
+    const std::string& shaderPath,
+    const ShaderDefines& defines) {
+  this->_shaderBuilders.emplace_back(
+      shaderPath,
+      shaderc_fragment_shader,
+      defines);
 
   VkPipelineShaderStageCreateInfo& fragShaderStageInfo =
       this->_shaderStages.emplace_back();

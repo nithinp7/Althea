@@ -1,0 +1,59 @@
+
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+// Previous mip of the reflection buffer
+layout(set=0, binding=0) uniform sampler2D reflectionBuffer;
+layout(set=0, binding=1) uniform writeonly image2D filteredMip;
+
+layout(push_constant) uniform PushConstants {
+  uint width;
+  uint height;
+  float roughness;
+} pushConstants;
+
+void main() {
+  ivec2 texelPos = 
+      ivec2(gl_GlobalInvocationID.xy);
+  if (uint(texelPos.x) >= pushConstants.width || 
+      uint(texelPos.y) >= pushConstants.height) {
+    return;
+  }
+  
+  vec2 texelUv = 
+      vec2(texelPos) / vec2(pushConstants.width, pushConstants.height);
+
+  // Naive convolution
+  // float maxRadius = 0.1 * pushConstants.roughness;
+  // float dx = 1.0 / pushConstants.width;
+  // float dy = 1.0 / pushConstants.height;
+
+  // vec4 sum = vec4(0.0);
+  // float count = 0.0;
+  // for (float i = -maxRadius; i <= maxRadius; i += dx) {
+  //   for (float j = -maxRadius; j <= maxRadius; j += dy) {
+  //     sum += textureLod(reflectionBuffer, texelUv + vec2(i, j), 0.0).rgba;
+  //     count += 1.0;
+  //   }
+  // }
+
+  // TODO: Gaussian blur
+  // Credit: https://github.com/Jam3/glsl-fast-gaussian-blur=
+  vec4 color = vec4(0.0);
+  vec2 direction = vec2(1.0); //??
+  float resolution = float(pushConstants.width);
+  vec2 off1 = vec2(1.411764705882353) * direction;
+  vec2 off2 = vec2(3.2941176470588234) * direction;
+  vec2 off3 = vec2(5.176470588235294) * direction;
+  color += textureLod(reflectionBuffer, texelUv, 0.0) * 0.1964825501511404;
+  color += textureLod(reflectionBuffer, texelUv + (off1 / resolution), 0.0) * 0.2969069646728344;
+  color += textureLod(reflectionBuffer, texelUv - (off1 / resolution), 0.0) * 0.2969069646728344;
+  color += textureLod(reflectionBuffer, texelUv + (off2 / resolution), 0.0) * 0.09447039785044732;
+  color += textureLod(reflectionBuffer, texelUv - (off2 / resolution), 0.0) * 0.09447039785044732;
+  color += textureLod(reflectionBuffer, texelUv + (off3 / resolution), 0.0) * 0.010381362401148057;
+  color += textureLod(reflectionBuffer, texelUv - (off3 / resolution), 0.0) * 0.010381362401148057;
+
+  // vec4 outColor = sum / count;
+  imageStore(filteredMip, texelPos, color);
+  // imageStore(filteredMip, texelPos, vec4(1.0, 0.0, 0.0, 1.0));
+}

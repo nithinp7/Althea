@@ -3,7 +3,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
 namespace AltheaEngine {
 Camera::Camera(
     float fovDegrees,
@@ -48,9 +47,9 @@ void Camera::setRotation(float yawDegrees, float pitchDegrees) {
 
   float cosPitch = cos(pitchRadians);
   glm::vec3 zAxis(
-      cos(yawRadians) * cosPitch,
+      sin(yawRadians) * cosPitch,
       -sin(pitchRadians),
-      -sin(yawRadians) * cosPitch);
+      cos(yawRadians) * cosPitch);
   glm::vec3 xAxis =
       glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), zAxis));
   glm::vec3 yAxis = glm::cross(zAxis, xAxis);
@@ -61,6 +60,7 @@ void Camera::setRotation(float yawDegrees, float pitchDegrees) {
   this->_transform[2] = glm::vec4(zAxis, 0.0f);
 }
 
+// TODO: Double check these
 float Camera::computeYawDegrees() const {
   const glm::vec4& zAxis = this->_transform[2];
   return glm::degrees(glm::atan(-zAxis.z, zAxis.x));

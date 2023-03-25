@@ -2,6 +2,7 @@
 
 #include "DescriptorSet.h"
 #include "ImageResource.h"
+#include "Library.h"
 #include "ResourcesAssignment.h"
 #include "SingleTimeCommandBuffer.h"
 
@@ -10,7 +11,7 @@
 namespace AltheaEngine {
 class Application;
 
-struct IBLResources {
+struct ALTHEA_API IBLResources {
   ImageResource environmentMap{};
   ImageResource prefilteredMap{};
   ImageResource irradianceMap{};

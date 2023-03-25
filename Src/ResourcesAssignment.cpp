@@ -14,6 +14,10 @@ ResourcesAssignment& ResourcesAssignment::bindTexture(const Texture& texture) {
   return this->bindTexture(texture.getImageView(), texture.getSampler());
 }
 
+ResourcesAssignment& ResourcesAssignment::bindTexture(const ImageResource& texture) {
+  return this->bindTexture(texture.view, texture.sampler);
+}
+
 ResourcesAssignment&
 ResourcesAssignment::bindTexture(VkImageView imageView, VkSampler sampler) {
   for (DescriptorAssignment& assignment : this->_assignments) {

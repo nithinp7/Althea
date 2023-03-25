@@ -25,6 +25,8 @@ class ALTHEA_API Model {
 public:
   Model(const Model& rhs) = delete;
   Model(Model&& rhs) = default;
+
+  // TODO: Create version that can take regular VkCommandBuffer
   Model(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
