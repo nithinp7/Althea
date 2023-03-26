@@ -11,7 +11,6 @@
 #include <iostream>
 #include <limits>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 
 namespace AltheaEngine {
@@ -150,9 +149,7 @@ void Application::drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  VkResult submitResult =
-      vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
-  if (submitResult != VK_SUCCESS) {
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
     throw std::runtime_error("Failed to submit draw command buffer!");
   }
 
@@ -178,10 +175,6 @@ void Application::drawFrame() {
   }
 }
 
-PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
-PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
-VkDebugUtilsMessengerEXT debugUtilsMessenger;
-
 void Application::cleanup() {
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
@@ -202,9 +195,6 @@ void Application::cleanup() {
 
   vkDestroyDevice(device, nullptr);
   vkDestroySurfaceKHR(instance, surface, nullptr);
-  if (enableValidationLayers) {
-    vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-  }
   vkDestroyInstance(instance, nullptr);
 
   delete pInputManager;
@@ -248,40 +238,6 @@ bool Application::checkValidationLayerSupport() {
   }
 
   return true;
-}
-
-// Default debug callback
-VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
-  // Select prefix depending on flags passed to the callback
-  std::string prefix("");
-
-  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-    prefix = "VERBOSE: ";
-  } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    prefix = "INFO: ";
-  } else if (
-      messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    prefix = "WARNING: ";
-  } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    prefix = "ERROR: ";
-  }
-
-  // Display message to default output (console/logcat)
-  std::stringstream debugMessage;
-  debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "]["
-               << pCallbackData->pMessageIdName
-               << "] : " << pCallbackData->pMessage;
-
-  // The return value of this callback controls whether the Vulkan call that
-  // caused the validation message will be aborted or not We return VK_FALSE as
-  // we DON'T want Vulkan calls that cause a validation message to abort If you
-  // instead want to have calls abort, pass in VK_TRUE and the function will
-  // return VK_ERROR_VALIDATION_FAILED_EXT
-  return VK_FALSE;
 }
 
 void Application::createInstance() {
@@ -361,30 +317,6 @@ void Application::createInstance() {
 
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create instance!");
-  }
-
-  if (enableValidationLayers) {
-    vkCreateDebugUtilsMessengerEXT =
-        reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-    vkDestroyDebugUtilsMessengerEXT =
-        reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-
-    VkDebugUtilsMessengerCreateInfoEXT debugInfo{};
-    debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    debugInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-    debugInfo.pfnUserCallback = debugUtilsMessengerCallback;
-    VkResult result = vkCreateDebugUtilsMessengerEXT(
-        instance,
-        &debugInfo,
-        nullptr,
-        &debugMessenger);
-    assert(result == VK_SUCCESS);
   }
 }
 

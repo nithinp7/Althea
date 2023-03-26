@@ -79,7 +79,6 @@ private:
   GLFWwindow* window;
 
   VkInstance instance;
-  VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
   VkQueue graphicsQueue;
