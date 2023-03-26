@@ -33,6 +33,29 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
+vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
+  vec3 baseColor = texture(gBufferAlbedo, currentUV).rgb;
+  vec3 metallicRoughnessOcclusion = 
+      texture(gBufferMetallicRoughnessOcclusion, currentUV).rgb;
+
+  vec3 reflectedDirection = reflect(normalize(rayDir), normal);
+  vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughnessOcclusion.y), 1.0);
+  vec3 irradianceColor = sampleIrrMap(normal);
+
+  vec3 material = 
+      pbrMaterial(
+        normalize(rayDir),
+        globals.lightDir, 
+        normal, 
+        baseColor.rgb, 
+        reflectedColor.rgb, 
+        irradianceColor,
+        metallicRoughnessOcclusion.x, 
+        metallicRoughnessOcclusion.y, 
+        metallicRoughnessOcclusion.z);
+  return vec4(material, 1.0);
+}
+
 #define RAYMARCH_STEPS 32
 vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
   vec3 perpRef = cross(rayDir, normal);
@@ -70,7 +93,8 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     float dist = length(dir);
     dir = dir / dist;
 
-    dx = 5.0 * (1.0 + dx0 - 1.0 / (1.0 + dist));
+    // ???
+    // dx = 5.0 * (1.0 + dx0 - 1.0 / (1.0 + dist));
 
     // TODO: interpolate between last two samples
     // Step between this and the previous sample
@@ -85,7 +109,8 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
       vec3 currentNormal = normalize(texture(gBufferNormal, currentUV, 0.0).xyz);
       if (dot(currentNormal, rayDir) < 0) {
         // TODO: direct lighting in reflection
-        return vec4(texture(gBufferAlbedo, currentUV, 0.0).rgb, 1.0);
+        return environmentLitSample(currentUV, rayDir, currentNormal);
+        // return vec4(texture(gBufferAlbedo, currentUV, 0.0).rgb, 1.0);
           //  return vec3(float(i) / RAYMARCH_STEPS, 0.0, 0.0);
       }
     }
@@ -94,7 +119,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     prevProjection = currentProjection;
   }
 
-  return vec4(sampleEnvMap(rayDir), 1.0);
+  return vec4(sampleEnvMap(rayDir), 0.0);
 }
 
 void main() {

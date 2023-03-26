@@ -9,6 +9,7 @@ namespace {
 struct ConvolutionPushConstants {
   uint32_t width;
   uint32_t height;
+  glm::vec2 direction;
   float roughness;
 };
 } // namespace
@@ -112,8 +113,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
       SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
       subpassBuilder.colorAttachments.push_back(0);
 
-      subpassBuilder
-          .pipelineBuilder
+      subpassBuilder.pipelineBuilder
           .setDepthTesting(false)
 
           .addVertexShader(GEngineDirectory + "/Shaders/FullScreenQuad.vert")
@@ -218,8 +218,6 @@ void ScreenSpaceReflection::convolveReflectionBuffer(
 
   const ImageOptions& imageDetails = this->_reflectionBuffer.image.getOptions();
 
-  VkImageMemoryBarrier barriers[2];
-
   // Transition all mips except the first to allow for compute storage image
   // write
   VkImageMemoryBarrier writeBarrier{};
@@ -313,6 +311,8 @@ void ScreenSpaceReflection::convolveReflectionBuffer(
     ConvolutionPushConstants constants{};
     constants.width = mipWidth;
     constants.height = mipHeight;
+    constants.direction =
+        (mipLevel & 1) ? glm::vec2(0.0f, 1.0f) : glm::vec2(1.0f, 0.0f);
     constants.roughness = static_cast<float>(mipLevel) / 4.0f;
     vkCmdPushConstants(
         commandBuffer,
