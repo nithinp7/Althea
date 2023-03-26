@@ -58,30 +58,25 @@ vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
 
 #define RAYMARCH_STEPS 32
 vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
+  // Arbitrary
+  vec3 endPos = worldPos + rayDir * 1000.0;
+  vec4 projectedEnd = globals.projection * globals.view * vec4(endPos, 1.0);
+  vec2 uvEnd = 0.5 * projectedEnd.xy / projectedEnd.w + vec2(0.5);
+
+  // TODO: Handle degenerate case?
+  vec2 uvStep = normalize(uvEnd - currentUV);
+  float stepSize = 0.01;
+
   vec3 perpRef = cross(rayDir, normal);
   perpRef = normalize(cross(perpRef, rayDir));
-
-  // vec4 projected = globals.projection * globals.view * vec4(rayDir, 0.0);
-  // vec2 uvStep = (projected.xy / projected.w) / 128.0;
-  float dx0 = 0.25;
-  float dx = dx0;
-
-  // currentUV += uvDir / 128.0;
-  // return vec3(0.5) + 0.5 * rayDir;
 
   vec3 prevPos = worldPos;
   float prevProjection = 0.0;
 
-  vec3 currentRayPos = worldPos;
-
   for (int i = 0; i < RAYMARCH_STEPS; ++i) {
-    // currentUV += uvStep;
-    currentRayPos += dx * rayDir;
-    vec4 projected = globals.projection * globals.view * vec4(currentRayPos, 1.0);
-    currentUV = 0.5 * projected.xy / projected.w + vec2(0.5);
-
+    currentUV += uvStep * stepSize;
     if (currentUV.x < 0.0 || currentUV.x > 1.0 || currentUV.y < 0.0 || currentUV.y > 1.0) {
-      continue;
+      return vec4(0.0);
     }
 
     // TODO: Check for invalid position
@@ -93,25 +88,14 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     float dist = length(dir);
     dir = dir / dist;
 
-    // ???
-    // dx = 5.0 * (1.0 + dx0 - 1.0 / (1.0 + dist));
-
     // TODO: interpolate between last two samples
     // Step between this and the previous sample
     float worldStep = length(currentPos - prevPos);
     
-
-    // float cosTheta = dot(dir, rayDir);
-    // float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    // if (acos(cosTheta) < 0.25) {
-
-    if (currentProjection * prevProjection < 0.0 && worldStep <= 5 * dx && i > 0) {
-      vec3 currentNormal = normalize(texture(gBufferNormal, currentUV, 0.0).xyz);
+    if (currentProjection * prevProjection < 0.0 && worldStep <= 2.0 && i > 0) {
+      vec3 currentNormal = normalize(textureLod(gBufferNormal, currentUV, 0.0).xyz);
       if (dot(currentNormal, rayDir) < 0) {
-        // TODO: direct lighting in reflection
         return environmentLitSample(currentUV, rayDir, currentNormal);
-        // return vec4(texture(gBufferAlbedo, currentUV, 0.0).rgb, 1.0);
-          //  return vec3(float(i) / RAYMARCH_STEPS, 0.0, 0.0);
       }
     }
 
@@ -119,7 +103,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     prevProjection = currentProjection;
   }
 
-  return vec4(sampleEnvMap(rayDir), 0.0);
+  return vec4(0.0);//sampleEnvMap(rayDir), 1.0);
 }
 
 void main() {
