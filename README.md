@@ -85,10 +85,9 @@ More pictures to come soon!
 #### Renderer Features
 - [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors).
 - [x] Mipmaps
-- [ ] LODs
 - [x] Deferred rendering setup
+- [x] Screen-space reflections / ambient occlusion
 - [ ] Scenegraph / Entity Component System
-- [ ] Instancing / batching
 - [ ] Use spir-v reflection via shaderc to code-gen pipeline layouts / binding declarations in application-level C++.
 
 #### Vulkan Backend
@@ -112,12 +111,11 @@ More pictures to come soon!
 
 #### Usability / Maintainability
 - [ ] Integrate unit-testing framework, write unit tests
-- [ ] Organize code into renderer backend, frontend, editor, etc.
 
 #### Documentation
 - [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs.
 - [ ] Write high-level architecture diagram / writeup about engine.
-- [ ] Write small application-level example codes.
+- [x] Write small application-level example codes.
 
 #### Way Out Ideas!
 - [ ] Integrate full 3D Tiles streaming support with Cesium Native
