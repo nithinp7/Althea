@@ -33,21 +33,21 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 ##### G-Buffer contains textures for positions, normals, albedo, and metallic-roughness-occlusion.
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DeferredRendering.png" width=800/>
 
-### Screen-Space Occlusion / Ambient Occlusion
+### Screen-Space Reflection / Ambient Occlusion
 
 ##### Results
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PiesSSR_SSAO.png" width=800/>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaSSR_SSAO.png" width=800/>
 
 ##### An example GBuffer, the reflection buffer, the Gaussian-blurred glossy reflections, and the final render.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleGBuffer.png" width=800/>
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleGBuffer.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleSSR_SSAO.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SSR_ReflectionBuffer.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ConvolvedReflectionBuffer.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SSR_ReflectionBuffer.png" width=300/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ConvolvedReflectionBuffer.png" width=300/>
 </p>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleSSR_SSAO.png" width=600/>
 
-### Shader hot-reloading in action!
+### Shader Hot-Reloading
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
 
 More pictures to come soon!
@@ -86,7 +86,7 @@ More pictures to come soon!
 - [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors).
 - [x] Mipmaps
 - [ ] LODs
-- [ ] Deferred rendering setup
+- [x] Deferred rendering setup
 - [ ] Scenegraph / Entity Component System
 - [ ] Instancing / batching
 - [ ] Use spir-v reflection via shaderc to code-gen pipeline layouts / binding declarations in application-level C++.
