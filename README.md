@@ -28,7 +28,6 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelGlossy2.png" width=400/>
 </p>
 
-
 ### Deferred Rendering
 
 ##### G-Buffer contains textures for positions, normals, albedo, and metallic-roughness-occlusion.
@@ -38,7 +37,15 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 
 ##### Results
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PiesSSR_SSAO.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaSSR_SSAO.png" width=800/>
 
+##### An example GBuffer, the reflection buffer, the Gaussian-blurred glossy reflections, and the final render.
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleGBuffer.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleSSR_SSAO.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SSR_ReflectionBuffer.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ConvolvedReflectionBuffer.png" width=400/>
+</p>
 
 ### Shader hot-reloading in action!
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
