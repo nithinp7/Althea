@@ -72,6 +72,18 @@ RenderPass::RenderPass(
         : (attachment.flags & ATTACHMENT_FLAG_DEPTH)
             ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
             : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // if (attachment.forPresent) {
+    //   vkAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // } else if (attachment.flags & ATTACHMENT_FLAG_DEPTH) {
+    //   vkAttachment.finalLayout =
+    //       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    // } else if (attachment.internalUsageOnly) {
+    //   vkAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // } else {
+    //   // This attachment will be used outside this pass
+    //   // TODO: This is still presumptive
+    //   vkAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    // }
 
     if (attachment.flags & ATTACHMENT_FLAG_CUBEMAP) {
       isCubemap = true;
@@ -91,6 +103,8 @@ RenderPass::RenderPass(
     const SubpassBuilder& subpass = subpassBuilders[subpassIndex];
     VkSubpassDescription& vkSubpass = vkSubpasses[subpassIndex];
 
+    vkSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
     std::vector<VkAttachmentReference>& vkColorAttachments =
         subpassAttachmentReferences.emplace_back();
     for (uint32_t attachmentIndex : subpass.colorAttachments) {
@@ -98,20 +112,20 @@ RenderPass::RenderPass(
           {attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
     }
 
-    std::optional<VkAttachmentReference> vkDepthAttachment = std::nullopt;
-    if (subpass.depthAttachment) {
-      vkDepthAttachment = {
-          *subpass.depthAttachment,
-          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
-    }
-
-    // TODO: Support other types of pipelines
-    vkSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     vkSubpass.colorAttachmentCount =
         static_cast<uint32_t>(vkColorAttachments.size());
     vkSubpass.pColorAttachments = vkColorAttachments.data();
+    
+    std::vector<VkAttachmentReference>& vkDepthAttachment =
+        subpassAttachmentReferences.emplace_back();
+    if (subpass.depthAttachment) {
+      vkDepthAttachment.push_back(
+          {*subpass.depthAttachment,
+           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+    }
+
     vkSubpass.pDepthStencilAttachment =
-        vkDepthAttachment ? &*vkDepthAttachment : nullptr;
+        vkDepthAttachment.empty() ? nullptr : vkDepthAttachment.data();
 
     VkPipelineStageFlags relevantStageFlags = 0;
     if (!subpass.colorAttachments.empty()) {

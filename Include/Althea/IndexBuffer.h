@@ -25,6 +25,10 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       std::vector<uint32_t>&& indices);
+  IndexBuffer(
+      Application& app,
+      VkCommandBuffer commandBuffer,
+      std::vector<uint32_t>&& indices);
 
   const std::vector<uint32_t>& getIndices() const { return this->_indices; }
 

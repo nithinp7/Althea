@@ -22,6 +22,9 @@ public:
 
   Camera& getCamera() { return this->_camera; }
 
+  void setMinSpeed(float speed);
+  void setMaxSpeed(float speed);
+
 private:
   // Mouse updates, using normalized screen coordinates.
   void _updateMouse(double x, double y, bool cursorHidden);
@@ -38,6 +41,9 @@ private:
   glm::vec3 _targetDirection{};
   float _targetSpeed = 5.0f;
   float _acceleration = 0.0f;
+
+  float _minSpeed = 0.25f;
+  float _maxSpeed = 8.0f;
 
   // We manually track the camera yaw so we can track winding.
   // This lets us unambiguously know the direction we should rotate the

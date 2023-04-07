@@ -19,7 +19,7 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
   std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary);
 
   if (!file.is_open()) {
-    throw std::runtime_error("Failed to open file!");
+    throw std::runtime_error("Failed to open file: " + filename);
     return std::vector<char>();
   }
 

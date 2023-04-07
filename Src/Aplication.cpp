@@ -149,8 +149,7 @@ void Application::drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) !=
-      VK_SUCCESS) {
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
     throw std::runtime_error("Failed to submit draw command buffer!");
   }
 

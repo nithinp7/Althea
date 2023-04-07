@@ -56,6 +56,10 @@ public:
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vkBuffer, &offset);
   }
 
+  size_t getCurrentBufferOffset(uint32_t ringBufferIndex) const {
+    return sizeof(TVertex) * this->_vertexCount * ringBufferIndex;
+  }
+
 private:
   size_t _vertexCount;
   DynamicBuffer _buffer;

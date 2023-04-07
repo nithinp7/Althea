@@ -1,0 +1,49 @@
+
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+// Previous mip of the reflection buffer
+layout(set=0, binding=0) uniform sampler2D reflectionBuffer;
+layout(set=0, binding=1) uniform writeonly image2D filteredMip;
+
+layout(push_constant) uniform PushConstants {
+  uint width;
+  uint height;
+  vec2 direction;
+  float roughness;
+} pushConstants;
+
+vec4 sampleReflection(vec2 uv) {
+  vec4 color = textureLod(reflectionBuffer, uv, 0.0);
+  return color;//vec4(color.rgb * color.a, color.a);
+}
+
+void main() {
+  ivec2 texelPos = 
+      ivec2(gl_GlobalInvocationID.xy);
+  if (uint(texelPos.x) >= pushConstants.width || 
+      uint(texelPos.y) >= pushConstants.height) {
+    return;
+  }
+  
+  vec2 texelUv = 
+      vec2(texelPos) / vec2(pushConstants.width, pushConstants.height);
+
+  // Gaussian blur
+  // Credit: https://github.com/Jam3/glsl-fast-gaussian-blur=
+  vec4 color = vec4(0.0);
+  vec2 direction = pushConstants.direction;// * (1.0 + pushConstants.roughness);
+  float resolution = float(pushConstants.width);
+  vec2 off1 = vec2(1.411764705882353) * direction;
+  vec2 off2 = vec2(3.2941176470588234) * direction;
+  vec2 off3 = vec2(5.176470588235294) * direction;
+  color += sampleReflection(texelUv) * 0.1964825501511404;
+  color += sampleReflection(texelUv + (off1 / resolution)) * 0.2969069646728344;
+  color += sampleReflection(texelUv - (off1 / resolution)) * 0.2969069646728344;
+  color += sampleReflection(texelUv + (off2 / resolution))* 0.09447039785044732;
+  color += sampleReflection(texelUv - (off2 / resolution)) * 0.09447039785044732;
+  color += sampleReflection(texelUv + (off3 / resolution)) * 0.010381362401148057;
+  color += sampleReflection(texelUv - (off3 / resolution)) * 0.010381362401148057;
+
+  imageStore(filteredMip, texelPos, color);
+}

@@ -28,7 +28,7 @@ namespace CesiumGltf {
 struct ImageCesium;
 };
 
-namespace AltheaEngine {
+namespace AltheaEngine {   
 class IGameInstance;
 
 extern std::string GProjectDirectory;

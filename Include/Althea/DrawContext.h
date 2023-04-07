@@ -61,6 +61,7 @@ public:
 
   // TODO: Support multiple vertex buffers being bound together
   // e.g., instance buffer
+  // TODO: Support dynamic vertex buffer (uses offset depnding on frameContext)
   /**
    * @brief Bind this vertex buffer for drawing.
    *
