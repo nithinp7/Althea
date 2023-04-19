@@ -83,7 +83,8 @@ void main() {
         irradianceColor,
         metallicRoughnessOcclusion.x, 
         metallicRoughnessOcclusion.y, 
-        metallicRoughnessOcclusion.z);
+        metallicRoughnessOcclusion.z,
+        0.0);
 
 #ifndef SKIP_TONEMAP
   material = vec3(1.0) - exp(-material * globals.exposure);

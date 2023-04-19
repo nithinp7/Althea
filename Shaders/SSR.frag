@@ -52,7 +52,8 @@ vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
         irradianceColor,
         metallicRoughnessOcclusion.x, 
         metallicRoughnessOcclusion.y, 
-        metallicRoughnessOcclusion.z);
+        metallicRoughnessOcclusion.z,
+        0.0);
   return vec4(material, 1.0);
 }
 
