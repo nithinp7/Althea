@@ -78,7 +78,7 @@ vec3 pbrMaterial(
     float metallic, 
     float roughness,
     float ambientOcclusion,
-    float emission) {
+    vec3 emission) {
   vec3 diffuse = baseColor / PI;
 
   // TODO: What if VdotH is negative??
@@ -123,6 +123,6 @@ vec3 pbrMaterial(
   vec3 ambientSpecular = reflectedColor * (F * envBRDF.x + envBRDF.y);
 
   // vec3 color = (diffuseColor + specularColor * reflectedColor) * NdotL + ambient;
-  vec3 color = (irradianceColor * diffuseColor + ambientSpecular) * ambientOcclusion + baseColor * emission;
+  vec3 color = (irradianceColor * diffuseColor + ambientSpecular) * ambientOcclusion + emission;
   return color;
 }

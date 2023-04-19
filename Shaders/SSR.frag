@@ -53,7 +53,7 @@ vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
         metallicRoughnessOcclusion.x, 
         metallicRoughnessOcclusion.y, 
         metallicRoughnessOcclusion.z,
-        0.0);
+        vec3(0.0));
   return vec4(material, 1.0);
 }
 
