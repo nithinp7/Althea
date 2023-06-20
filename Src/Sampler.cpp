@@ -31,7 +31,7 @@ Sampler::Sampler(const Application& app, const SamplerOptions& options)
   samplerInfo.maxLod = static_cast<float>(options.mipCount - 1);
 
   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+  samplerInfo.unnormalizedCoordinates = !options.normalized;
 
   VkDevice device = app.getDevice();
   VkSampler sampler;

@@ -22,6 +22,7 @@ struct ALTHEA_API SamplerOptions {
   float mipBias = 0.0f;
   uint32_t firstMip = 0;
   uint32_t mipCount = 1;
+  bool normalized = true;
 };
 
 class ALTHEA_API Sampler {
