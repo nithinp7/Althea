@@ -166,12 +166,15 @@ bool ShaderBuilder::reloadIfStale() {
   std::string currentHash =
       sha256(currentGlslCode.data(), currentGlslCode.size());
 
-  if (currentHash != this->_glslFileHash) {
-    this->_glslFileHash = std::move(currentHash);
-    this->_glslCode = std::move(currentGlslCode);
-    return true;
+  // TODO: Implement recursive stale-checking of included shader files
+#ifdef HOTRELOAD_CHECK_STALE
+  if (currentHash == this->_glslFileHash) {
+    return false;
   }
+#endif
 
-  return false;
+  this->_glslFileHash = std::move(currentHash);
+  this->_glslCode = std::move(currentGlslCode);
+  return true;
 }
 } // namespace AltheaEngine
