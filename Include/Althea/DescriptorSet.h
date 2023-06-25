@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Allocator.h"
+#include "Library.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
 #include "UniqueVkHandle.h"
@@ -28,7 +27,17 @@ public:
    *
    * @return This builder.
    */
-  DescriptorSetLayoutBuilder& addStorageImageBinding();
+  DescriptorSetLayoutBuilder& addStorageImageBinding(
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_COMPUTE_BIT);
+
+  /**
+   * @brief Add a storage buffer binding to the descriptor set layout for access
+   * in a compute shader. Only valid for use in a compute pipeline.
+   *
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder& addStorageBufferBinding(
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_COMPUTE_BIT);
 
   /**
    * @brief Add a texture binding to the descriptor set layout.
@@ -127,6 +136,11 @@ public:
 
   DescriptorAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
+
+  DescriptorAssignment& bindStorageBuffer(
+      const BufferAllocation& allocation,
+      size_t bufferOffset,
+      size_t bufferSize);
 
   template <typename TUniforms>
   DescriptorAssignment&

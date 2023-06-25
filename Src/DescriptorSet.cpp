@@ -6,15 +6,28 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
-DescriptorSetLayoutBuilder&
-DescriptorSetLayoutBuilder::addStorageImageBinding() {
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageImageBinding(
+    VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
   VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
   binding.binding = bindingIndex;
   binding.descriptorCount = 1;
   binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   binding.pImmutableSamplers = nullptr;
-  binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageBufferBinding(
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = 1;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
 
   return *this;
 }
@@ -187,6 +200,34 @@ DescriptorAssignment& DescriptorAssignment::bindStorageImage(
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = nullptr;
   descriptorWrite.pImageInfo = &textureImageInfo;
+  descriptorWrite.pTexelBufferView = nullptr;
+
+  ++this->_currentIndex;
+  return *this;
+}
+
+DescriptorAssignment& DescriptorAssignment::bindStorageBuffer(
+    const BufferAllocation& allocation,
+    size_t bufferOffset,
+    size_t bufferSize) {
+
+  this->_descriptorBufferInfos.push_back(
+      std::make_unique<VkDescriptorBufferInfo>());
+  VkDescriptorBufferInfo& bufferInfo = *this->_descriptorBufferInfos.back();
+  bufferInfo.buffer = allocation.getBuffer();
+  bufferInfo.offset = bufferOffset;
+  bufferInfo.range = bufferSize;
+
+  VkWriteDescriptorSet& descriptorWrite =
+      this->_descriptorWrites[this->_currentIndex];
+  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrite.dstSet = this->_descriptorSet;
+  descriptorWrite.dstBinding = this->_currentIndex;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &bufferInfo;
+  descriptorWrite.pImageInfo = nullptr;
   descriptorWrite.pTexelBufferView = nullptr;
 
   ++this->_currentIndex;
