@@ -21,7 +21,7 @@ layout(set=GLOBAL_UNIFORMS_SET, binding=GLOBAL_UNIFORMS_BINDING) uniform Uniform
   mat4 view;
   mat4 inverseView;
 #endif
-  vec3 lightDir;
+  int lightCount;
   float time;
   float exposure;
 } globals;

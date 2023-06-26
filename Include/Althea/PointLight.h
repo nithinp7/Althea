@@ -16,8 +16,8 @@ namespace AltheaEngine {
 class Application;
 
 struct ALTHEA_API PointLight {
-  glm::vec3 position;
-  glm::vec3 emmision;
+  alignas(16) glm::vec3 position;
+  alignas(16) glm::vec3 emmision;
 };
 
 // TODO: Provide alternative dynamic point light collection, that can be updated every frame
@@ -43,6 +43,10 @@ public:
 
   const BufferAllocation& getAllocation() const {
     return this->_buffer.getAllocation();
+  }
+
+  size_t getCount() const {
+    return this->_lights.size();
   }
 
 private:

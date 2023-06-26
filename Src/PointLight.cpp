@@ -5,6 +5,9 @@
 #include <memory>
 
 namespace AltheaEngine {
+
+// TODO: Refactor out into generalized storage buffer class...
+
 PointLightCollection::PointLightCollection(
     const Application& app,
     VkCommandBuffer commandBuffer,
@@ -15,7 +18,9 @@ PointLightCollection::PointLightCollection(
           app,
           commandBuffer,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-          lights.size() * sizeof(PointLight)) {}
+          lights.size() * sizeof(PointLight),
+          app.getPhysicalDeviceProperties()
+              .limits.minStorageBufferOffsetAlignment) {}
 
 PointLightCollection::PointLightCollection(
     const Application& app,
@@ -27,22 +32,22 @@ PointLightCollection::PointLightCollection(
           app,
           commandBuffer,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-          lightCount * sizeof(PointLight)) {
+          lightCount * sizeof(PointLight),
+          app.getPhysicalDeviceProperties()
+              .limits.minStorageBufferOffsetAlignment) {
   this->_lights.resize(lightCount);
 }
 
-void PointLightCollection::setLight(
-    uint32_t lightId,
-    const PointLight& light) {
+void PointLightCollection::setLight(uint32_t lightId, const PointLight& light) {
   this->_lights[lightId] = light;
 
   this->_dirty = true;
 }
 
 void PointLightCollection::updateResource(const FrameContext& frame) {
-  if (!this->_dirty) {
-    return;
-  }
+  // if (!this->_dirty) {
+  //   return;
+  // }
 
   this->_scratchBytes.resize(this->_buffer.getSize());
   std::memcpy(

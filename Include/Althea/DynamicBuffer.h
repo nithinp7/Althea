@@ -32,7 +32,8 @@ public:
       const Application& app,
       VkCommandBuffer commandBuffer,
       VkBufferUsageFlags usage,
-      size_t bufferSize);
+      size_t bufferSize,
+      size_t offsetAlignment = 1);
   ~DynamicBuffer();
 
   void updateData(uint32_t ringBufferIndex, gsl::span<const std::byte> data);

@@ -17,6 +17,10 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 #define GLOBAL_UNIFORMS_BINDING 4
 #include <GlobalUniforms.glsl>
 
+#define POINT_LIGHTS_SET 0
+#define POINT_LIGHTS_BINDING 5
+#include <PointLights.glsl>
+
 // GBuffer textures
 layout(set=1, binding=0) uniform sampler2D gBufferPosition;
 layout(set=1, binding=1) uniform sampler2D gBufferNormal;
@@ -33,7 +37,7 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
-vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
+vec4 environmentLitSample(vec3 currentPos, vec2 currentUV, vec3 rayDir, vec3 normal) {
   vec3 baseColor = texture(gBufferAlbedo, currentUV).rgb;
   vec3 metallicRoughnessOcclusion = 
       texture(gBufferMetallicRoughnessOcclusion, currentUV).rgb;
@@ -44,8 +48,8 @@ vec4 environmentLitSample(vec2 currentUV, vec3 rayDir, vec3 normal) {
 
   vec3 material = 
       pbrMaterial(
+        currentPos,
         normalize(rayDir),
-        globals.lightDir, 
         normal, 
         baseColor.rgb, 
         reflectedColor.rgb, 
@@ -95,7 +99,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     if (currentProjection * prevProjection < 0.0 && worldStep <= 2.0 && i > 0) {
       vec3 currentNormal = normalize(textureLod(gBufferNormal, currentUV, 0.0).xyz);
       if (dot(currentNormal, rayDir) < 0) {
-        return environmentLitSample(currentUV, rayDir, currentNormal);
+        return environmentLitSample(currentPos, currentUV, rayDir, currentNormal);
       }
     }
 
