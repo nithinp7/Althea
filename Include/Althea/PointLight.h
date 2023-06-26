@@ -5,6 +5,7 @@
 #include "BufferUtilities.h"
 #include "DynamicBuffer.h"
 #include "FrameContext.h"
+#include "RenderTarget.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -25,15 +26,11 @@ struct ALTHEA_API PointLight {
 class ALTHEA_API PointLightCollection {
 public:
   PointLightCollection() = default;
-
   PointLightCollection(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      std::vector<PointLight>&& lights);
-  PointLightCollection(
-      const Application& app,
-      VkCommandBuffer commandBuffer,
-      size_t lightCount);
+      size_t lightCount,
+      bool createShadowMap);
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
 
@@ -53,6 +50,8 @@ private:
   bool _dirty;
   std::vector<PointLight> _lights;
   DynamicBuffer _buffer;
+
+  RenderTargetCollection _shadowMaps;
 
   std::vector<std::byte> _scratchBytes;
 };

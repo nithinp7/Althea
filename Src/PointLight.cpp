@@ -11,21 +11,8 @@ namespace AltheaEngine {
 PointLightCollection::PointLightCollection(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    std::vector<PointLight>&& lights)
-    : _dirty(true),
-      _lights(std::move(lights)),
-      _buffer(
-          app,
-          commandBuffer,
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-          lights.size() * sizeof(PointLight),
-          app.getPhysicalDeviceProperties()
-              .limits.minStorageBufferOffsetAlignment) {}
-
-PointLightCollection::PointLightCollection(
-    const Application& app,
-    VkCommandBuffer commandBuffer,
-    size_t lightCount)
+    size_t lightCount,
+    bool createShadowMap)
     : _dirty(true),
       _lights(),
       _buffer(

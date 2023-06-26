@@ -42,9 +42,4 @@ private:
   std::vector<Attachment> _attachmentDescriptions;
   std::vector<VkImageView> _attachmentViews;
 };
-
-namespace DeferredRendering {
-void buildForwardPipeline(GraphicsPipelineBuilder& pipeline);
-void buildLayout(DescriptorSetLayoutBuilder& layoutBuilder);
-} // namespace DeferredRendering
 } // namespace AltheaEngine

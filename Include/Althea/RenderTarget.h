@@ -12,7 +12,12 @@
 namespace AltheaEngine {
 class Application;
 
-enum class ALTHEA_API RenderTargetType { SceneCapture2D, SceneCaptureCube };
+enum ALTHEA_API RenderTargetFlags {
+  SceneCapture2D = 1,
+  SceneCaptureCube = 2,
+  EnableColorTarget = 4,
+  EnableDepthTarget = 16
+};
 
 class ALTHEA_API RenderTargetCollection {
 public:
@@ -21,8 +26,9 @@ public:
       const Application& app,
       VkCommandBuffer commandBuffer,
       const VkExtent2D& extent,
-      RenderTargetType type,
-      uint32_t targetCount);
+      uint32_t targetCount,
+      int renderTargetFlags = RenderTargetFlags::SceneCapture2D |
+                              RenderTargetFlags::EnableColorTarget);
 
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTexture(VkCommandBuffer commandBuffer);
@@ -65,6 +71,7 @@ public:
 
 private:
   uint32_t _targetCount;
+  int _flags;
 
   Image _colorImage{};
   Sampler _colorImageSampler{};
