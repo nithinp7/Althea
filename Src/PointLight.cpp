@@ -23,6 +23,17 @@ PointLightCollection::PointLightCollection(
           app.getPhysicalDeviceProperties()
               .limits.minStorageBufferOffsetAlignment) {
   this->_lights.resize(lightCount);
+
+  if (createShadowMap) {
+    // TODO: Configure shadowmap resolution
+    this->_shadowMap = RenderTargetCollection(
+        app,
+        commandBuffer,
+        VkExtent2D{100, 100},
+        lightCount,
+        RenderTargetFlags::SceneCaptureCube |
+            RenderTargetFlags::EnableDepthTarget);
+  }
 }
 
 void PointLightCollection::setLight(uint32_t lightId, const PointLight& light) {
@@ -44,5 +55,13 @@ void PointLightCollection::updateResource(const FrameContext& frame) {
   this->_buffer.updateData(frame.frameRingBufferIndex, this->_scratchBytes);
 
   this->_dirty = false;
+}
+
+void PointLightCollection::transitionToAttachment(VkCommandBuffer commandBuffer) {
+  this->_shadowMap.transitionToAttachment(commandBuffer);
+}
+
+void PointLightCollection::transitionToTexture(VkCommandBuffer commandBuffer) {
+  this->_shadowMap.transitionToTexture(commandBuffer);
 }
 } // namespace AltheaEngine

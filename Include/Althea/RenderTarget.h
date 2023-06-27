@@ -45,6 +45,10 @@ public:
     return this->_colorTextureArrayView;
   }
 
+  Sampler& getColorSampler() { return this->_colorImageSampler; }
+
+  const Sampler& getColorSampler() const { return this->_colorImageSampler; }
+
   ImageView& getTargetColorView(uint32_t targetIndex) {
     return this->_colorTargetImageViews[targetIndex];
   }
@@ -53,13 +57,19 @@ public:
     return this->_colorTargetImageViews[targetIndex];
   }
 
-  Sampler& getColorSampler() { return this->_colorImageSampler; }
-
-  const Sampler& getColorSampler() const { return this->_colorImageSampler; }
-
   Image& getDepthImage() { return this->_depthImage; }
 
   const Image& getDepthImage() const { return this->_depthImage; }
+
+  ImageView& getDepthTextureArrayView() { return this->_depthTextureArrayView; }
+
+  const ImageView& getDepthTextureArrayView() const {
+    return this->_depthTextureArrayView;
+  }
+
+  Sampler& getDepthSampler() { return this->_depthImageSampler; }
+
+  const Sampler& getDepthSampler() const { return this->_depthImageSampler; }
 
   ImageView& getTargetDepthView(uint32_t targetIndex) {
     return this->_depthTargetImageViews[targetIndex];
@@ -79,6 +89,8 @@ private:
   std::vector<ImageView> _colorTargetImageViews{};
 
   Image _depthImage{};
+  Sampler _depthImageSampler{};
+  ImageView _depthTextureArrayView{};
   std::vector<ImageView> _depthTargetImageViews{};
 };
 }; // namespace AltheaEngine

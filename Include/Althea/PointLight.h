@@ -34,6 +34,9 @@ public:
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
 
+  void transitionToAttachment(VkCommandBuffer commandBuffer);
+  void transitionToTexture(VkCommandBuffer commandBuffer);
+  
   size_t getByteSize() const {
     return this->_buffer.getSize();
   }
@@ -42,8 +45,40 @@ public:
     return this->_buffer.getAllocation();
   }
 
+  const PointLight& getLight(uint32_t lightIndex) const {
+    return this->_lights[lightIndex];
+  }
+
   size_t getCount() const {
     return this->_lights.size();
+  }
+
+  Image& getShadowMapImage() { return this->_shadowMap.getDepthImage(); }
+
+  const Image& getShadowMapImage() const { return this->_shadowMap.getDepthImage(); }
+
+  ImageView& getShadowMapTargetView(uint32_t targetIndex) {
+    return this->_shadowMap.getTargetDepthView(targetIndex);
+  }
+
+  const ImageView& getShadowMapTargetView(uint32_t targetIndex) const {
+    return this->_shadowMap.getTargetDepthView(targetIndex);
+  }
+
+  ImageView& getShadowMapArrayView() {
+    return this->_shadowMap.getDepthTextureArrayView();
+  }
+
+  const ImageView& getShadowMapArrayView() const {
+    return this->_shadowMap.getDepthTextureArrayView();
+  }
+  
+  Sampler& getShadowMapSampler() {
+    return this->_shadowMap.getDepthSampler();
+  }
+
+  const Sampler& getShadowMapSampler() const {
+    return this->_shadowMap.getDepthSampler();
   }
 
 private:
@@ -51,7 +86,7 @@ private:
   std::vector<PointLight> _lights;
   DynamicBuffer _buffer;
 
-  RenderTargetCollection _shadowMaps;
+  RenderTargetCollection _shadowMap;
 
   std::vector<std::byte> _scratchBytes;
 };

@@ -49,11 +49,6 @@ RenderTargetCollection::RenderTargetCollection(
 
     SamplerOptions samplerOptions{};
     samplerOptions.mipCount = imageOptions.mipCount;
-    samplerOptions.magFilter = VK_FILTER_LINEAR;
-    samplerOptions.minFilter = VK_FILTER_LINEAR;
-    samplerOptions.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerOptions.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerOptions.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     this->_colorImageSampler = Sampler(app, samplerOptions);
 
@@ -101,6 +96,10 @@ RenderTargetCollection::RenderTargetCollection(
   depthImageOptions.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
   depthImageOptions.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+  if (renderTargetFlags & RenderTargetFlags::EnableDepthTarget) {
+    depthImageOptions.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  }
+
   if (renderTargetFlags & RenderTargetFlags::SceneCaptureCube) {
     depthImageOptions.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
   }
@@ -125,6 +124,29 @@ RenderTargetCollection::RenderTargetCollection(
         depthViewOptions);
   }
 
+  // If we are using the depth buffer as a texture, then we need a texture array view
+  // and sampler
+  if (renderTargetFlags & RenderTargetFlags::EnableDepthTarget) {
+    
+    SamplerOptions samplerOptions{};
+    samplerOptions.mipCount = depthImageOptions.mipCount;
+
+    this->_depthImageSampler = Sampler(app, samplerOptions);
+
+    // We also create one texture array image view for shader sampling.
+    ImageViewOptions depthTextureArrayViewOptions{};
+    depthTextureArrayViewOptions.format = depthImageOptions.format;
+    depthTextureArrayViewOptions.mipCount = depthImageOptions.mipCount;
+    depthTextureArrayViewOptions.layerCount = targetCount * viewLayersPerTarget;
+    depthTextureArrayViewOptions.type =
+        (renderTargetFlags & RenderTargetFlags::SceneCaptureCube)
+            ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+            : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+    depthTextureArrayViewOptions.aspectFlags = depthImageOptions.aspectMask;
+    this->_depthTextureArrayView =
+        ImageView(app, this->_depthImage, depthTextureArrayViewOptions);
+  }
+
   this->_depthImage.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -147,7 +169,7 @@ void RenderTargetCollection::transitionToAttachment(
     // If we are using depth as a render target, we may have transitioned
     // the resource for reading, so transition it back for use during drawing
     // here.
-    this->_colorImage.transitionLayout(
+    this->_depthImage.transitionLayout(
         commandBuffer,
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
@@ -167,7 +189,7 @@ void RenderTargetCollection::transitionToTexture(
   }
   
   if (this->_flags & RenderTargetFlags::EnableDepthTarget) {
-    this->_colorImage.transitionLayout(
+    this->_depthImage.transitionLayout(
         commandBuffer,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_ACCESS_SHADER_READ_BIT,
