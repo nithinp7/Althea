@@ -127,12 +127,14 @@ vec3 pbrMaterial(
     float zFar = 1000.0;
 
     float closestDepth = texture(shadowMapArray, vec4(L.x, -L.y, -L.z, i)).r;
-    closestDepth = zNear * zFar / (zFar + closestDepth * (zNear - zFar));
+    // closestDepth = zNear * zFar / (zFar + closestDepth * (zNear - zFar));
+    closestDepth *= zFar;
     // TODO: Is the depth correct??
 
     // return vec3(closestDepth);
-    return mod(globals.time, 2.0) <= 1.0 ? vec3(Ldist) : vec3(closestDepth);
-    if (closestDepth < (Ldist - 0.05)) {
+    // return vec3(abs(Ldist - closestDepth));
+    // return mod(globals.time, 2.0) <= 1.0 ? vec3(Ldist) : vec3(closestDepth);
+    if (closestDepth < (Ldist - 0.5)) {
       continue;
     }
     

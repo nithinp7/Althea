@@ -10,6 +10,9 @@ layout(location=1) in mat3 tbn;
 // layout(location = 3) in vec3 normal;
 layout(location=4) in vec2 uvs[4];
 
+layout(location=0) out vec3 worldPosCS;
+layout(location=1) out vec2 baseColorUV;
+
 layout(push_constant) uniform PushConstants {
   mat4 model;
 } pushConstants;
@@ -21,8 +24,28 @@ layout(set=0, binding=0) uniform UniformBufferObject {
   mat4 inverseViews[6];
 } globals;
 
-void main() {
-  vec4 worldPos4 = pushConstants.model * vec4(position, 1.0);
+layout(set=1, binding=0) uniform ConstantBufferObject {
+  vec4 baseColorFactor;
+  vec3 emissiveFactor;
 
-  gl_Position = globals.projection * globals.views[gl_ViewIndex] * worldPos4;
+  int baseTextureCoordinateIndex;
+  int normalMapTextureCoordinateIndex;
+  int metallicRoughnessTextureCoordinateIndex;
+  int occlusionTextureCoordinateIndex;
+  int emissiveTextureCoordinateIndex;
+
+  float normalScale;
+  float metallicFactor;
+  float roughnessFactor;
+  float occlusionStrength;
+
+  float alphaCutoff;
+} constants;
+
+void main() {
+  vec4 csPos = globals.views[gl_ViewIndex] * pushConstants.model * vec4(position, 1.0);
+  gl_Position = globals.projection * csPos;
+  
+  worldPosCS = csPos.xyz / csPos.w;
+  baseColorUV = uvs[constants.baseTextureCoordinateIndex];
 }
