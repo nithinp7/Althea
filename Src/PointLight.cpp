@@ -29,7 +29,7 @@ PointLightCollection::PointLightCollection(
     this->_shadowMap = RenderTargetCollection(
         app,
         commandBuffer,
-        VkExtent2D{100, 100},
+        VkExtent2D{256, 256},
         lightCount,
         RenderTargetFlags::SceneCaptureCube |
             RenderTargetFlags::EnableDepthTarget);

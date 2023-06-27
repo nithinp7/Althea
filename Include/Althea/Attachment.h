@@ -35,8 +35,6 @@ struct ALTHEA_API Attachment {
    */
   bool forPresent = true;
 
-  // TODO: allow configuring loadOp
-
   // TODO: clarify that the below affects storeOp
   /**
    * @brief This attachment is only used inside this render pass and the results

@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Library.h"
-
 #include "BufferUtilities.h"
 #include "DynamicBuffer.h"
 #include "FrameContext.h"
+#include "Library.h"
 #include "RenderTarget.h"
 
 #include <glm/glm.hpp>
@@ -18,10 +17,11 @@ class Application;
 
 struct ALTHEA_API PointLight {
   alignas(16) glm::vec3 position;
-  alignas(16) glm::vec3 emmision;
+  alignas(16) glm::vec3 emission;
 };
 
-// TODO: Provide alternative dynamic point light collection, that can be updated every frame
+// TODO: Provide alternative dynamic point light collection, that can be updated
+// every frame
 
 class ALTHEA_API PointLightCollection {
 public:
@@ -36,10 +36,8 @@ public:
 
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTexture(VkCommandBuffer commandBuffer);
-  
-  size_t getByteSize() const {
-    return this->_buffer.getSize();
-  }
+
+  size_t getByteSize() const { return this->_buffer.getSize(); }
 
   const BufferAllocation& getAllocation() const {
     return this->_buffer.getAllocation();
@@ -49,13 +47,17 @@ public:
     return this->_lights[lightIndex];
   }
 
-  size_t getCount() const {
-    return this->_lights.size();
-  }
+  size_t getCount() const { return this->_lights.size(); }
 
+  const VkExtent2D& getShadowMapExtent() const {
+    return this->_shadowMap.getExtent();
+  }
+  
   Image& getShadowMapImage() { return this->_shadowMap.getDepthImage(); }
 
-  const Image& getShadowMapImage() const { return this->_shadowMap.getDepthImage(); }
+  const Image& getShadowMapImage() const {
+    return this->_shadowMap.getDepthImage();
+  }
 
   ImageView& getShadowMapTargetView(uint32_t targetIndex) {
     return this->_shadowMap.getTargetDepthView(targetIndex);
@@ -72,10 +74,8 @@ public:
   const ImageView& getShadowMapArrayView() const {
     return this->_shadowMap.getDepthTextureArrayView();
   }
-  
-  Sampler& getShadowMapSampler() {
-    return this->_shadowMap.getDepthSampler();
-  }
+
+  Sampler& getShadowMapSampler() { return this->_shadowMap.getDepthSampler(); }
 
   const Sampler& getShadowMapSampler() const {
     return this->_shadowMap.getDepthSampler();

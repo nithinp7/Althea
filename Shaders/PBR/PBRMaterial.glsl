@@ -122,8 +122,22 @@ vec3 pbrMaterial(
 
     // TODO: Div by zero guard
     L /= Ldist;
+
+    float zNear = 0.01;
+    float zFar = 1000.0;
+
+    float closestDepth = texture(shadowMapArray, vec4(L.x, -L.y, -L.z, i)).r;
+    closestDepth = zNear * zFar / (zFar + closestDepth * (zNear - zFar));
+    // TODO: Is the depth correct??
+
+    // return vec3(closestDepth);
+    return mod(globals.time, 2.0) <= 1.0 ? vec3(Ldist) : vec3(closestDepth);
+    if (closestDepth < (Ldist - 0.05)) {
+      continue;
+    }
     
     vec3 radiance = light.emission / LdistSq;
+    // vec3 radiance = i == 0 ? 10.0 * light.emission / LdistSq : vec3(0.0);
 
     vec3 H = normalize(V + L);
     float VdotH = dot(V, H);
@@ -140,5 +154,6 @@ vec3 pbrMaterial(
 
     color += (diffuseColor + specularColor) * radiance * NdotL;
   }
+
   return color;
 }

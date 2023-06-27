@@ -11,7 +11,7 @@ RenderTargetCollection::RenderTargetCollection(
     const VkExtent2D& extent,
     uint32_t targetCount,
     int renderTargetFlags)
-    : _targetCount(targetCount), _flags(renderTargetFlags) {
+    : _extent(extent), _targetCount(targetCount), _flags(renderTargetFlags) {
   ImageOptions imageOptions{};
   imageOptions.width = extent.width;
   imageOptions.height = extent.height;
@@ -118,16 +118,17 @@ RenderTargetCollection::RenderTargetCollection(
           : VK_IMAGE_VIEW_TYPE_2D;
   this->_depthTargetImageViews.reserve(targetCount);
   for (uint32_t i = 0; i < targetCount; ++i) {
+    depthViewOptions.baseLayer = i * viewLayersPerTarget;
     this->_depthTargetImageViews.emplace_back(
         app,
         this->_depthImage,
         depthViewOptions);
   }
 
-  // If we are using the depth buffer as a texture, then we need a texture array view
-  // and sampler
+  // If we are using the depth buffer as a texture, then we need a texture array
+  // view and sampler
   if (renderTargetFlags & RenderTargetFlags::EnableDepthTarget) {
-    
+
     SamplerOptions samplerOptions{};
     samplerOptions.mipCount = depthImageOptions.mipCount;
 
@@ -187,7 +188,7 @@ void RenderTargetCollection::transitionToTexture(
         VK_ACCESS_SHADER_READ_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
   }
-  
+
   if (this->_flags & RenderTargetFlags::EnableDepthTarget) {
     this->_depthImage.transitionLayout(
         commandBuffer,

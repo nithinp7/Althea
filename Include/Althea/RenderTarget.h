@@ -33,6 +33,8 @@ public:
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTexture(VkCommandBuffer commandBuffer);
 
+  const VkExtent2D& getExtent() const { return this->_extent; }
+
   uint32_t getTargetCount() const { return this->_targetCount; }
 
   Image& getColorImage() { return this->_colorImage; }
@@ -80,6 +82,7 @@ public:
   }
 
 private:
+  VkExtent2D _extent;
   uint32_t _targetCount;
   int _flags;
 

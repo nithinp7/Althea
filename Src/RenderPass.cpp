@@ -48,8 +48,6 @@ RenderPass::RenderPass(
     vkAttachment.format = attachment.format;
     vkAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    // TODO: Configure if we actually want to clear it before loading. More
-    // context in the next TODO comment below.
     vkAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
     vkAttachment.storeOp = attachment.internalUsageOnly
@@ -115,7 +113,7 @@ RenderPass::RenderPass(
     vkSubpass.colorAttachmentCount =
         static_cast<uint32_t>(vkColorAttachments.size());
     vkSubpass.pColorAttachments = vkColorAttachments.data();
-    
+
     std::vector<VkAttachmentReference>& vkDepthAttachment =
         subpassAttachmentReferences.emplace_back();
     if (subpass.depthAttachment) {

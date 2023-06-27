@@ -21,6 +21,8 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 #define POINT_LIGHTS_BINDING 5
 #include <PointLights.glsl>
 
+layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
+
 // GBuffer textures
 layout(set=1, binding=0) uniform sampler2D gBufferPosition;
 layout(set=1, binding=1) uniform sampler2D gBufferNormal;
