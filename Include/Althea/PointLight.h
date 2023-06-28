@@ -1,10 +1,15 @@
 #pragma once
 
 #include "BufferUtilities.h"
+#include "DrawContext.h"
 #include "DynamicBuffer.h"
 #include "FrameContext.h"
+#include "IndexBuffer.h"
 #include "Library.h"
+#include "RenderPass.h"
 #include "RenderTarget.h"
+#include "SingleTimeCommandBuffer.h"
+#include "VertexBuffer.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -28,7 +33,7 @@ public:
   PointLightCollection() = default;
   PointLightCollection(
       const Application& app,
-      VkCommandBuffer commandBuffer,
+      SingleTimeCommandBuffer& commandBuffer,
       size_t lightCount,
       bool createShadowMap);
   void setLight(uint32_t lightId, const PointLight& light);
@@ -36,6 +41,13 @@ public:
 
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTexture(VkCommandBuffer commandBuffer);
+
+  void setupPointLightMeshSubpass(
+      SubpassBuilder& subpassBuilder,
+      uint32_t colorAttachment,
+      uint32_t depthAttachment,
+      VkDescriptorSetLayout globalDescriptorSetLayout) const;
+  void draw(const DrawContext& context) const;
 
   size_t getByteSize() const { return this->_buffer.getSize(); }
 
@@ -52,7 +64,7 @@ public:
   const VkExtent2D& getShadowMapExtent() const {
     return this->_shadowMap.getExtent();
   }
-  
+
   Image& getShadowMapImage() { return this->_shadowMap.getDepthImage(); }
 
   const Image& getShadowMapImage() const {
@@ -87,6 +99,15 @@ private:
   DynamicBuffer _buffer;
 
   RenderTargetCollection _shadowMap;
+
+  struct Sphere {
+    VertexBuffer<glm::vec3> vertexBuffer;
+    IndexBuffer indexBuffer;
+
+    Sphere() = default;
+    Sphere(const Application& app, SingleTimeCommandBuffer& commandBuffer);
+  };
+  Sphere _sphere{};
 
   std::vector<std::byte> _scratchBytes;
 };
