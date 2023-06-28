@@ -2,11 +2,10 @@
 
 ### Nithin Pranesh
 
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
-<p float="left">
-  
 Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and the tentative roadmap are discussed below.
 
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
+  
 ## Get Started
 
 Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDemo) to get started!
