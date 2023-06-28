@@ -529,8 +529,6 @@ Primitive::Primitive(
     GeometryUtilities::computeTangentSpace(vertices, normalMapUvIndex);
   }
 
-  const VkExtent2D& extent = app.getSwapChainExtent();
-
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
