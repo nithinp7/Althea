@@ -21,6 +21,12 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=400/>
 </p>
 
+##### Point lights and omni-directional shadow mapping
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" width=500/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" width=500/>
+</p>
+
 ##### Precomputed diffuse and glossy irradiance maps
 <p float="left">
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Chapel.png" width=400/>
