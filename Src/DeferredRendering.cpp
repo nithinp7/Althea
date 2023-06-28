@@ -70,7 +70,8 @@ GBufferResources::GBufferResources(const Application& app) {
                                        VK_FORMAT_R16G16B16A16_SFLOAT,
                                        posClear,
                                        false,
-                                       false},
+                                       false,
+                                       true},
 
                                    // GBuffer Normal
                                    Attachment{
@@ -78,7 +79,8 @@ GBufferResources::GBufferResources(const Application& app) {
                                        VK_FORMAT_R16G16B16A16_SFLOAT,
                                        colorClear,
                                        false,
-                                       false},
+                                       false,
+                                       true},
 
                                    // GBuffer Albedo
                                    Attachment{
@@ -86,7 +88,8 @@ GBufferResources::GBufferResources(const Application& app) {
                                        VK_FORMAT_R8G8B8A8_UNORM,
                                        colorClear,
                                        false,
-                                       false},
+                                       false,
+                                       true},
 
                                    // GBuffer Metallic-Roughness-Occlusion
                                    Attachment{
@@ -94,13 +97,15 @@ GBufferResources::GBufferResources(const Application& app) {
                                        VK_FORMAT_R8G8B8A8_UNORM,
                                        colorClear,
                                        false,
-                                       false},
+                                       false,
+                                       true},
 
                                    // Depth buffer
                                    Attachment{
                                        ATTACHMENT_FLAG_DEPTH,
                                        app.getDepthImageFormat(),
                                        depthClear,
+                                       false,
                                        false,
                                        true}};
 

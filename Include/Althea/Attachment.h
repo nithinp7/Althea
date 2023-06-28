@@ -35,11 +35,17 @@ struct ALTHEA_API Attachment {
    */
   bool forPresent = true;
 
-  // TODO: clarify that the below affects storeOp
   /**
-   * @brief This attachment is only used inside this render pass and the results
-   * will not be used by subsequent uses of the image (e.g., depth attachment).
+   * @brief Whether this attachment should be loaded or cleared at the beginning of the
+   * render pass.
    */
-  bool internalUsageOnly = false;
+  bool load = false;
+
+  /**
+   * @brief Whether this attachment should be stored at the end of the render pass. Otherwise,
+   * this attachment is assumed to only be used inside this render pass and the results
+   * will not be used by subsequent uses of the image (e.g., depth buffer).
+   */
+  bool store = true;
 };
 } // namespace AltheaEngine
