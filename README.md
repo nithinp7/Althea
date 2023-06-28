@@ -2,6 +2,9 @@
 
 ### Nithin Pranesh
 
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
+<p float="left">
+  
 Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and the tentative roadmap are discussed below.
 
 ## Get Started
@@ -10,22 +13,17 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 
 ## Features
 
+### Point lights and omni-directional shadow mapping.
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" height=500/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=500/>
+</p>
+
 ### Physically based rendering of glTF models with HDR image-based lighting.
 
 ##### Results
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
-<p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet2.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=400/>
-</p>
-
-##### Point lights and omni-directional shadow mapping
-<p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" width=500/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" width=500/>
-</p>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=800/>
 
 ##### Precomputed diffuse and glossy irradiance maps
 <p float="left">
