@@ -48,13 +48,11 @@ RenderPass::RenderPass(
     vkAttachment.format = attachment.format;
     vkAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    // TODO: Configure if we actually want to clear it before loading. More
-    // context in the next TODO comment below.
-    vkAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkAttachment.loadOp = attachment.load ? VK_ATTACHMENT_LOAD_OP_LOAD
+                                          : VK_ATTACHMENT_LOAD_OP_CLEAR;
 
-    vkAttachment.storeOp = attachment.internalUsageOnly
-                               ? VK_ATTACHMENT_STORE_OP_DONT_CARE
-                               : VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachment.storeOp = attachment.store ? VK_ATTACHMENT_STORE_OP_STORE
+                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     vkAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -62,7 +60,16 @@ RenderPass::RenderPass(
     // TODO: need a way to configure context for what the attachment
     // was doing before. E.g., we may be doing anti-aliasing with
     // previous frame buffers.
-    vkAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // TODO: Currently this assumes that an attachment requiring a load implies
+    // that it was previously also written to as an attachment. It could have
+    // been written to in other ways, e.g., compute shader. 
+    
+    vkAttachment.initialLayout = 
+        attachment.load ? 
+        (attachment.flags & ATTACHMENT_FLAG_DEPTH)
+            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        : VK_IMAGE_LAYOUT_UNDEFINED;
 
     // If this attachment will be presented, the final layout should reflect
     // that. Otherwise, the attachment may be used in subsequent render passes
@@ -115,7 +122,7 @@ RenderPass::RenderPass(
     vkSubpass.colorAttachmentCount =
         static_cast<uint32_t>(vkColorAttachments.size());
     vkSubpass.pColorAttachments = vkColorAttachments.data();
-    
+
     std::vector<VkAttachmentReference>& vkDepthAttachment =
         subpassAttachmentReferences.emplace_back();
     if (subpass.depthAttachment) {

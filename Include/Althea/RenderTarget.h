@@ -12,7 +12,12 @@
 namespace AltheaEngine {
 class Application;
 
-enum class ALTHEA_API RenderTargetType { SceneCapture2D, SceneCaptureCube };
+enum ALTHEA_API RenderTargetFlags {
+  SceneCapture2D = 1,
+  SceneCaptureCube = 2,
+  EnableColorTarget = 4,
+  EnableDepthTarget = 16
+};
 
 class ALTHEA_API RenderTargetCollection {
 public:
@@ -21,11 +26,14 @@ public:
       const Application& app,
       VkCommandBuffer commandBuffer,
       const VkExtent2D& extent,
-      RenderTargetType type,
-      uint32_t targetCount);
+      uint32_t targetCount,
+      int renderTargetFlags = RenderTargetFlags::SceneCapture2D |
+                              RenderTargetFlags::EnableColorTarget);
 
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToTexture(VkCommandBuffer commandBuffer);
+
+  const VkExtent2D& getExtent() const { return this->_extent; }
 
   uint32_t getTargetCount() const { return this->_targetCount; }
 
@@ -39,6 +47,10 @@ public:
     return this->_colorTextureArrayView;
   }
 
+  Sampler& getColorSampler() { return this->_colorImageSampler; }
+
+  const Sampler& getColorSampler() const { return this->_colorImageSampler; }
+
   ImageView& getTargetColorView(uint32_t targetIndex) {
     return this->_colorTargetImageViews[targetIndex];
   }
@@ -47,13 +59,19 @@ public:
     return this->_colorTargetImageViews[targetIndex];
   }
 
-  Sampler& getColorSampler() { return this->_colorImageSampler; }
-
-  const Sampler& getColorSampler() const { return this->_colorImageSampler; }
-
   Image& getDepthImage() { return this->_depthImage; }
 
   const Image& getDepthImage() const { return this->_depthImage; }
+
+  ImageView& getDepthTextureArrayView() { return this->_depthTextureArrayView; }
+
+  const ImageView& getDepthTextureArrayView() const {
+    return this->_depthTextureArrayView;
+  }
+
+  Sampler& getDepthSampler() { return this->_depthImageSampler; }
+
+  const Sampler& getDepthSampler() const { return this->_depthImageSampler; }
 
   ImageView& getTargetDepthView(uint32_t targetIndex) {
     return this->_depthTargetImageViews[targetIndex];
@@ -64,7 +82,9 @@ public:
   }
 
 private:
+  VkExtent2D _extent;
   uint32_t _targetCount;
+  int _flags;
 
   Image _colorImage{};
   Sampler _colorImageSampler{};
@@ -72,6 +92,8 @@ private:
   std::vector<ImageView> _colorTargetImageViews{};
 
   Image _depthImage{};
+  Sampler _depthImageSampler{};
+  ImageView _depthTextureArrayView{};
   std::vector<ImageView> _depthTargetImageViews{};
 };
 }; // namespace AltheaEngine

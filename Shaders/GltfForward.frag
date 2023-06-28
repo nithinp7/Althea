@@ -42,15 +42,15 @@ layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
 void main() {
-  GBuffer_Position = vec4(worldPos, 1.0);
+  GBuffer_Albedo = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
+
+  GBuffer_Position = vec4(worldPos, GBuffer_Albedo.a);
 
   vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 
       (2.0 * normalMapSample - 1.0) *
       vec3(constants.normalScale, constants.normalScale, 1.0);
-  GBuffer_Normal = vec4(normalize(fragTBN * tangentSpaceNormal), 1.0);
-
-  GBuffer_Albedo = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
+  GBuffer_Normal = vec4(normalize(fragTBN * tangentSpaceNormal), GBuffer_Albedo.a);
 
   vec2 metallicRoughness = 
       texture(metallicRoughnessTexture, metallicRoughnessUV).bg *
@@ -58,5 +58,9 @@ void main() {
   float ambientOcclusion = 
       texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;
 
-  GBuffer_MetallicRoughnessOcclusion = vec4(metallicRoughness, ambientOcclusion, 1.0);
+  GBuffer_MetallicRoughnessOcclusion = vec4(metallicRoughness, ambientOcclusion, GBuffer_Albedo.a);
+  
+  if (GBuffer_Albedo.a < constants.alphaCutoff) {
+    discard;
+  }
 }

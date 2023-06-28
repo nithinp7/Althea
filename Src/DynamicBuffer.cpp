@@ -29,8 +29,12 @@ DynamicBuffer::DynamicBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
     VkBufferUsageFlags usage,
-    size_t bufferSize)
-    : _bufferSize(bufferSize) {
+    size_t bufferSize,
+    size_t offsetAlignment)
+    : _bufferSize(
+          bufferSize +
+          // Add padding to enforce alignment
+          (offsetAlignment - bufferSize % offsetAlignment) % offsetAlignment) {
   // Create double buffered persistently mapped region
   VmaAllocationCreateInfo deviceAllocInfo{};
   deviceAllocInfo.flags =
@@ -40,7 +44,7 @@ DynamicBuffer::DynamicBuffer(
   this->_allocation = BufferUtilities::createBuffer(
       app,
       commandBuffer,
-      bufferSize * app.getMaxFramesInFlight(),
+      this->_bufferSize * app.getMaxFramesInFlight(),
       usage,
       deviceAllocInfo);
 
@@ -57,16 +61,13 @@ DynamicBuffer::~DynamicBuffer() {
 void DynamicBuffer::updateData(
     uint32_t ringBufferIndex,
     gsl::span<const std::byte> data) {
-  if (data.size() != this->_bufferSize) {
+  if (data.size() > this->_bufferSize) {
     throw std::runtime_error("Attempting to update DynamicBuffer with "
                              "incorrect buffer size.");
   }
 
   size_t bufferOffset = ringBufferIndex * this->_bufferSize;
-  std::memcpy(
-      this->_pMappedMemory + bufferOffset,
-      data.data(),
-      this->_bufferSize);
+  std::memcpy(this->_pMappedMemory + bufferOffset, data.data(), data.size());
 }
 
 } // namespace AltheaEngine

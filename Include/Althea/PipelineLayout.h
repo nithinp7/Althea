@@ -29,7 +29,8 @@ public:
 
     uint32_t offset = 0;
     if (!this->_pushConstantRanges.empty()) {
-      offset = this->_pushConstantRanges.back().offset;
+      const VkPushConstantRange& prevRange = this->_pushConstantRanges.back();
+      offset = prevRange.offset + prevRange.size;
     }
 
     VkPushConstantRange& range = this->_pushConstantRanges.emplace_back();

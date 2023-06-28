@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Library.h"
-
 #include "DescriptorSet.h"
+#include "ImageResource.h"
+#include "Library.h"
 #include "Texture.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
-#include "ImageResource.h"
 
 #include <vulkan/vulkan.h>
 
@@ -19,13 +18,18 @@ public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 
   ResourcesAssignment& bindTexture(const Texture& texture);
-  
+
   ResourcesAssignment& bindTexture(const ImageResource& texture);
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
 
   ResourcesAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
+
+  ResourcesAssignment& bindStorageBuffer(
+      const BufferAllocation& allocation,
+      size_t bufferSize,
+      bool doubleBuffered);
 
   template <typename TUniforms>
   ResourcesAssignment&
