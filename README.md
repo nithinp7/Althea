@@ -82,6 +82,7 @@ More pictures to come soon!
 #### Engine Features
 - [x] PBR glTF materials (with image-based reflections).
 - [x] Image-based lighting.
+- [x] Point lights and omni-directional shadow mapping
 - [ ] Physically-based atmosphere and sun 
 - [ ] Volumetric clouds
 - [ ] Global illumination
