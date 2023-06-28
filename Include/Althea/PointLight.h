@@ -3,18 +3,22 @@
 #include "BufferUtilities.h"
 #include "DrawContext.h"
 #include "DynamicBuffer.h"
+#include "FrameBuffer.h"
 #include "FrameContext.h"
 #include "IndexBuffer.h"
 #include "Library.h"
+#include "PerFrameResources.h"
 #include "RenderPass.h"
 #include "RenderTarget.h"
 #include "SingleTimeCommandBuffer.h"
 #include "VertexBuffer.h"
+#include "Model.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace AltheaEngine {
@@ -35,18 +39,21 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       size_t lightCount,
-      bool createShadowMap);
+      bool createShadowMap,
+      VkDescriptorSetLayout gltfMaterialLayout);
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
-
-  void transitionToAttachment(VkCommandBuffer commandBuffer);
-  void transitionToTexture(VkCommandBuffer commandBuffer);
 
   void setupPointLightMeshSubpass(
       SubpassBuilder& subpassBuilder,
       uint32_t colorAttachment,
       uint32_t depthAttachment,
       VkDescriptorSetLayout globalDescriptorSetLayout) const;
+  void drawShadowMaps(
+      Application& app,
+      VkCommandBuffer commandBuffer,
+      const FrameContext& frame,
+      const std::vector<Model>& models);
   void draw(const DrawContext& context) const;
 
   size_t getByteSize() const { return this->_buffer.getSize(); }
@@ -93,13 +100,17 @@ public:
     return this->_shadowMap.getDepthSampler();
   }
 
+  RenderPass& getShadowMapPass() {
+    return *this->_pShadowPass;
+  }
+
 private:
   bool _dirty;
+  bool _useShadowMaps;
   std::vector<PointLight> _lights;
   DynamicBuffer _buffer;
 
-  RenderTargetCollection _shadowMap;
-
+  // Sphere VB for visualizing the point lights
   struct Sphere {
     VertexBuffer<glm::vec3> vertexBuffer;
     IndexBuffer indexBuffer;
@@ -108,6 +119,19 @@ private:
     Sphere(const Application& app, SingleTimeCommandBuffer& commandBuffer);
   };
   Sphere _sphere{};
+
+  // Resources needed for shadow mapping, if it is enabled
+  RenderTargetCollection _shadowMap;
+  struct ShadowMapUniforms {
+    glm::mat4 projection;
+    glm::mat4 inverseProjection;
+    glm::mat4 views[6];
+    glm::mat4 inverseViews[6];
+  };
+  std::vector<PerFrameResources> _shadowResources;
+  std::vector<TransientUniforms<ShadowMapUniforms>> _shadowUniforms;
+  std::unique_ptr<RenderPass> _pShadowPass;
+  std::vector<FrameBuffer> _shadowFrameBuffers;
 
   std::vector<std::byte> _scratchBytes;
 };
