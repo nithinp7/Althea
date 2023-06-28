@@ -10,6 +10,23 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 
 Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDemo) to get started!
 
+## Projects built with Althea
+
+In addition to [Althea Demo](https://github.com/nithinp7/AltheaDemo), which showcases engine features, below are a few external projects built using Althea.
+
+### Stable Fluids
+
+[Stable Fluids](https://github.com/nithinp7/StableFluids) is a 2D incompressible fluid simulation based on "Stable Fluids" by Jos Stam.
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Fluid.gif" w=900px>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MandelbrotFluid.gif" w=500px>
+
+### Pies for Althea
+
+[Pies for Althea](https://github.com/nithinp7/PiesForAlthea) is an Althea integration of [Pies](https://github.com/nithinp7/Pies). Pies is a constraint- and particle-based, soft-body physics engine based on the paper "Projective Dynamics: Fusing Constraint Projections for Fast Simulation", Bouaziz et. al 2014.
+
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" w=500px>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD2.gif" w=500px>
+
 ## Features
 
 ### Point lights and omni-directional shadow mapping.
@@ -52,8 +69,6 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 
 ### Shader Hot-Reloading
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
-
-More pictures to come soon!
 
 #### Core Renderer
 - [x] Vulkan backend to initialize device, manage the swapchain, synchronize a double-buffered render-loop, etc.
