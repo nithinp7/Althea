@@ -10,9 +10,18 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 
 Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDemo) to get started!
 
-## Projects built with Althea
+## Projects Showcase
 
-In addition to [Althea Demo](https://github.com/nithinp7/AltheaDemo), which showcases engine features, below are a few external projects built using Althea.
+These are a few projects built using Althea.
+
+### Althea Demo
+
+[Althea Demo](https://github.com/nithinp7/AltheaDemo) showcases and demonstrates engine features. It is useful as a template project to create new Althea projects.
+
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.png" height=450/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=450/>
+</p>
 
 ### Stable Fluids
 
@@ -24,8 +33,10 @@ In addition to [Althea Demo](https://github.com/nithinp7/AltheaDemo), which show
 
 [Pies for Althea](https://github.com/nithinp7/PiesForAlthea) is an Althea integration of [Pies](https://github.com/nithinp7/Pies). Pies is a constraint- and particle-based, soft-body physics engine based on the paper "Projective Dynamics: Fusing Constraint Projections for Fast Simulation", Bouaziz et. al 2014.
 
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" w=500px>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD2.gif" w=500px>
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" height=250/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD2.gif" height=250px/>
+</p>
 
 ## Features
 
