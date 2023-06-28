@@ -15,8 +15,8 @@ Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDe
 
 ### Point lights and omni-directional shadow mapping.
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" height=500/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=500/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" height=450/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=450/>
 </p>
 
 ### Physically based rendering of glTF models with HDR image-based lighting.
