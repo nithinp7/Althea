@@ -34,8 +34,8 @@ These are a few projects built using Althea.
 [Pies for Althea](https://github.com/nithinp7/PiesForAlthea) is an Althea integration of [Pies](https://github.com/nithinp7/Pies). Pies is a constraint- and particle-based, soft-body physics engine based on the paper "Projective Dynamics: Fusing Constraint Projections for Fast Simulation", Bouaziz et. al 2014.
 
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" height=250/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD2.gif" height=250px/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" height=200/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD2.gif" height=200/>
 </p>
 
 ## Features
