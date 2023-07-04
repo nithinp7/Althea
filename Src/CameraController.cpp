@@ -138,6 +138,10 @@ void CameraController::setMaxSpeed(float speed) {
   this->_maxSpeed = speed;
 }
 
+void CameraController::setTargetSpeed(float speed) {
+  this->_targetSpeed = speed;
+}
+
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {
   this->_targetDirection[axis] = static_cast<float>(dir);
 }

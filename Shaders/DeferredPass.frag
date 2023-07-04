@@ -33,6 +33,7 @@ layout(set=1, binding=4) uniform sampler2D reflectionBuffer;
 
 #include <PBR/PBRMaterial.glsl>
 #include <SSAO.glsl>
+#include <SunSky.glsl>
 
 vec4 sampleReflection(float roughness) {
   return textureLod(reflectionBuffer, uv, 4.0 * roughness).rgba;
@@ -52,7 +53,8 @@ void main() {
   vec4 position = texture(gBufferPosition, uv).rgba;
   if (position.a == 0.0) {
     // Nothing in the GBuffer, draw the environment map
-    vec3 envMapSample = sampleEnvMap(direction);
+    // vec3 envMapSample = sampleEnvMap(direction);
+    vec3 envMapSample = sampleSky(globals.inverseView[3].xyz, normalize(direction));
 #ifndef SKIP_TONEMAP
     envMapSample = vec3(1.0) - exp(-envMapSample * globals.exposure);
 #endif

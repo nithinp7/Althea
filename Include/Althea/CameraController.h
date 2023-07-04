@@ -24,6 +24,7 @@ public:
 
   void setMinSpeed(float speed);
   void setMaxSpeed(float speed);
+  void setTargetSpeed(float speed);
 
 private:
   // Mouse updates, using normalized screen coordinates.
