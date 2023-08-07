@@ -33,20 +33,24 @@ bool intersectSphere(
 }
 
 // TODO: Units are currently 1=10km, change to 1=1m. 
+//#define GROUND_ALT 6360000.0
+//#define ATMOSPHERE_ALT 6460000.0
+//#define ATMOSPHERE_AVG_DENSITY_HEIGHT 8000.0
 #define GROUND_ALT 636000.0
 #define ATMOSPHERE_ALT 646000.0
-#define ATMOSPHERE_AVG_DENSITY_HEIGHT 2500.0
+#define ATMOSPHERE_AVG_DENSITY_HEIGHT 800.0
 #define PLANET_CENTER vec3(0.0,-GROUND_ALT,0.0)
 
-#define ATMOSPHERE_RAYMARCH_STEPS 24
-#define ATMOSPHERE_LIGHT_RAYMARCH_STEPS 4
+#define ATMOSPHERE_RAYMARCH_STEPS 10
+#define ATMOSPHERE_LIGHT_RAYMARCH_STEPS 10
 
-vec3 computeScatteringCoeff(float height) {
+vec3 computeScatteringCoeffRayleigh(float height) {
   // Bruneton eq 1
   // Index of refraction and density (kg/m3 at sea-level) of air
   float ior = 1.000293;
   float density = 1.293;
-  vec3 rgbWavelengths = vec3(680.0, 550.0, 440.0);
+  //vec3 rgbWavelengths = vec3(680.0, 550.0, 440.0) / 400.0;
+  vec3 rgbWavelengths = vec3(700.0, 530.0, 440.0) / 400.0;
 
   float n2 = ior * ior;
   vec3 lambda_4 = rgbWavelengths * rgbWavelengths;
@@ -56,9 +60,13 @@ vec3 computeScatteringCoeff(float height) {
   float PI3 = PI * PI * PI;
 
   return 
-      exp(-height / ATMOSPHERE_AVG_DENSITY_HEIGHT) * 8.0 * PI3 * pow(n2 - 1.0, 2) / 
+      1000.0 * exp(-height / ATMOSPHERE_AVG_DENSITY_HEIGHT) * 8.0 * PI3 * pow(n2 - 1.0, 2) / 
         (3.0 * density * lambda_4);
 }
+
+/*vec3 computeScatteringCoeffMie(float height) {
+
+}*/
 
 float getAltitude(vec3 pos) {
   return length(pos - PLANET_CENTER);
@@ -68,21 +76,16 @@ float getHeight(vec3 pos) {
   return getAltitude(pos) - GROUND_ALT;
 }
 
-float sampleDensity(vec3 pos) {
-  // Sealevel air density (kg/m3)
-  float density = 1.293;
-
-  float height = getHeight(pos);
-
-  return 0.1;
-}
-
 float phaseFunction(float cosTheta, float g) {
   float g2 = g * g;
   return  
       3.0 * (1.0 - g2) / (2.0 * (2.0 + g2)) *
       (1.0 + cosTheta * cosTheta) / 
-        (1.0 + g2 - 2.0 * g * cosTheta);
+        pow(1.0 + g2 - 2.0 * g * cosTheta, 3.0 / 2.0);
+}
+
+float phaseFunctionRayleigh(float cosTheta) {
+  return 3.0 * (1.0 + cosTheta * cosTheta) / (16.0 * PI);
 }
 
 vec3 outScattering(vec3 start, vec3 end, int steps) {
@@ -99,7 +102,7 @@ vec3 outScattering(vec3 start, vec3 end, int steps) {
     }
 
     intg += 
-        computeScatteringCoeff(height) *
+        computeScatteringCoeffRayleigh(height) *
         exp(-height / ATMOSPHERE_AVG_DENSITY_HEIGHT) * 
         dxMag;
     x += dx;
@@ -113,7 +116,11 @@ vec3 inScattering(
     vec3 end, 
     int steps, 
     int outScatterSteps, 
-    vec3 sunDir) {
+    vec3 sunDir,
+    float g) {
+  vec3 lambda = vec3(680.0, 550.0, 440.0); // TODO ???
+  vec3 lambda4 = lambda * lambda * lambda * lambda;
+
   vec3 dx = (end - start) / float(steps - 1);
   float dxMag = length(dx);
 
@@ -156,7 +163,7 @@ vec3 inScattering(
           10000000000.0,
           gt0,
           gt1)) {
-      if (gt0 < t1) {
+      if (gt0 < t1) { // gt0 > 0.0 ??
         x += dx;
         continue;
       }
@@ -166,12 +173,14 @@ vec3 inScattering(
     // from within the atmosphere
     vec3 sunOutScatter = outScattering(x + t0 * sunDir, x + t1 * sunDir, outScatterSteps);
 
+    float strength = 1.0;//
+    vec3 scatteringCoeff = strength * computeScatteringCoeffRayleigh(height);// / lambda4
+
     intg += 
-        computeScatteringCoeff(height) *
-        exp(-height / ATMOSPHERE_AVG_DENSITY_HEIGHT) *
-        exp(
-            -cameraOutScatter 
-            -sunOutScatter) * 
+        //computeScatteringCoeffRayleigh(height) *
+        scatteringCoeff *
+        //exp(-height / ATMOSPHERE_AVG_DENSITY_HEIGHT) *
+        exp(-(cameraOutScatter + sunOutScatter) * scatteringCoeff) * 
         dxMag;
     x += dx;
   }
@@ -180,8 +189,9 @@ vec3 inScattering(
   // The phase function does not change along the camera view ray
   // since the sun is treated as infinitely far away
   // TODO: g = 0.0??
-  float phase = phaseFunction(dot(normalize(start - end), sunDir), 0.0);
-  float sunIntensity = 1000000000000.0;
+  float phase = //phaseFunctionRayleigh(dot(normalize(start - end), sunDir)); 
+      phaseFunction(dot(normalize(start - end), sunDir), g);//-0.99);
+  vec3 sunIntensity = vec3(1.0);//1000000000000.0 * vec3(1.0);
 
   return sunIntensity * phase * K * intg;
 }
@@ -190,7 +200,7 @@ vec3 inScattering(
 // TODO: Support flying through the atmosphere and into space
 vec3 sampleSky(vec3 cameraPos, vec3 dir) {
   // TODO: Parameterize
-  vec3 sunDir = normalize(vec3(1.0, 0.2 * sin(globals.time), 1.0));
+  vec3 sunDir = normalize(vec3(1.0, 0.0 + 0.3 * sin(globals.time), 1.0));
 
   // Intersect atmosphere
   float t0;
@@ -245,7 +255,15 @@ vec3 sampleSky(vec3 cameraPos, vec3 dir) {
         cameraPos + t1 * dir, 
         ATMOSPHERE_RAYMARCH_STEPS, 
         ATMOSPHERE_LIGHT_RAYMARCH_STEPS, 
-        sunDir);
+        sunDir,
+        0.0) +
+      inScattering(
+        cameraPos + t0 * dir, 
+        cameraPos + t1 * dir, 
+        ATMOSPHERE_RAYMARCH_STEPS, 
+        ATMOSPHERE_LIGHT_RAYMARCH_STEPS, 
+        sunDir,
+        -0.999) * 10.;
 
   return color;//vec3(t1 / ATMOSPHERE_ALT);
 }
