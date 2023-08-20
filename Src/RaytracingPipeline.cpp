@@ -21,32 +21,33 @@ RayTracingPipeline::RayTracingPipeline(Application& app, RayTracingPipelineBuild
   shaderStages[0].module = this->_rayGenShader;
   shaderStages[0].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
   shaderStages[0].pName = "main";
-
+  
   shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[1].module = this->_anyHitShader;
-  shaderStages[1].stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+  shaderStages[1].module = this->_closestHitShader;
+  shaderStages[1].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
   shaderStages[1].pName = "main";
   
   shaderStages[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[2].module = this->_intersectionShader;
-  shaderStages[2].stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+  shaderStages[2].module = this->_missShader;
+  shaderStages[2].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
   shaderStages[2].pName = "main";
-  
+
+  // TODO: Properly make these two optional
   shaderStages[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[3].module = this->_closestHitShader;
-  shaderStages[3].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+  shaderStages[3].module = this->_anyHitShader;
+  shaderStages[3].stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
   shaderStages[3].pName = "main";
   
   shaderStages[4].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[4].module = this->_missShader;
-  shaderStages[4].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+  shaderStages[4].module = this->_intersectionShader;
+  shaderStages[4].stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
   shaderStages[4].pName = "main";
 
   VkRayTracingPipelineCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
   createInfo.layout = this->_pipelineLayout;
   createInfo.maxPipelineRayRecursionDepth = 2;
-  createInfo.stageCount = 5;
+  createInfo.stageCount = 3; // TODO: This should be 5 if 
   createInfo.pStages = shaderStages;
   // createInfo.pDynamicState = ...TODO
 
@@ -66,6 +67,11 @@ RayTracingPipeline::RayTracingPipeline(Application& app, RayTracingPipelineBuild
   this->_pipeline.set(device, pipeline);
 }
 
+void RayTracingPipeline::RayTracingPipelineDeleter::operator()(
+    VkDevice device,
+    VkPipeline rayTracingPipeline) {
+  vkDestroyPipeline(device, rayTracingPipeline, nullptr);
+}
 
 void RayTracingPipelineBuilder::setRayGenShader(const std::string& path) {
   this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader);

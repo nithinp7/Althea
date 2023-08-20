@@ -529,6 +529,18 @@ Primitive::Primitive(
     GeometryUtilities::computeTangentSpace(vertices, normalMapUvIndex);
   }
 
+  // Compute AABB
+  if (vertices.size() > 0) {
+    this->_aabb.min = this->_aabb.max = vertices[0].position;
+    for (size_t i = 1; i < vertices.size(); ++i)
+    {
+      this->_aabb.min = glm::min(this->_aabb.min, vertices[i].position);
+      this->_aabb.max = glm::max(this->_aabb.max, vertices[i].position);
+    }
+  } else {
+    throw std::runtime_error("Attempting to create a primitive with no vertices!");
+  }
+
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 

@@ -37,6 +37,14 @@ public:
   size_t getPrimitivesCount() const;
   void draw(const DrawContext& context) const;
 
+  const std::vector<Primitive>& getPrimitives() const {
+    return this->_primitives;
+  }
+
+  std::vector<Primitive>& getPrimitives() {
+    return this->_primitives;
+  }
+
 private:
   CesiumGltf::Model _model;
   std::vector<Primitive> _primitives;

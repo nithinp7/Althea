@@ -39,6 +39,11 @@ struct ALTHEA_API Vertex {
   glm::vec2 uvs[MAX_UV_COORDS]{};
 };
 
+struct ALTHEA_API AABB {
+  glm::vec3 min{};
+  glm::vec3 max{};
+};
+
 // TODO: validate alignment, may be too big for inline block
 struct ALTHEA_API PrimitiveConstants {
   glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
@@ -73,6 +78,18 @@ public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 
+  const std::vector<Vertex>& getVertices() const {
+    return this->_vertexBuffer.getVertices();
+  }
+
+  const std::vector<uint32_t>& getIndices() const {
+    return this->_indexBuffer.getIndices();
+  }
+
+  const AABB& getAABB() const {
+    return this->_aabb;
+  }
+
 private:
   VkDevice _device;
 
@@ -86,6 +103,8 @@ private:
   VertexBuffer<Vertex> _vertexBuffer;
   IndexBuffer _indexBuffer;
   Material _material;
+
+  AABB _aabb;
 
 public:
   Primitive(

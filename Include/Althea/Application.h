@@ -38,6 +38,19 @@ extern std::string GEngineDirectory;
 // the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
 public:
+  PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
+	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
+	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
+	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
+	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
+	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;
+	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
+	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
+	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
+	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+  PFN_vkCreateDeferredOperationKHR vkCreateDeferredOperationKHR;
+  PFN_vkDestroyDeferredOperationKHR vkDestroyDeferredOperationKHR;
+
   Application(
       const std::string& projectDirectory,
       const std::string& engineDirectory);
@@ -64,7 +77,10 @@ private:
 
   const std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_MULTIVIEW_EXTENSION_NAME};
+      VK_KHR_MULTIVIEW_EXTENSION_NAME,
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME};
 
 #ifdef NDEBUG
   const bool enableValidationLayers = false;

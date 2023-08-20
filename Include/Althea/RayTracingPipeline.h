@@ -39,7 +39,7 @@ public:
 
 private:
   struct RayTracingPipelineDeleter {
-    void oeprator()(VkDevice device, VkPipeline pipeline);
+    void operator()(VkDevice device, VkPipeline pipeline);
   };
 
   PipelineLayout _pipelineLayout;
