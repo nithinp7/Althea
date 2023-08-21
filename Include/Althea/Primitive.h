@@ -78,6 +78,14 @@ public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 
+  const VertexBuffer<Vertex>& getVertexBuffer() const {
+    return this->_vertexBuffer;
+  }
+
+  const IndexBuffer& getIndexBuffer() const {
+    return this->_indexBuffer;
+  }
+
   const std::vector<Vertex>& getVertices() const {
     return this->_vertexBuffer.getVertices();
   }

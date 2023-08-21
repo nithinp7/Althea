@@ -54,7 +54,8 @@ Allocator::Allocator(
     VkPhysicalDevice physicalDevice) {
   VmaAllocatorCreateInfo allocatorInfo{};
   // TODO: Should allocations be synchronized externally instead?
-  allocatorInfo.flags = 0; // VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT; 
+  // | VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
   allocatorInfo.physicalDevice = physicalDevice;
   allocatorInfo.device = device;
   allocatorInfo.instance = instance;

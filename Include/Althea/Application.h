@@ -48,8 +48,6 @@ public:
 	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
 	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
 	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
-  PFN_vkCreateDeferredOperationKHR vkCreateDeferredOperationKHR;
-  PFN_vkDestroyDeferredOperationKHR vkDestroyDeferredOperationKHR;
 
   Application(
       const std::string& projectDirectory,

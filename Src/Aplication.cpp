@@ -149,7 +149,8 @@ void Application::drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) !=
+      VK_SUCCESS) {
     throw std::runtime_error("Failed to submit draw command buffer!");
   }
 
@@ -415,17 +416,24 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
-  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 
-  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+
+  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
 
   deviceFeatures.pNext = &multiviewFeatures;
   multiviewFeatures.pNext = &inlineBlockFeatures;
   inlineBlockFeatures.pNext = &accelFeature;
   accelFeature.pNext = &rtPipelineFeature;
+  rtPipelineFeature.pNext = &bufferDevAddrFeature;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
+
 
   return indices.isComplete() && extensionsSupported && swapChainAdequete &&
          deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
@@ -434,9 +442,14 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.fillModeNonSolid &&
          deviceFeatures.features.imageCubeArray &&
          inlineBlockFeatures.inlineUniformBlock &&
-         multiviewFeatures
-             .multiview; // &&
-                         // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
+         multiviewFeatures.multiview && accelFeature.accelerationStructure &&
+         // accelFeature.accelerationStructureHostCommands &&
+         //  accelFeature.accelerationStructureIndirectBuild && ??
+         rtPipelineFeature.rayTracingPipeline &&
+         bufferDevAddrFeature.bufferDeviceAddress;
+  //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
+  //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
+  // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -499,6 +512,21 @@ void Application::createLogicalDevice() {
   multiviewFeatures.multiview = VK_TRUE;
   multiviewFeatures.pNext = &inlineBlockFeatures;
 
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+  accelFeature.accelerationStructure = true;
+  accelFeature.pNext = &multiviewFeatures;
+
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+  rtPipelineFeature.rayTracingPipeline = true;
+  rtPipelineFeature.pNext = &accelFeature;
+
+  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
+  bufferDevAddrFeature.bufferDeviceAddress = true;
+  bufferDevAddrFeature.pNext = &rtPipelineFeature;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.queueCreateInfoCount =
@@ -511,7 +539,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &multiviewFeatures;
+  createInfo.pNext = &bufferDevAddrFeature;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
@@ -529,18 +557,39 @@ void Application::createLogicalDevice() {
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
-  vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
-  vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
-  vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device, "vkBuildAccelerationStructuresKHR"));
-  vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureKHR"));
-  vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureKHR"));
-  vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureBuildSizesKHR"));
-  vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureDeviceAddressKHR"));
-  vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
-  vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
-  vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
-  vkCreateDeferredOperationKHR = reinterpret_cast<PFN_vkCreateDeferredOperationKHR>(vkGetDeviceProcAddr(device, "vkCreateDeferredOperationKHR"));
-  vkDestroyDeferredOperationKHR = reinterpret_cast<PFN_vkDestroyDeferredOperationKHR>(vkGetDeviceProcAddr(device, "vkDestroyDeferredOperationKHR"));
+  vkGetBufferDeviceAddressKHR =
+      reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(
+          vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
+  vkCmdBuildAccelerationStructuresKHR =
+      reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
+          vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
+  vkBuildAccelerationStructuresKHR =
+      reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(
+          vkGetDeviceProcAddr(device, "vkBuildAccelerationStructuresKHR"));
+  vkCreateAccelerationStructureKHR =
+      reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
+          vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureKHR"));
+  vkDestroyAccelerationStructureKHR =
+      reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
+          vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureKHR"));
+  vkGetAccelerationStructureBuildSizesKHR =
+      reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+          vkGetDeviceProcAddr(
+              device,
+              "vkGetAccelerationStructureBuildSizesKHR"));
+  vkGetAccelerationStructureDeviceAddressKHR =
+      reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
+          vkGetDeviceProcAddr(
+              device,
+              "vkGetAccelerationStructureDeviceAddressKHR"));
+  vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
+      vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
+  vkGetRayTracingShaderGroupHandlesKHR =
+      reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
+          vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
+  vkCreateRayTracingPipelinesKHR =
+      reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
+          vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
 }
 
 Application::SwapChainSupportDetails

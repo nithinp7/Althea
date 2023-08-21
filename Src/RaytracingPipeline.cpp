@@ -53,7 +53,7 @@ RayTracingPipeline::RayTracingPipeline(Application& app, RayTracingPipelineBuild
 
   VkDevice device = app.getDevice();
   VkPipeline pipeline;
-  if (vkCreateRayTracingPipelinesKHR(
+  if (app.vkCreateRayTracingPipelinesKHR(
           device, 
           VK_NULL_HANDLE, 
           VK_NULL_HANDLE, 
