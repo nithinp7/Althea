@@ -98,6 +98,10 @@ public:
     return this->_aabb;
   }
 
+  const glm::mat4& getRelativeTransform() const {
+    return this->_relativeTransform;
+  }
+
 private:
   VkDevice _device;
 
