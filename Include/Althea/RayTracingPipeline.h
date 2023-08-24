@@ -27,8 +27,8 @@ private:
   friend class RayTracingPipeline;
 
   ShaderBuilder _rayGenShaderBuilder;
-  ShaderBuilder _anyHitShaderBuilder;
-  ShaderBuilder _intersectionShaderBuilder;
+  // ShaderBuilder _anyHitShaderBuilder;
+  // ShaderBuilder _intersectionShaderBuilder;
   ShaderBuilder _closestHitShaderBuilder;
   ShaderBuilder _missShaderBuilder;
 };

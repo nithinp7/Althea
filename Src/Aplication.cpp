@@ -330,6 +330,40 @@ void Application::createInstance() {
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create instance!");
   }
+
+  // vkGetBufferDeviceAddressKHR =
+  //     reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkGetBufferDeviceAddressKHR"));
+  // vkCmdBuildAccelerationStructuresKHR =
+  //     reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkCmdBuildAccelerationStructuresKHR"));
+  // vkBuildAccelerationStructuresKHR =
+  //     reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkBuildAccelerationStructuresKHR"));
+  // vkCreateAccelerationStructureKHR =
+  //     reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkCreateAccelerationStructureKHR"));
+  // vkDestroyAccelerationStructureKHR =
+  //     reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkDestroyAccelerationStructureKHR"));
+  // vkGetAccelerationStructureBuildSizesKHR =
+  //     reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+  //         vkGetInstanceProcAddr(
+  //             instance,
+  //             "vkGetAccelerationStructureBuildSizesKHR"));
+  // vkGetAccelerationStructureDeviceAddressKHR =
+  //     reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
+  //         vkGetInstanceProcAddr(
+  //             instance,
+  //             "vkGetAccelerationStructureDeviceAddressKHR"));
+  // vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
+  //     vkGetInstanceProcAddr(instance, "vkCmdTraceRaysKHR"));
+  // vkGetRayTracingShaderGroupHandlesKHR =
+  //     reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkGetRayTracingShaderGroupHandlesKHR"));
+  // vkCreateRayTracingPipelinesKHR =
+  //     reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkCreateRayTracingPipelinesKHR"));
 }
 
 void Application::createSurface() {
@@ -613,7 +647,6 @@ Application::querySwapChainSupport(const VkPhysicalDevice& device) const {
 
   uint32_t formatCount;
   vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
   if (formatCount) {
     details.formats.resize(formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(

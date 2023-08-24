@@ -142,6 +142,8 @@ bool ShaderBuilder::recompile() {
     }
   }
 
+  options.SetTargetSpirv(shaderc_spirv_version_1_4);
+
   shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
       this->_glslCode.data(),
       this->_glslCode.size(),
