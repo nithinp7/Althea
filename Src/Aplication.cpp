@@ -15,6 +15,17 @@
 
 namespace AltheaEngine {
 
+PFN_vkGetBufferDeviceAddressKHR Application::vkGetBufferDeviceAddressKHR;
+PFN_vkCreateAccelerationStructureKHR Application::vkCreateAccelerationStructureKHR;
+PFN_vkDestroyAccelerationStructureKHR Application::vkDestroyAccelerationStructureKHR;
+PFN_vkGetAccelerationStructureBuildSizesKHR Application::vkGetAccelerationStructureBuildSizesKHR;
+PFN_vkGetAccelerationStructureDeviceAddressKHR Application::vkGetAccelerationStructureDeviceAddressKHR;
+PFN_vkCmdBuildAccelerationStructuresKHR Application::vkCmdBuildAccelerationStructuresKHR;
+PFN_vkBuildAccelerationStructuresKHR Application::vkBuildAccelerationStructuresKHR;
+PFN_vkCmdTraceRaysKHR Application::vkCmdTraceRaysKHR;
+PFN_vkGetRayTracingShaderGroupHandlesKHR Application::vkGetRayTracingShaderGroupHandlesKHR;
+PFN_vkCreateRayTracingPipelinesKHR Application::vkCreateRayTracingPipelinesKHR;
+
 std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
