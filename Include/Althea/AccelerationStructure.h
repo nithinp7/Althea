@@ -16,6 +16,7 @@ class Application;
 
 class ALTHEA_API AccelerationStructure {
 public:
+  AccelerationStructure() = default;
   AccelerationStructure(
       Application& app,
       SingleTimeCommandBuffer& commandBuffer,
