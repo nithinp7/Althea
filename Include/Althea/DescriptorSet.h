@@ -22,6 +22,14 @@ public:
   DescriptorSetLayoutBuilder() {}
 
   /**
+   * @brief Add an acceleration structure binding to the descriptor set layout. 
+   * 
+   * @return this builder.
+   */
+  DescriptorSetLayoutBuilder& addAccelerationStructureBinding(
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+
+  /**
    * @brief Add an image binding to the descriptor set layout for access in a
    * compute shader. Only valid for use in a compute pipeline.
    *
@@ -137,6 +145,9 @@ public:
   DescriptorAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
 
+  DescriptorAssignment&
+  bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
+
   DescriptorAssignment& bindStorageBuffer(
       const BufferAllocation& allocation,
       size_t bufferOffset,
@@ -157,8 +168,7 @@ public:
 
     const BufferAllocation& allocation = ubo.getAllocation();
 
-    this->_descriptorBufferInfos.push_back(
-        std::make_unique<VkDescriptorBufferInfo>());
+    this->_descriptorBufferInfos.push_back(new VkDescriptorBufferInfo());
     VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
     uniformBufferInfo.buffer = allocation.getBuffer();
@@ -194,8 +204,7 @@ public:
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
 
-    this->_inlineConstantWrites.push_back(
-        std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
+    this->_inlineConstantWrites.push_back(new VkWriteDescriptorSetInlineUniformBlock());
     VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite =
         *this->_inlineConstantWrites.back();
     inlineConstantsWrite.sType =
@@ -231,10 +240,12 @@ private:
 
   // Temporary storage of info needed for descriptor writes
   // TODO: Is there a better way to do this? It looks awkward
-  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>>
+  std::vector<VkWriteDescriptorSetInlineUniformBlock*>
       _inlineConstantWrites;
-  std::vector<std::unique_ptr<VkDescriptorBufferInfo>> _descriptorBufferInfos;
-  std::vector<std::unique_ptr<VkDescriptorImageInfo>> _descriptorImageInfos;
+  std::vector<VkDescriptorBufferInfo*> _descriptorBufferInfos;
+  std::vector<VkDescriptorImageInfo*> _descriptorImageInfos;
+  std::vector<VkWriteDescriptorSetAccelerationStructureKHR*> _descriptorAccelerationStructures;
+  std::vector<VkAccelerationStructureKHR*> _accelerationStructures;
 };
 
 // NOTE: In Vulkan there are no such things as "descriptor set pools", only

@@ -10,6 +10,15 @@ ResourcesAssignment::ResourcesAssignment(
   }
 }
 
+ResourcesAssignment& ResourcesAssignment::bindAccelerationStructure(
+    VkAccelerationStructureKHR accelerationStructure) {
+  for (DescriptorAssignment& assignment : this->_assignments) {
+    assignment.bindAccelerationStructure(accelerationStructure);
+  }
+
+  return *this;
+}
+
 ResourcesAssignment& ResourcesAssignment::bindTexture(const Texture& texture) {
   return this->bindTexture(texture.getImageView(), texture.getSampler());
 }

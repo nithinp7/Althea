@@ -17,6 +17,9 @@ class ALTHEA_API ResourcesAssignment {
 public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 
+  ResourcesAssignment&
+  bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
+
   ResourcesAssignment& bindTexture(const Texture& texture);
 
   ResourcesAssignment& bindTexture(const ImageResource& texture);

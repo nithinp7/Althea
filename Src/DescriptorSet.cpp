@@ -6,6 +6,20 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
+DescriptorSetLayoutBuilder&
+DescriptorSetLayoutBuilder::addAccelerationStructureBinding(
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = 1;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
 DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageImageBinding(
     VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
@@ -110,6 +124,12 @@ DescriptorAssignment::DescriptorAssignment(DescriptorAssignment&& rhs)
   rhs._descriptorWrites.clear();
 }
 
+template <typename T> static void releaseTempData(std::vector<T*>& data) {
+  for (T* pT : data)
+    delete pT;
+  data.clear();
+}
+
 // TODO: Use an explicit endBinding function instead of the destructor
 // since we cannot throw or assert in destructors.
 DescriptorAssignment::~DescriptorAssignment() {
@@ -123,6 +143,12 @@ DescriptorAssignment::~DescriptorAssignment() {
         0,
         nullptr);
   }
+
+  releaseTempData(this->_inlineConstantWrites);
+  releaseTempData(this->_descriptorBufferInfos);
+  releaseTempData(this->_descriptorImageInfos);
+  releaseTempData(this->_descriptorAccelerationStructures);
+  releaseTempData(this->_accelerationStructures);
 }
 
 DescriptorAssignment&
@@ -145,8 +171,7 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
     throw std::runtime_error("Unexpected binding in descriptor set.");
   }
 
-  this->_descriptorImageInfos.push_back(
-      std::make_unique<VkDescriptorImageInfo>());
+  this->_descriptorImageInfos.push_back(new VkDescriptorImageInfo());
   VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
 
   textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -182,8 +207,7 @@ DescriptorAssignment& DescriptorAssignment::bindStorageImage(
     throw std::runtime_error("Unexpected binding in descriptor set.");
   }
 
-  this->_descriptorImageInfos.push_back(
-      std::make_unique<VkDescriptorImageInfo>());
+  this->_descriptorImageInfos.push_back(new VkDescriptorImageInfo());
   VkDescriptorImageInfo& textureImageInfo = *this->_descriptorImageInfos.back();
 
   textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -206,13 +230,57 @@ DescriptorAssignment& DescriptorAssignment::bindStorageImage(
   return *this;
 }
 
+// TODO: Do we need to bind multiple?? TLAS vs BLAS??
+DescriptorAssignment& DescriptorAssignment::bindAccelerationStructure(
+    VkAccelerationStructureKHR accelerationStructure) {
+  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+    throw std::runtime_error(
+        "Exceeded expected number of bindings in descriptor set.");
+  }
+
+  if (this->_bindings[this->_currentIndex].descriptorType !=
+      VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
+    throw std::runtime_error("Unexpected binding in descriptor set.");
+  }
+
+  this->_accelerationStructures.push_back(
+      new VkAccelerationStructureKHR(accelerationStructure));
+
+  this->_descriptorAccelerationStructures.push_back(
+      new VkWriteDescriptorSetAccelerationStructureKHR());
+
+  VkWriteDescriptorSetAccelerationStructureKHR& accelerationStructureInfo =
+      *this->_descriptorAccelerationStructures.back();
+
+  accelerationStructureInfo.sType =
+      VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+  accelerationStructureInfo.accelerationStructureCount = 1;
+  accelerationStructureInfo.pAccelerationStructures = this->_accelerationStructures.back();
+
+  VkWriteDescriptorSet& descriptorWrite =
+      this->_descriptorWrites[this->_currentIndex];
+  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrite.dstSet = this->_descriptorSet;
+  descriptorWrite.dstBinding = this->_currentIndex;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType =
+      VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = nullptr;
+  descriptorWrite.pImageInfo = nullptr;
+  descriptorWrite.pTexelBufferView = nullptr;
+  descriptorWrite.pNext = &accelerationStructureInfo;
+
+  ++this->_currentIndex;
+  return *this;
+}
+
 DescriptorAssignment& DescriptorAssignment::bindStorageBuffer(
     const BufferAllocation& allocation,
     size_t bufferOffset,
     size_t bufferSize) {
 
-  this->_descriptorBufferInfos.push_back(
-      std::make_unique<VkDescriptorBufferInfo>());
+  this->_descriptorBufferInfos.push_back(new VkDescriptorBufferInfo());
   VkDescriptorBufferInfo& bufferInfo = *this->_descriptorBufferInfos.back();
   bufferInfo.buffer = allocation.getBuffer();
   bufferInfo.offset = bufferOffset;

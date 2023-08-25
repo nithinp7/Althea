@@ -11,7 +11,9 @@ layout(set=0, binding=0) uniform accelerationStructureEXT acc;
 layout(set=0, binding=1) uniform rayParams
 {
     uint sbtOffset;
+    uint padding1;
     uint sbtStride;
+    uint padding2;
     uint missIndex;
 };
 
