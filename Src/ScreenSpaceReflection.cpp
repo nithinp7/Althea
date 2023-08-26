@@ -116,7 +116,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
       subpassBuilder.pipelineBuilder
           .setDepthTesting(false)
 
-          .addVertexShader(GEngineDirectory + "/Shaders/FullScreenQuad.vert")
+          .addVertexShader(GEngineDirectory + "/Shaders/Misc/FullScreenQuad.vert")
           .addFragmentShader(GEngineDirectory + "/Shaders/SSR.frag")
 
           .setCullMode(VK_CULL_MODE_NONE) // ??
