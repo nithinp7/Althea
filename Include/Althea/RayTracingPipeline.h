@@ -37,6 +37,13 @@ class ALTHEA_API RayTracingPipeline {
 public:
   RayTracingPipeline(Application& app, RayTracingPipelineBuilder&& builder);
 
+  VkPipelineLayout getLayout() const {
+    return this->_pipelineLayout;
+  }
+  
+  operator VkPipeline() const {
+    return this->_pipeline;
+  }
 private:
   struct RayTracingPipelineDeleter {
     void operator()(VkDevice device, VkPipeline pipeline);

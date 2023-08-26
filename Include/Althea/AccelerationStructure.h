@@ -44,8 +44,11 @@ private:
   BufferAllocation _blasBuffer;
   BufferAllocation _tlasInstances;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> _blasBuildRanges;
-  VkAccelerationStructureBuildRangeInfoKHR* _pBlasBuildRanges; // ???
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> _tlasBuildRanges;
+  // Note: These pointers are not heap-allocated and they do not need to be freed.
+  // They are simply pointers to the above buildRanges, we need this bc we need
+  // pointers to pointers to build ranges (I have no clue why)
+  VkAccelerationStructureBuildRangeInfoKHR* _pBlasBuildRanges; // ???
   VkAccelerationStructureBuildRangeInfoKHR* _pTlasBuildRanges; // ???
 };
 } // namespace AltheaEngine

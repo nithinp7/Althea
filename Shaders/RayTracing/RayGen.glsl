@@ -8,21 +8,13 @@
 layout(location = 0) rayPayloadEXT vec4 payload;
 
 layout(set=0, binding=0) uniform accelerationStructureEXT acc;
-layout(set=0, binding=1) uniform rayParams
-{
-    uint sbtOffset;
-    uint padding1;
-    uint sbtStride;
-    uint padding2;
-    uint missIndex;
-};
 
 #define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 2
+#define GLOBAL_UNIFORMS_BINDING 1
 #include <GlobalUniforms.glsl>
 
 // Output image
-layout(set=0, binding=3) uniform writeonly image2D img;
+layout(set=0, binding=2) uniform writeonly image2D img;
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
   const vec2 pixelCenter = vec2(launchID.xy) + vec2(0.5);
@@ -36,9 +28,17 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 
 void main() {
   vec3 rayOrigin = globals.inverseView[3].xyz;
-  traceRayEXT(acc, gl_RayFlagsOpaqueEXT, 0xff, sbtOffset,
-              sbtStride, missIndex, rayOrigin, 0.0,
-              computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT),
-              100.0f, 0 /* payload */);
+  traceRayEXT(
+      acc, 
+      gl_RayFlagsOpaqueEXT, 
+      0xff, 
+      0, // sbtOffset
+      0, // sbtStride, 
+      0, // missIndex
+      rayOrigin, 
+      0.0,
+      computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT),
+      1000.0, 
+      0 /* payload */);
   imageStore(img, ivec2(gl_LaunchIDEXT), payload);
 }

@@ -15,7 +15,6 @@
 
 namespace AltheaEngine {
 
-PFN_vkGetBufferDeviceAddressKHR Application::vkGetBufferDeviceAddressKHR;
 PFN_vkCreateAccelerationStructureKHR Application::vkCreateAccelerationStructureKHR;
 PFN_vkDestroyAccelerationStructureKHR Application::vkDestroyAccelerationStructureKHR;
 PFN_vkGetAccelerationStructureBuildSizesKHR Application::vkGetAccelerationStructureBuildSizesKHR;
@@ -519,6 +518,12 @@ void Application::pickPhysicalDevice() {
   }
 
   vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+  
+  rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+
+  VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+  prop2.pNext = &rayTracingProperties;
+  vkGetPhysicalDeviceProperties2(physicalDevice, &prop2);
 }
 
 void Application::createLogicalDevice() {
@@ -602,9 +607,6 @@ void Application::createLogicalDevice() {
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
-  vkGetBufferDeviceAddressKHR =
-      reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(
-          vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
   vkCmdBuildAccelerationStructuresKHR =
       reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
           vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
