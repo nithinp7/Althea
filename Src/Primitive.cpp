@@ -532,13 +532,13 @@ Primitive::Primitive(
   // Compute AABB
   if (vertices.size() > 0) {
     this->_aabb.min = this->_aabb.max = vertices[0].position;
-    for (size_t i = 1; i < vertices.size(); ++i)
-    {
+    for (size_t i = 1; i < vertices.size(); ++i) {
       this->_aabb.min = glm::min(this->_aabb.min, vertices[i].position);
       this->_aabb.max = glm::max(this->_aabb.max, vertices[i].position);
     }
   } else {
-    throw std::runtime_error("Attempting to create a primitive with no vertices!");
+    throw std::runtime_error(
+        "Attempting to create a primitive with no vertices!");
   }
 
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
@@ -555,6 +555,27 @@ Primitive::Primitive(
 
 void Primitive::setModelTransform(const glm::mat4& model) {
   this->_modelTransform = model;
+}
+
+AABB Primitive::computeWorldAABB() const {
+  const std::vector<Vertex>& vertices = this->_vertexBuffer.getVertices();
+
+  if (vertices.empty()) 
+    throw std::runtime_error("Attempting to compute world AABB with empty vertices");
+
+  glm::mat4 worldTransform = this->_modelTransform * this->_relativeTransform;
+
+  AABB aabb;
+  aabb.min = aabb.max =
+      glm::vec3(worldTransform * glm::vec4(vertices[0].position, 1.0f));
+
+  for (size_t i = 0; i < vertices.size(); ++i) {
+    glm::vec3 worldPos(worldTransform * glm::vec4(vertices[i].position, 1.0f));
+    aabb.min = glm::min(aabb.min, worldPos);
+    aabb.max = glm::max(aabb.max, worldPos);
+  }
+
+  return aabb;
 }
 
 void Primitive::draw(const DrawContext& context) const {

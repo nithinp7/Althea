@@ -11,21 +11,37 @@ AccelerationStructure::AccelerationStructure(
     Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     const std::vector<Model>& models) {
-
   uint32_t primCount = 0;
   for (const Model& model : models) {
     primCount += static_cast<uint32_t>(model.getPrimitivesCount());
   }
 
-  std::vector<AABB> aabbs;
-  aabbs.reserve(primCount);
+  // Need to make sure vertex and index buffers are finished transferring
+  // before reading from them to build the AS.
+  {
+    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        0,
+        1,
+        &barrier,
+        0,
+        nullptr,
+        0,
+        nullptr);
+  }
+
+  // std::vector<AABB> aabbs;
+  // aabbs.reserve(primCount);
   std::vector<VkTransformMatrixKHR> transforms;
   transforms.reserve(primCount);
   for (const Model& model : models) {
     for (const Primitive& prim : model.getPrimitives()) {
-      aabbs.push_back(prim.getAABB());
-
-      const glm::mat4& primTransform = prim.getRelativeTransform();
+      glm::mat4 primTransform = prim.computeWorldTransform();
 
       VkTransformMatrixKHR& transform = transforms.emplace_back();
       transform.matrix[0][0] = primTransform[0][0];
@@ -46,39 +62,13 @@ AccelerationStructure::AccelerationStructure(
     }
   }
 
-  // Upload AABBs for all primitives
-  VmaAllocationCreateInfo aabbBufferAllocationInfo{};
-  aabbBufferAllocationInfo.flags =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-  aabbBufferAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
-
-  BufferAllocation aabbBuffer = BufferUtilities::createBuffer(
-      app,
-      commandBuffer,
-      sizeof(AABB) * primCount,
-      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      aabbBufferAllocationInfo);
-
-  {
-    void* data = aabbBuffer.mapMemory();
-    memcpy(data, aabbs.data(), primCount * sizeof(AABB));
-    aabbBuffer.unmapMemory();
-  }
-
-  VkBufferDeviceAddressInfo aabbBufferAddrInfo{
-      VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-  aabbBufferAddrInfo.buffer = aabbBuffer.getBuffer();
-  VkDeviceAddress aabbBufferDevAddr =
-      vkGetBufferDeviceAddress(app.getDevice(), &aabbBufferAddrInfo);
-
   // Upload transforms for all primitives
   VmaAllocationCreateInfo transformBufferAllocInfo{};
   transformBufferAllocInfo.flags =
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   transformBufferAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  BufferAllocation transformBuffer = BufferUtilities::createBuffer(
+  this->_transformBuffer = BufferUtilities::createBuffer(
       app,
       commandBuffer,
       sizeof(VkTransformMatrixKHR) * primCount,
@@ -87,14 +77,14 @@ AccelerationStructure::AccelerationStructure(
       transformBufferAllocInfo);
 
   {
-    void* data = transformBuffer.mapMemory();
+    void* data = this->_transformBuffer.mapMemory();
     memcpy(data, transforms.data(), primCount * sizeof(VkTransformMatrixKHR));
-    transformBuffer.unmapMemory();
+    this->_transformBuffer.unmapMemory();
   }
 
   VkBufferDeviceAddressInfo transformBufferAddrInfo{
       VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-  transformBufferAddrInfo.buffer = transformBuffer.getBuffer();
+  transformBufferAddrInfo.buffer = this->_transformBuffer.getBuffer();
   VkDeviceAddress transformBufferDevAddr =
       vkGetBufferDeviceAddress(app.getDevice(), &transformBufferAddrInfo);
 
@@ -127,11 +117,6 @@ AccelerationStructure::AccelerationStructure(
 
       VkAccelerationStructureGeometryKHR& geometry = geometries.emplace_back();
       geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-      geometry.geometry.aabbs.sType =
-          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
-      geometry.geometry.aabbs.data.deviceAddress =
-          aabbBufferDevAddr + primIndex * sizeof(AABB);
-      geometry.geometry.aabbs.stride = sizeof(AABB);
 
       geometry.geometry.triangles.sType =
           VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
@@ -146,6 +131,9 @@ AccelerationStructure::AccelerationStructure(
 
       geometry.geometry.triangles.transformData.deviceAddress =
           transformBufferDevAddr + primIndex * sizeof(VkTransformMatrixKHR);
+
+      geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+      geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 
       VkAccelerationStructureBuildRangeInfoKHR& buildRange =
           this->_blasBuildRanges.emplace_back();
@@ -187,12 +175,6 @@ AccelerationStructure::AccelerationStructure(
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
       accelStrAllocInfo);
-
-  VkBufferDeviceAddressInfo blasBufferAddrInfo{
-      VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-  blasBufferAddrInfo.buffer = this->_blasBuffer.getBuffer();
-  VkDeviceAddress blasBufferDevAddr =
-      vkGetBufferDeviceAddress(app.getDevice(), &blasBufferAddrInfo);
 
   BufferAllocation blasScratchBuffer = BufferUtilities::createBuffer(
       app,
@@ -241,15 +223,40 @@ AccelerationStructure::AccelerationStructure(
 
   // Add task to delete all temp buffers once the commands have completed
   commandBuffer.addPostCompletionTask(
-      [pAabbBuffer = new BufferAllocation(std::move(aabbBuffer)),
-       pTransformBuffer = new BufferAllocation(std::move(transformBuffer)),
+      [device = app.getDevice(),
        pScratchBuffer = new BufferAllocation(std::move(blasScratchBuffer))]() {
-        delete pAabbBuffer;      // Can we delete this??
-        delete pTransformBuffer; // This??
+        // TODO: Get rid of this
+        vkDeviceWaitIdle(device);
         delete pScratchBuffer;
       });
 
+  // Finish BLAS building before starting TLAS building
+  {
+    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        0,
+        1,
+        &barrier,
+        0,
+        nullptr,
+        0,
+        nullptr);
+  }
+
   // Now build TLAS
+  VkAccelerationStructureDeviceAddressInfoKHR blasDevAddrInfo{};
+  blasDevAddrInfo.sType =
+      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+  blasDevAddrInfo.accelerationStructure = this->_blas;
+  VkDeviceAddress blasBufferDevAddr =
+      Application::vkGetAccelerationStructureDeviceAddressKHR(
+          app.getDevice(),
+          &blasDevAddrInfo);
 
   VkAccelerationStructureInstanceKHR tlasInstance{};
   tlasInstance.transform =
@@ -258,6 +265,7 @@ AccelerationStructure::AccelerationStructure(
   tlasInstance.mask = 0xFF;
   tlasInstance.instanceShaderBindingTableRecordOffset = 0;
   tlasInstance.flags =
+      VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR |
       VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
   tlasInstance.accelerationStructureReference = blasBufferDevAddr;
 
@@ -315,6 +323,8 @@ AccelerationStructure::AccelerationStructure(
       &tlasBuildSizes);
 
   // Create backing buffer and scratch buffer for TLAS
+  // VmaAllocationCreateInfo accelStrAllocInfo{};
+  // accelStrAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   this->_tlasBuffer = BufferUtilities::createBuffer(
       app,
@@ -367,14 +377,31 @@ AccelerationStructure::AccelerationStructure(
   tlasBuildRangeInfo.primitiveOffset = 0;
   tlasBuildRangeInfo.firstVertex = 0;
   tlasBuildRangeInfo.transformOffset = 0;
-  
+
   this->_pTlasBuildRanges = this->_tlasBuildRanges.data();
-  
+
   Application::vkCmdBuildAccelerationStructuresKHR(
       commandBuffer,
       1,
       &tlasBuildInfo,
       &this->_pTlasBuildRanges);
+
+  {
+    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0,
+        1,
+        &barrier,
+        0,
+        nullptr,
+        0,
+        nullptr);
+  }
 
   // Add task to delete all temp buffers once the commands have completed
   commandBuffer.addPostCompletionTask(

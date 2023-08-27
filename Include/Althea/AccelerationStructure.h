@@ -42,6 +42,7 @@ private:
   UniqueVkHandle<VkAccelerationStructureKHR, AccelerationStructureDeleter> _blas;
   BufferAllocation _tlasBuffer;
   BufferAllocation _blasBuffer;
+  BufferAllocation _transformBuffer;
   BufferAllocation _tlasInstances;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> _blasBuildRanges;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> _tlasBuildRanges;

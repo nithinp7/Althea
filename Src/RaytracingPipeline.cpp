@@ -32,31 +32,31 @@ RayTracingPipeline::RayTracingPipeline(
   shaderGroups[0].anyHitShader = VK_SHADER_UNUSED_KHR;
   shaderGroups[0].intersectionShader = VK_SHADER_UNUSED_KHR;
 
-  // CLOSEST HIT
+  // MISS
   shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[1].module = this->_closestHitShader;
-  shaderStages[1].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+  shaderStages[1].module = this->_missShader;
+  shaderStages[1].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
   shaderStages[1].pName = "main";
 
   shaderGroups[1].sType =
       VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-  shaderGroups[1].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-  shaderGroups[1].generalShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[1].closestHitShader = 1;
+  shaderGroups[1].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+  shaderGroups[1].generalShader = 1;
+  shaderGroups[1].closestHitShader = VK_SHADER_UNUSED_KHR;
   shaderGroups[1].anyHitShader = VK_SHADER_UNUSED_KHR;
   shaderGroups[1].intersectionShader = VK_SHADER_UNUSED_KHR;
 
-  // MISS
+  // CLOSEST HIT
   shaderStages[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[2].module = this->_missShader;
-  shaderStages[2].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+  shaderStages[2].module = this->_closestHitShader;
+  shaderStages[2].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
   shaderStages[2].pName = "main";
 
   shaderGroups[2].sType =
       VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-  shaderGroups[2].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  shaderGroups[2].generalShader = 2;
-  shaderGroups[2].closestHitShader = VK_SHADER_UNUSED_KHR;
+  shaderGroups[2].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+  shaderGroups[2].generalShader = VK_SHADER_UNUSED_KHR;
+  shaderGroups[2].closestHitShader = 2;
   shaderGroups[2].anyHitShader = VK_SHADER_UNUSED_KHR;
   shaderGroups[2].intersectionShader = VK_SHADER_UNUSED_KHR;
 

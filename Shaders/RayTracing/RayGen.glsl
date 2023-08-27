@@ -28,6 +28,7 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 
 void main() {
   vec3 rayOrigin = globals.inverseView[3].xyz;
+  vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
   traceRayEXT(
       acc, 
       gl_RayFlagsOpaqueEXT, 
@@ -37,8 +38,12 @@ void main() {
       0, // missIndex
       rayOrigin, 
       0.0,
-      computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT),
+      rayDir,
       1000.0, 
       0 /* payload */);
-  imageStore(img, ivec2(gl_LaunchIDEXT), payload);
+  
+  // vec3 dirCol = rayDir * 0.5 + vec3(0.5);
+  vec4 color = payload;//vec4(payload.rgb + dirCol, 1.0);
+
+  imageStore(img, ivec2(gl_LaunchIDEXT), color);
 }

@@ -94,8 +94,14 @@ public:
     return this->_indexBuffer.getIndices();
   }
 
+  AABB computeWorldAABB() const;
+
   const AABB& getAABB() const {
     return this->_aabb;
+  }
+
+  glm::mat4 computeWorldTransform() const {
+    return this->_modelTransform * this->_relativeTransform;
   }
 
   const glm::mat4& getRelativeTransform() const {
