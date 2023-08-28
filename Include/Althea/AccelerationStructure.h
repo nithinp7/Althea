@@ -27,8 +27,8 @@ public:
     return this->_tlas;
   }
 
-  VkAccelerationStructureKHR getBLAS() const {
-    return this->_blas;
+  VkAccelerationStructureKHR getBLAS(uint32_t i) const {
+    return this->_blasCollection[i];
   }
 
 private:
@@ -39,17 +39,10 @@ private:
   };
 
   UniqueVkHandle<VkAccelerationStructureKHR, AccelerationStructureDeleter> _tlas;
-  UniqueVkHandle<VkAccelerationStructureKHR, AccelerationStructureDeleter> _blas;
+  std::vector<UniqueVkHandle<VkAccelerationStructureKHR, AccelerationStructureDeleter>> _blasCollection;
   BufferAllocation _tlasBuffer;
-  BufferAllocation _blasBuffer;
+  std::vector<BufferAllocation> _blasBuffers;
   BufferAllocation _transformBuffer;
   BufferAllocation _tlasInstances;
-  std::vector<VkAccelerationStructureBuildRangeInfoKHR> _blasBuildRanges;
-  std::vector<VkAccelerationStructureBuildRangeInfoKHR> _tlasBuildRanges;
-  // Note: These pointers are not heap-allocated and they do not need to be freed.
-  // They are simply pointers to the above buildRanges, we need this bc we need
-  // pointers to pointers to build ranges (I have no clue why)
-  VkAccelerationStructureBuildRangeInfoKHR* _pBlasBuildRanges; // ???
-  VkAccelerationStructureBuildRangeInfoKHR* _pTlasBuildRanges; // ???
 };
 } // namespace AltheaEngine

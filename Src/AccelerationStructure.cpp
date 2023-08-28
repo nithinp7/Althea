@@ -35,8 +35,6 @@ AccelerationStructure::AccelerationStructure(
         nullptr);
   }
 
-  // std::vector<AABB> aabbs;
-  // aabbs.reserve(primCount);
   std::vector<VkTransformMatrixKHR> transforms;
   transforms.reserve(primCount);
   for (const Model& model : models) {
@@ -88,17 +86,30 @@ AccelerationStructure::AccelerationStructure(
   VkDeviceAddress transformBufferDevAddr =
       vkGetBufferDeviceAddress(app.getDevice(), &transformBufferAddrInfo);
 
-  std::vector<VkAccelerationStructureGeometryKHR> geometries;
-  geometries.reserve(primCount);
+  // Each gltf primitive will be it's BLAS with one geometry, and correspond to
+  // its own TLAS instance. This way, individual primitives can rigidly
+  // transform without updating the BLAS. It also allows us to use
+  // gl_InstanceCustomIndexEXT to find the primitive's resources in the bindless
+  // heap.
+  std::vector<VkAccelerationStructureInstanceKHR> instances;
+  instances.reserve(primCount);
 
-  std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRanges;
-  buildRanges.reserve(primCount);
+  this->_blasBuffers.reserve(primCount);
 
-  std::vector<uint32_t> triCounts;
-  triCounts.reserve(primCount);
+  // TODO: Since the scratch buffer gets re-used, the BLASs have to be built
+  // back-to-back. It would be better to have a few different scratch buffers
+  // and build several BLASs simultaneously
+
+  // TODO: Go through and determine amount of scratch space needed before-hand
+
+  // Will be re-used for each BLAS. If a BLAS needs more scratch space, a new buffer
+  // will be added.
+  uint32_t blasScratchBufferSize = 0;
+  VkDeviceAddress blasScratchBufferDevAddr;
+  std::vector<BufferAllocation> blasScratchBuffers;
 
   uint32_t primIndex = 0;
-  uint32_t maxPrimCount = 0;
+
   for (const Model& model : models) {
     for (const Primitive& prim : model.getPrimitives()) {
       const VertexBuffer<Vertex>& vertexBuffer = prim.getVertexBuffer();
@@ -115,8 +126,7 @@ AccelerationStructure::AccelerationStructure(
       VkDeviceAddress indexBufferDevAddr =
           vkGetBufferDeviceAddress(app.getDevice(), &indexBufferAddrInfo);
 
-      VkAccelerationStructureGeometryKHR& geometry = geometries.emplace_back();
-      geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+      VkAccelerationStructureGeometryKHR geometry{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
 
       geometry.geometry.triangles.sType =
           VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
@@ -135,99 +145,152 @@ AccelerationStructure::AccelerationStructure(
       geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
       geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 
-      VkAccelerationStructureBuildRangeInfoKHR& buildRange =
-          this->_blasBuildRanges.emplace_back();
+      uint32_t triCount = indexBuffer.getIndexCount() / 3;
+      VkAccelerationStructureBuildRangeInfoKHR buildRange{};
       buildRange.firstVertex = 0;
-      buildRange.primitiveCount = indexBuffer.getIndexCount() / 3;
+      buildRange.primitiveCount = triCount;
       buildRange.primitiveOffset = 0;
       buildRange.transformOffset = 0;
 
-      triCounts.push_back(buildRange.primitiveCount);
+      VkAccelerationStructureBuildGeometryInfoKHR blasBuildInfo{
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
+      blasBuildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+      blasBuildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+      blasBuildInfo.pGeometries = &geometry;
+      blasBuildInfo.geometryCount = 1;
+
+      VkAccelerationStructureBuildSizesInfoKHR blasBuildSizes{
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
+      Application::vkGetAccelerationStructureBuildSizesKHR(
+          app.getDevice(),
+          VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+          &blasBuildInfo,
+          &triCount,
+          &blasBuildSizes);
+
+      // Create backing buffer and scratch buffer for BLAS
+      VmaAllocationCreateInfo accelStrAllocInfo{};
+      accelStrAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+      this->_blasBuffers.emplace_back(BufferUtilities::createBuffer(
+          app,
+          commandBuffer,
+          blasBuildSizes.accelerationStructureSize,
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
+              VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+          accelStrAllocInfo));
+
+      // Add a new scratch buffer if this one is too small
+      if (blasBuildSizes.buildScratchSize > blasScratchBufferSize) {
+        blasScratchBufferSize = blasBuildSizes.buildScratchSize;
+
+        blasScratchBuffers.emplace_back(BufferUtilities::createBuffer(
+            app,
+            commandBuffer,
+            blasScratchBufferSize,
+            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            accelStrAllocInfo));
+
+        VkBufferDeviceAddressInfo blasScratchBufferAddrInfo{
+            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+        blasScratchBufferAddrInfo.buffer = blasScratchBuffers.back().getBuffer();
+
+        blasScratchBufferDevAddr = vkGetBufferDeviceAddress(
+            app.getDevice(),
+            &blasScratchBufferAddrInfo);
+      }
+
+      blasBuildInfo.scratchData.deviceAddress = blasScratchBufferDevAddr;
+
+      VkAccelerationStructureCreateInfoKHR blasCreateInfo{};
+      blasCreateInfo.sType =
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+      blasCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+      blasCreateInfo.buffer = this->_blasBuffers.back().getBuffer();
+      blasCreateInfo.offset = 0;
+      blasCreateInfo.size = blasBuildSizes.accelerationStructureSize;
+
+      VkAccelerationStructureKHR blas;
+      if (Application::vkCreateAccelerationStructureKHR(
+              app.getDevice(),
+              &blasCreateInfo,
+              nullptr,
+              &blas) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create acceleration structure!");
+      }
+
+      this->_blasCollection.emplace_back(app.getDevice(), blas);
+
+      blasBuildInfo.dstAccelerationStructure = blas;
+
+      VkAccelerationStructureBuildRangeInfoKHR* pBlasBuildRange = &buildRange; // ???
+
+      Application::vkCmdBuildAccelerationStructuresKHR(
+          commandBuffer,
+          1,
+          &blasBuildInfo,
+          &pBlasBuildRange/*????*/);
+
+      VkAccelerationStructureDeviceAddressInfoKHR blasDevAddrInfo{};
+      blasDevAddrInfo.sType =
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+      blasDevAddrInfo.accelerationStructure = blas;
+      VkDeviceAddress blasBufferDevAddr =
+          Application::vkGetAccelerationStructureDeviceAddressKHR(
+              app.getDevice(),
+              &blasDevAddrInfo);
+
+      VkAccelerationStructureInstanceKHR& tlasInstance =
+          instances.emplace_back();
+      tlasInstance.transform = {
+          1.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          1.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          1.0f,
+          0.0f};
+      tlasInstance.instanceCustomIndex = primIndex;
+      tlasInstance.mask = 0xFF;
+      tlasInstance.instanceShaderBindingTableRecordOffset =
+          0; // For now everything uses same shader
+      tlasInstance.flags =
+          VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR |
+          VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+      tlasInstance.accelerationStructureReference = blasBufferDevAddr;
 
       ++primIndex;
+
+      // Barrier to protect re-used scratch buffer between BLAS builds
+      if (primIndex < primCount) {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+        barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+            0,
+            1,
+            &barrier,
+            0,
+            nullptr,
+            0,
+            nullptr);
+      }
     }
   }
 
-  VkAccelerationStructureBuildGeometryInfoKHR blasBuildInfo{
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
-  blasBuildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-  blasBuildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-  blasBuildInfo.pGeometries = geometries.data();
-  blasBuildInfo.geometryCount = primCount;
-
-  VkAccelerationStructureBuildSizesInfoKHR blasBuildSizes{
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-  Application::vkGetAccelerationStructureBuildSizesKHR(
-      app.getDevice(),
-      VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-      &blasBuildInfo,
-      triCounts.data(),
-      &blasBuildSizes);
-
-  // Create backing buffer and scratch buffer for BLAS
-  VmaAllocationCreateInfo accelStrAllocInfo{};
-  accelStrAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-
-  this->_blasBuffer = BufferUtilities::createBuffer(
-      app,
-      commandBuffer,
-      blasBuildSizes.accelerationStructureSize,
-      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      accelStrAllocInfo);
-
-  BufferAllocation blasScratchBuffer = BufferUtilities::createBuffer(
-      app,
-      commandBuffer,
-      blasBuildSizes.buildScratchSize,
-      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      accelStrAllocInfo);
-
-  VkBufferDeviceAddressInfo blasScratchBufferAddrInfo{
-      VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-  blasScratchBufferAddrInfo.buffer = blasScratchBuffer.getBuffer();
-  VkDeviceAddress blasScratchBufferDevAddr =
-      vkGetBufferDeviceAddress(app.getDevice(), &blasScratchBufferAddrInfo);
-
-  blasBuildInfo.scratchData.deviceAddress = blasScratchBufferDevAddr;
-
-  VkAccelerationStructureCreateInfoKHR blasCreateInfo{};
-  blasCreateInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-  blasCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-  blasCreateInfo.buffer = this->_blasBuffer.getBuffer();
-  blasCreateInfo.offset = 0;
-  blasCreateInfo.size = blasBuildSizes.accelerationStructureSize;
-
-  VkAccelerationStructureKHR blas;
-  if (Application::vkCreateAccelerationStructureKHR(
-          app.getDevice(),
-          &blasCreateInfo,
-          nullptr,
-          &blas) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create acceleration structure!");
-  }
-
-  this->_blas.set(app.getDevice(), blas);
-
-  blasBuildInfo.dstAccelerationStructure = this->_blas;
-
-  this->_pBlasBuildRanges = this->_blasBuildRanges.data();
-
-  Application::vkCmdBuildAccelerationStructuresKHR(
-      commandBuffer,
-      1,
-      &blasBuildInfo,
-      &this->_pBlasBuildRanges);
-
   // Add task to delete all temp buffers once the commands have completed
   commandBuffer.addPostCompletionTask(
-      [device = app.getDevice(),
-       pScratchBuffer = new BufferAllocation(std::move(blasScratchBuffer))]() {
-        // TODO: Get rid of this
-        vkDeviceWaitIdle(device);
-        delete pScratchBuffer;
+      [pScratchBuffers = new std::vector<BufferAllocation>(std::move(blasScratchBuffers))]() {
+        delete pScratchBuffers;
       });
 
   // Finish BLAS building before starting TLAS building
@@ -249,26 +312,6 @@ AccelerationStructure::AccelerationStructure(
   }
 
   // Now build TLAS
-  VkAccelerationStructureDeviceAddressInfoKHR blasDevAddrInfo{};
-  blasDevAddrInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-  blasDevAddrInfo.accelerationStructure = this->_blas;
-  VkDeviceAddress blasBufferDevAddr =
-      Application::vkGetAccelerationStructureDeviceAddressKHR(
-          app.getDevice(),
-          &blasDevAddrInfo);
-
-  VkAccelerationStructureInstanceKHR tlasInstance{};
-  tlasInstance.transform =
-      {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
-  tlasInstance.instanceCustomIndex = 0;
-  tlasInstance.mask = 0xFF;
-  tlasInstance.instanceShaderBindingTableRecordOffset = 0;
-  tlasInstance.flags =
-      VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR |
-      VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-  tlasInstance.accelerationStructureReference = blasBufferDevAddr;
-
   VmaAllocationCreateInfo instancesAllocInfo{};
   instancesAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
   instancesAllocInfo.flags =
@@ -285,7 +328,7 @@ AccelerationStructure::AccelerationStructure(
 
   {
     void* pData = this->_tlasInstances.mapMemory();
-    memcpy(pData, &tlasInstance, sizeof(VkAccelerationStructureInstanceKHR));
+    memcpy(pData, instances.data(), sizeof(VkAccelerationStructureInstanceKHR) * instances.size());
     this->_tlasInstances.unmapMemory();
   }
 
@@ -311,7 +354,7 @@ AccelerationStructure::AccelerationStructure(
   tlasBuildInfo.pGeometries = &tlasGeometry;
   tlasBuildInfo.geometryCount = 1;
 
-  uint32_t tlasInstCount = 1;
+  uint32_t tlasInstCount = static_cast<uint32_t>(instances.size());
 
   VkAccelerationStructureBuildSizesInfoKHR tlasBuildSizes{
       VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
@@ -323,8 +366,8 @@ AccelerationStructure::AccelerationStructure(
       &tlasBuildSizes);
 
   // Create backing buffer and scratch buffer for TLAS
-  // VmaAllocationCreateInfo accelStrAllocInfo{};
-  // accelStrAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  VmaAllocationCreateInfo accelStrAllocInfo{};
+  accelStrAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   this->_tlasBuffer = BufferUtilities::createBuffer(
       app,
@@ -371,42 +414,23 @@ AccelerationStructure::AccelerationStructure(
 
   tlasBuildInfo.dstAccelerationStructure = this->_tlas;
 
-  VkAccelerationStructureBuildRangeInfoKHR& tlasBuildRangeInfo =
-      this->_tlasBuildRanges.emplace_back();
-  tlasBuildRangeInfo.primitiveCount = 1;
+  VkAccelerationStructureBuildRangeInfoKHR tlasBuildRangeInfo{};
+  tlasBuildRangeInfo.primitiveCount = tlasInstCount;
   tlasBuildRangeInfo.primitiveOffset = 0;
   tlasBuildRangeInfo.firstVertex = 0;
   tlasBuildRangeInfo.transformOffset = 0;
 
-  this->_pTlasBuildRanges = this->_tlasBuildRanges.data();
+  VkAccelerationStructureBuildRangeInfoKHR* pTlasBuildRange = &tlasBuildRangeInfo;
 
   Application::vkCmdBuildAccelerationStructuresKHR(
       commandBuffer,
       1,
       &tlasBuildInfo,
-      &this->_pTlasBuildRanges);
-
-  {
-    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-        0,
-        1,
-        &barrier,
-        0,
-        nullptr,
-        0,
-        nullptr);
-  }
+      &pTlasBuildRange);
 
   // Add task to delete all temp buffers once the commands have completed
   commandBuffer.addPostCompletionTask(
       [pScratchBuffer = new BufferAllocation(std::move(tlasScratchBuffer))]() {
-        // TODO: Instance buffer??
         delete pScratchBuffer;
       });
 }

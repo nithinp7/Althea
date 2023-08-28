@@ -3,6 +3,8 @@
 #include "Application.h"
 #include "BufferUtilities.h"
 
+#include <iostream>
+
 namespace AltheaEngine {
 SingleTimeCommandBuffer::SingleTimeCommandBuffer(const Application& app)
     : _device(app.getDevice()),
@@ -31,7 +33,9 @@ SingleTimeCommandBuffer::~SingleTimeCommandBuffer() {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &this->_commandBuffer;
 
-  vkQueueSubmit(this->_queue, 1, &submitInfo, VK_NULL_HANDLE);
+  if (vkQueueSubmit(this->_queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    std::cout << "Failed to submit SingleTimeCommandBuffer";
+  }
 
   vkQueueWaitIdle(this->_queue);
 

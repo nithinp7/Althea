@@ -28,12 +28,12 @@ ShaderBindingTable::ShaderBindingTable(
     this->_rgenRegion.stride = alignUp(handleSizeAligned, baseAlignment);
     this->_rgenRegion.size = this->_rgenRegion.stride;
 
-    uint32_t missCount = 1;
+    uint32_t missCount = pipeline.getMissShaderCount();
     this->_missRegion.stride = handleSizeAligned;
     this->_missRegion.size =
         alignUp(missCount * handleSizeAligned, baseAlignment);
 
-    uint32_t hitCount = 1;
+    uint32_t hitCount = pipeline.getClosestHitShaderCount();
     this->_hitRegion.stride = handleSizeAligned;
     this->_hitRegion.size =
         alignUp(hitCount * handleSizeAligned, baseAlignment);

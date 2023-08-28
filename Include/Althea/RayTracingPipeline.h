@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 #include <string> 
+#include <vector>
 
 namespace AltheaEngine {
 class Application;
@@ -16,10 +17,8 @@ class Application;
 class ALTHEA_API RayTracingPipelineBuilder {
 public:
   void setRayGenShader(const std::string& path);
-  void setAnyHitShader(const std::string& path);
-  void setIntersectionShader(const std::string& path);
-  void setClosestHitShader(const std::string& path);
-  void setMissShader(const std::string& path);
+  void addMissShader(const std::string& path);
+  void addClosestHitShader(const std::string& path);
 
   PipelineLayoutBuilder layoutBuilder;
 
@@ -27,10 +26,10 @@ private:
   friend class RayTracingPipeline;
 
   ShaderBuilder _rayGenShaderBuilder;
-  // ShaderBuilder _anyHitShaderBuilder;
-  // ShaderBuilder _intersectionShaderBuilder;
-  ShaderBuilder _closestHitShaderBuilder;
-  ShaderBuilder _missShaderBuilder;
+  std::vector<ShaderBuilder> _missShaderBuilders;
+  std::vector<ShaderBuilder> _closestHitShaderBuilders;
+
+  // TODO: Anyhit, intersection
 };
 
 class ALTHEA_API RayTracingPipeline {
@@ -44,6 +43,15 @@ public:
   operator VkPipeline() const {
     return this->_pipeline;
   }
+
+  uint32_t getMissShaderCount() const {
+    return static_cast<uint32_t>(this->_missShaders.size());
+  }
+
+  uint32_t getClosestHitShaderCount() const {
+    return static_cast<uint32_t>(this->_closestHitShaders.size());
+  }
+
 private:
   struct RayTracingPipelineDeleter {
     void operator()(VkDevice device, VkPipeline pipeline);
@@ -53,10 +61,10 @@ private:
   UniqueVkHandle<VkPipeline, RayTracingPipelineDeleter> _pipeline;
 
   Shader _rayGenShader;
-  Shader _anyHitShader;
-  Shader _intersectionShader;
-  Shader _closestHitShader;
-  Shader _missShader;
+  std::vector<Shader> _missShaders;
+  std::vector<Shader> _closestHitShaders;
+
+  // TODO: Anyhit, intersection
 };
 } // namespace AltheaEngine
 

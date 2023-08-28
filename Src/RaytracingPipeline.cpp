@@ -2,85 +2,109 @@
 
 #include "Application.h"
 
+#include <cstdint>
 #include <stdexcept>
 
 namespace AltheaEngine {
+// TODO: AnyHit and Intersection shaders...
 RayTracingPipeline::RayTracingPipeline(
     Application& app,
     RayTracingPipelineBuilder&& builder)
     : _pipelineLayout(app, builder.layoutBuilder),
-      _rayGenShader(app, builder._rayGenShaderBuilder),
-      //_anyHitShader(app, builder._anyHitShaderBuilder),
-      //_intersectionShader(app, builder._intersectionShaderBuilder),
-      _closestHitShader(app, builder._closestHitShaderBuilder),
-      _missShader(app, builder._missShaderBuilder) {
-  VkPipelineShaderStageCreateInfo shaderStages[5] = {};
-  VkRayTracingShaderGroupCreateInfoKHR shaderGroups[5] = {};
+      _rayGenShader(app, builder._rayGenShaderBuilder) {
+  uint32_t missCount =
+      static_cast<uint32_t>(builder._missShaderBuilders.size());
+  uint32_t hitCount =
+      static_cast<uint32_t>(builder._closestHitShaderBuilders.size());
+
+  if (missCount == 0 || hitCount == 0) {
+    throw std::runtime_error("Cannot create ray tracing pipeline without at "
+                             "least one miss shader and one hit shader!");
+  }
+
+  this->_missShaders.reserve(missCount);
+  for (ShaderBuilder& missBuilder : builder._missShaderBuilders) {
+    this->_missShaders.emplace_back(app, missBuilder);
+  }
+
+  this->_closestHitShaders.reserve(hitCount);
+  for (ShaderBuilder& hitBuilder : builder._closestHitShaderBuilders) {
+    this->_closestHitShaders.emplace_back(app, hitBuilder);
+  }
+
+  uint32_t shaderCount = 1 + missCount + hitCount;
+
+  std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+  shaderStages.reserve(shaderCount);
+  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+  shaderStages.reserve(shaderCount);
+
   // TODO: Can any of these be optional, look into "default" stages.
 
-  // RAY GEN
-  shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[0].module = this->_rayGenShader;
-  shaderStages[0].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-  shaderStages[0].pName = "main";
+  uint32_t shaderIdx = 0;
 
-  shaderGroups[0].sType =
-      VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-  shaderGroups[0].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  shaderGroups[0].generalShader = 0;
-  shaderGroups[0].closestHitShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[0].anyHitShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[0].intersectionShader = VK_SHADER_UNUSED_KHR;
+  // RAY GEN
+  {
+    VkPipelineShaderStageCreateInfo& stage = shaderStages.emplace_back();
+    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage.module = this->_rayGenShader;
+    stage.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    stage.pName = "main";
+
+    VkRayTracingShaderGroupCreateInfoKHR& group = shaderGroups.emplace_back();
+    group.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+    group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+    group.generalShader = shaderIdx++;
+    group.closestHitShader = VK_SHADER_UNUSED_KHR;
+    group.anyHitShader = VK_SHADER_UNUSED_KHR;
+    group.intersectionShader = VK_SHADER_UNUSED_KHR;
+  }
 
   // MISS
-  shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[1].module = this->_missShader;
-  shaderStages[1].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-  shaderStages[1].pName = "main";
+  for (const Shader& missShader : this->_missShaders) {
+    VkPipelineShaderStageCreateInfo& stage = shaderStages.emplace_back();
+    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage.module = missShader;
+    stage.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+    stage.pName = "main";
 
-  shaderGroups[1].sType =
-      VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-  shaderGroups[1].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  shaderGroups[1].generalShader = 1;
-  shaderGroups[1].closestHitShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[1].anyHitShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[1].intersectionShader = VK_SHADER_UNUSED_KHR;
+    VkRayTracingShaderGroupCreateInfoKHR& group = shaderGroups.emplace_back();
+    group.sType =
+        VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+    group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+    group.generalShader = shaderIdx++;
+    group.closestHitShader = VK_SHADER_UNUSED_KHR;
+    group.anyHitShader = VK_SHADER_UNUSED_KHR;
+    group.intersectionShader = VK_SHADER_UNUSED_KHR;
+  }
 
   // CLOSEST HIT
-  shaderStages[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[2].module = this->_closestHitShader;
-  shaderStages[2].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-  shaderStages[2].pName = "main";
+  for (const Shader& closestHitShader : this->_closestHitShaders) {
+    VkPipelineShaderStageCreateInfo& stage = shaderStages.emplace_back();
+    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage.module = closestHitShader;
+    stage.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    stage.pName = "main";
 
-  shaderGroups[2].sType =
-      VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-  shaderGroups[2].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-  shaderGroups[2].generalShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[2].closestHitShader = 2;
-  shaderGroups[2].anyHitShader = VK_SHADER_UNUSED_KHR;
-  shaderGroups[2].intersectionShader = VK_SHADER_UNUSED_KHR;
-
-  // TODO: shader stages and groups for option shaders
-  // TODO: Properly make these two optional
-  // shaderStages[3].sType =
-  // VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; shaderStages[3].module
-  // = this->_anyHitShader; shaderStages[3].stage =
-  // VK_SHADER_STAGE_ANY_HIT_BIT_KHR; shaderStages[3].pName = "main";
-
-  // shaderStages[4].sType =
-  // VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; shaderStages[4].module
-  // = this->_intersectionShader; shaderStages[4].stage =
-  // VK_SHADER_STAGE_INTERSECTION_BIT_KHR; shaderStages[4].pName = "main";
+    VkRayTracingShaderGroupCreateInfoKHR& group = shaderGroups.emplace_back();
+    group.sType =
+        VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+    group.type =
+        VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+    group.generalShader = VK_SHADER_UNUSED_KHR;
+    group.closestHitShader = shaderIdx++;
+    group.anyHitShader = VK_SHADER_UNUSED_KHR;
+    group.intersectionShader = VK_SHADER_UNUSED_KHR;
+  }
 
   VkRayTracingPipelineCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
   createInfo.layout = this->_pipelineLayout;
   createInfo.maxPipelineRayRecursionDepth = 1;
-  createInfo.stageCount = 3; // TODO: This should be 5 if
-  createInfo.pStages = shaderStages;
-  createInfo.groupCount = 3;
-  createInfo.pGroups = shaderGroups;
-  // createInfo.pDynamicState = ...TODO
+  createInfo.stageCount = shaderCount;
+  createInfo.pStages = shaderStages.data();
+  createInfo.groupCount = shaderCount;
+  createInfo.pGroups = shaderGroups.data();
 
   VkDevice device = app.getDevice();
   VkPipeline pipeline;
@@ -108,22 +132,11 @@ void RayTracingPipelineBuilder::setRayGenShader(const std::string& path) {
   this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader);
 }
 
-void RayTracingPipelineBuilder::setAnyHitShader(const std::string& path) {
-  // this->_anyHiShaderBuilder = ShaderBuilder(path, shaderc_anyhit_shader);
+void RayTracingPipelineBuilder::addMissShader(const std::string& path) {
+  this->_missShaderBuilders.emplace_back(path, shaderc_miss_shader);
 }
 
-void RayTracingPipelineBuilder::setIntersectionShader(const std::string& path) {
-  // this->_intersectionShaderBuilder = ShaderBuilder(path,
-  // shaderc_intersection_shader);
+void RayTracingPipelineBuilder::addClosestHitShader(const std::string& path) {
+  this->_closestHitShaderBuilders.emplace_back(path, shaderc_closesthit_shader);
 }
-
-void RayTracingPipelineBuilder::setClosestHitShader(const std::string& path) {
-  this->_closestHitShaderBuilder =
-      ShaderBuilder(path, shaderc_closesthit_shader);
-}
-
-void RayTracingPipelineBuilder::setMissShader(const std::string& path) {
-  this->_missShaderBuilder = ShaderBuilder(path, shaderc_miss_shader);
-}
-
 } // namespace AltheaEngine
