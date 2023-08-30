@@ -31,7 +31,7 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       const std::string& path,
-      DescriptorSetAllocator& materialAllocator);
+      DescriptorSetAllocator* pMaterialAllocator = nullptr);
 
   void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;
@@ -55,6 +55,6 @@ private:
       const CesiumGltf::Model& model,
       const CesiumGltf::Node& node,
       const glm::mat4& transform,
-      DescriptorSetAllocator& materialAllocator);
+      DescriptorSetAllocator* pMaterialAllocator);
 };
 } // namespace AltheaEngine

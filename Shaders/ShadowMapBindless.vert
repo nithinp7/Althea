@@ -1,9 +1,3 @@
-#version 450
-
-#ifdef POINT_LIGHTS_BINDLESS
-#include "ShadowMapBindless.vert"
-#else 
-
 #extension GL_EXT_multiview : enable
 
 layout(location=0) in vec3 position;
@@ -16,10 +10,6 @@ layout(location=4) in vec2 uvs[4];
 layout(location=0) out vec3 worldPosCS;
 layout(location=1) out vec2 baseColorUV;
 
-layout(push_constant) uniform PushConstants {
-  mat4 model;
-} pushConstants;
-
 layout(set=0, binding=0) uniform UniformBufferObject {
   mat4 projection;
   mat4 inverseProjection;
@@ -27,23 +17,16 @@ layout(set=0, binding=0) uniform UniformBufferObject {
   mat4 inverseViews[6];
 } globals;
 
-layout(set=1, binding=0) uniform ConstantBufferObject {
-  vec4 baseColorFactor;
-  vec3 emissiveFactor;
+#define PRIMITIVE_CONSTANTS_SET 1
+// PRIMITIVE_CONSTANTS_BINDING must be defined during compilation
+#include "PrimitiveConstants.glsl"
 
-  int baseTextureCoordinateIndex;
-  int normalMapTextureCoordinateIndex;
-  int metallicRoughnessTextureCoordinateIndex;
-  int occlusionTextureCoordinateIndex;
-  int emissiveTextureCoordinateIndex;
+#define constants primitiveConstants[pushConstants.primId]
 
-  float normalScale;
-  float metallicFactor;
-  float roughnessFactor;
-  float occlusionStrength;
-
-  float alphaCutoff;
-} constants;
+layout(push_constant) uniform PushConstants {
+  mat4 model;
+  int primId;
+} pushConstants;
 
 void main() {
   vec4 csPos = globals.views[gl_ViewIndex] * pushConstants.model * vec4(position, 1.0);
@@ -52,5 +35,3 @@ void main() {
   worldPosCS = csPos.xyz / csPos.w;
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
 }
-
-#endif

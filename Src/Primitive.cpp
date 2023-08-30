@@ -266,13 +266,12 @@ Primitive::Primitive(
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
     const glm::mat4& nodeTransform,
-    DescriptorSetAllocator& materialAllocator)
+    DescriptorSetAllocator* pMaterialAllocator)
     : _device(app.getDevice()),
       _modelTransform(1.0f),
       _relativeTransform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
-      _material(app, materialAllocator) {
-
+      _material() {
   this->_primitiveIndex = currentPrimitiveIndex++;
   
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
@@ -555,13 +554,19 @@ Primitive::Primitive(
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
-  this->_material.assign()
-      .bindInlineConstants(this->_constants)
-      .bindTexture(*this->_textureSlots.pBaseTexture)
-      .bindTexture(*this->_textureSlots.pNormalMapTexture)
-      .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
-      .bindTexture(*this->_textureSlots.pOcclusionTexture)
-      .bindTexture(*this->_textureSlots.pEmissiveTexture);
+  if (pMaterialAllocator)
+  {
+    this->_material = Material(app, *pMaterialAllocator);
+    this->_material.assign()
+        .bindInlineConstants(this->_constants)
+        .bindTexture(*this->_textureSlots.pBaseTexture)
+        .bindTexture(*this->_textureSlots.pNormalMapTexture)
+        .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
+        .bindTexture(*this->_textureSlots.pOcclusionTexture)
+        .bindTexture(*this->_textureSlots.pEmissiveTexture);
+  }
+
+  // If the material allocator is null, assume we are using bindless textures
 }
 
 void Primitive::setModelTransform(const glm::mat4& model) {
@@ -593,7 +598,10 @@ void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  context.bindDescriptorSets(this->_material);
+  if (this->_material)
+    context.bindDescriptorSets(this->_material);
+  else 
+    context.bindDescriptorSets();
   context.updatePushConstants(
       PrimitivePushConstants{ this->_modelTransform * this->_relativeTransform, this->_primitiveIndex },
       0);

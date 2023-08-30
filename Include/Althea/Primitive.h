@@ -148,7 +148,7 @@ public:
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
       const glm::mat4& nodeTransform,
-      DescriptorSetAllocator& materialAllocator);
+      DescriptorSetAllocator* pMaterialAllocator = nullptr);
 
   void setModelTransform(const glm::mat4& model);
   void draw(const DrawContext& context) const;

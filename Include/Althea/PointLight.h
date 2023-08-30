@@ -40,7 +40,14 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       size_t lightCount,
       bool createShadowMap,
-      VkDescriptorSetLayout gltfMaterialLayout);
+      VkDescriptorSetLayout globalSetLayout,
+      // TODO: This info should be held in some sort of global store so it doesn't need to get passed
+      // around everywhere
+      // TODO: This hack is just for backward compat with non-bindless, remove such use cases eventually
+      bool bindless = false,
+      uint32_t primConstBufferBinding = 0, 
+      uint32_t textureHeapBinding = 0,
+      uint32_t textureHeapCount = 0);
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
 
@@ -53,7 +60,8 @@ public:
       Application& app,
       VkCommandBuffer commandBuffer,
       const FrameContext& frame,
-      const std::vector<Model>& models);
+      const std::vector<Model>& models,
+      VkDescriptorSet globalSet = VK_NULL_HANDLE);
   void draw(const DrawContext& context) const;
 
   size_t getByteSize() const { return this->_buffer.getSize(); }
@@ -105,6 +113,8 @@ public:
   }
 
 private:
+  bool _usingBindless;
+
   bool _dirty;
   bool _useShadowMaps;
   std::vector<PointLight> _lights;
