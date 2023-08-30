@@ -16,14 +16,15 @@ namespace AltheaEngine {
 class Application;
 class DescriptorSetAllocator;
 class DescriptorAssignment;
+class TextureHeap;
 
 class ALTHEA_API DescriptorSetLayoutBuilder {
 public:
   DescriptorSetLayoutBuilder() {}
 
   /**
-   * @brief Add an acceleration structure binding to the descriptor set layout. 
-   * 
+   * @brief Add an acceleration structure binding to the descriptor set layout.
+   *
    * @return this builder.
    */
   DescriptorSetLayoutBuilder& addAccelerationStructureBinding(
@@ -55,6 +56,16 @@ public:
    */
   DescriptorSetLayoutBuilder& addTextureBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  /**
+   * @brief Add a texture heap binding to the descriptor set layout.
+   *
+   * @param textureCount The number of textures in the heap.
+   * @param stageFlags The shader stages this binding should be accesible to.
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder&
+  addTextureHeapBinding(uint32_t textureCount, VkShaderStageFlags stageFlags);
 
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
@@ -148,6 +159,9 @@ public:
   DescriptorAssignment&
   bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
 
+  DescriptorAssignment& 
+  bindTextureHeap(TextureHeap& heap);
+
   DescriptorAssignment& bindStorageBuffer(
       const BufferAllocation& allocation,
       size_t bufferOffset,
@@ -204,7 +218,8 @@ public:
       throw std::runtime_error("Unexpected binding in descriptor set.");
     }
 
-    this->_inlineConstantWrites.push_back(new VkWriteDescriptorSetInlineUniformBlock());
+    this->_inlineConstantWrites.push_back(
+        new VkWriteDescriptorSetInlineUniformBlock());
     VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite =
         *this->_inlineConstantWrites.back();
     inlineConstantsWrite.sType =
@@ -240,11 +255,11 @@ private:
 
   // Temporary storage of info needed for descriptor writes
   // TODO: Is there a better way to do this? It looks awkward
-  std::vector<VkWriteDescriptorSetInlineUniformBlock*>
-      _inlineConstantWrites;
+  std::vector<VkWriteDescriptorSetInlineUniformBlock*> _inlineConstantWrites;
   std::vector<VkDescriptorBufferInfo*> _descriptorBufferInfos;
   std::vector<VkDescriptorImageInfo*> _descriptorImageInfos;
-  std::vector<VkWriteDescriptorSetAccelerationStructureKHR*> _descriptorAccelerationStructures;
+  std::vector<VkWriteDescriptorSetAccelerationStructureKHR*>
+      _descriptorAccelerationStructures;
   std::vector<VkAccelerationStructureKHR*> _accelerationStructures;
 };
 

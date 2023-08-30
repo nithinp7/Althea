@@ -1,6 +1,7 @@
 #include "DescriptorSet.h"
 
 #include "Application.h"
+#include "TextureHeap.h"
 
 #include <cassert>
 #include <stdexcept>
@@ -52,6 +53,20 @@ DescriptorSetLayoutBuilder::addTextureBinding(VkShaderStageFlags stageFlags) {
   VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
   binding.binding = bindingIndex;
   binding.descriptorCount = 1;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addTextureHeapBinding(
+    uint32_t textureCount,
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = textureCount;
   binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   binding.pImmutableSamplers = nullptr;
   binding.stageFlags = stageFlags;
@@ -194,6 +209,23 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
   return *this;
 }
 
+DescriptorAssignment& DescriptorAssignment::bindTextureHeap(TextureHeap& heap) {
+  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+    throw std::runtime_error(
+        "Exceeded expected number of bindings in descriptor set.");
+  }
+
+  if (this->_bindings[this->_currentIndex].descriptorType !=
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+    throw std::runtime_error("Unexpected binding in descriptor set.");
+  }
+
+  heap.updateSetAndBinding(
+      this->_device,
+      this->_descriptorSet,
+      this->_currentIndex++);
+}
+
 DescriptorAssignment& DescriptorAssignment::bindStorageImage(
     VkImageView imageView,
     VkSampler sampler) {
@@ -230,7 +262,6 @@ DescriptorAssignment& DescriptorAssignment::bindStorageImage(
   return *this;
 }
 
-// TODO: Do we need to bind multiple?? TLAS vs BLAS??
 DescriptorAssignment& DescriptorAssignment::bindAccelerationStructure(
     VkAccelerationStructureKHR accelerationStructure) {
   if ((size_t)this->_currentIndex >= this->_bindings.size()) {
@@ -255,7 +286,8 @@ DescriptorAssignment& DescriptorAssignment::bindAccelerationStructure(
   accelerationStructureInfo.sType =
       VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
   accelerationStructureInfo.accelerationStructureCount = 1;
-  accelerationStructureInfo.pAccelerationStructures = this->_accelerationStructures.back();
+  accelerationStructureInfo.pAccelerationStructures =
+      this->_accelerationStructures.back();
 
   VkWriteDescriptorSet& descriptorWrite =
       this->_descriptorWrites[this->_currentIndex];

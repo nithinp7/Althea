@@ -94,6 +94,10 @@ public:
     return this->_indexBuffer.getIndices();
   }
 
+  const TextureSlots& getTextures() const {
+    return this->_textureSlots;
+  }
+
   AABB computeWorldAABB() const;
 
   const AABB& getAABB() const {
