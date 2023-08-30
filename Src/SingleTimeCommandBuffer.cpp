@@ -58,7 +58,6 @@ VkBuffer SingleTimeCommandBuffer::createStagingBuffer(
     gsl::span<const std::byte> buffer) {
   this->_stagingBuffers.push_back(BufferUtilities::createStagingBuffer(
       app,
-      this->_commandBuffer,
       buffer));
   return this->_stagingBuffers.back().getBuffer();
 }

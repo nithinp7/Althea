@@ -2,7 +2,6 @@
 
 #include "Application.h"
 #include "RayTracingPipeline.h"
-#include "SingleTimeCommandBuffer.h"
 
 #include <stdexcept>
 #include <cstdint>
@@ -14,7 +13,6 @@ static uint32_t alignUp(uint32_t size, uint32_t align) {
 namespace AltheaEngine {
 ShaderBindingTable::ShaderBindingTable(
     Application& app,
-    VkCommandBuffer commandBuffer,
     const RayTracingPipeline& pipeline) {
   
     uint32_t baseAlignment =
@@ -67,7 +65,6 @@ ShaderBindingTable::ShaderBindingTable(
 
     this->_sbt = BufferUtilities::createBuffer(
         app,
-        commandBuffer,
         sbtSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |

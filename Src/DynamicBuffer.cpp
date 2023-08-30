@@ -27,7 +27,6 @@ DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
 
 DynamicBuffer::DynamicBuffer(
     const Application& app,
-    VkCommandBuffer commandBuffer,
     VkBufferUsageFlags usage,
     size_t bufferSize,
     size_t offsetAlignment)
@@ -43,7 +42,6 @@ DynamicBuffer::DynamicBuffer(
 
   this->_allocation = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       this->_bufferSize * app.getMaxFramesInFlight(),
       usage,
       deviceAllocInfo);

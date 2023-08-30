@@ -24,7 +24,6 @@ void BufferUtilities::copyBuffer(
 /*static*/
 BufferAllocation BufferUtilities::createBuffer(
     const Application& app,
-    VkCommandBuffer commandBuffer,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
     const VmaAllocationCreateInfo& allocInfo) {
@@ -40,7 +39,6 @@ BufferAllocation BufferUtilities::createBuffer(
 /*static*/
 BufferAllocation BufferUtilities::createStagingBuffer(
     const Application& app,
-    VkCommandBuffer commandBuffer,
     size_t bufferSize) {
   VmaAllocationCreateInfo stagingInfo{};
   stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -48,7 +46,6 @@ BufferAllocation BufferUtilities::createStagingBuffer(
 
   return createBuffer(
       app,
-      commandBuffer,
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       stagingInfo);
@@ -57,10 +54,9 @@ BufferAllocation BufferUtilities::createStagingBuffer(
 /*static*/
 BufferAllocation BufferUtilities::createStagingBuffer(
     const Application& app,
-    VkCommandBuffer commandBuffer,
     gsl::span<const std::byte> srcBuffer) {
   BufferAllocation stagingBuffer =
-      createStagingBuffer(app, commandBuffer, srcBuffer.size());
+      createStagingBuffer(app, srcBuffer.size());
 
   void* data = stagingBuffer.mapMemory();
   memcpy(data, srcBuffer.data(), srcBuffer.size());

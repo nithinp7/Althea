@@ -23,7 +23,6 @@ PointLightCollection::PointLightCollection(
       _lights(),
       _buffer(
           app,
-          commandBuffer,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
           lightCount * sizeof(PointLight),
           app.getPhysicalDeviceProperties()
@@ -48,7 +47,7 @@ PointLightCollection::PointLightCollection(
 
     for (size_t i = 0; i < lightCount; ++i) {
       this->_shadowResources.emplace_back(app, shadowLayoutBuilder);
-      this->_shadowUniforms.emplace_back(app, commandBuffer);
+      this->_shadowUniforms.emplace_back(app);
       this->_shadowResources.back().assign().bindTransientUniforms(
           this->_shadowUniforms.back());
     }

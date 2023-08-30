@@ -37,7 +37,6 @@ public:
 
     this->_allocation = BufferUtilities::createBuffer(
         app,
-        commandBuffer,
         verticesView.size(),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |

@@ -68,7 +68,6 @@ AccelerationStructure::AccelerationStructure(
 
   this->_transformBuffer = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       sizeof(VkTransformMatrixKHR) * primCount,
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -174,7 +173,6 @@ AccelerationStructure::AccelerationStructure(
 
       this->_blasBuffers.emplace_back(BufferUtilities::createBuffer(
           app,
-          commandBuffer,
           blasBuildSizes.accelerationStructureSize,
           VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -186,7 +184,6 @@ AccelerationStructure::AccelerationStructure(
 
         blasScratchBuffers.emplace_back(BufferUtilities::createBuffer(
             app,
-            commandBuffer,
             blasScratchBufferSize,
             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
@@ -320,7 +317,6 @@ AccelerationStructure::AccelerationStructure(
 
   this->_tlasInstances = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       sizeof(VkAccelerationStructureInstanceKHR),
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -371,7 +367,6 @@ AccelerationStructure::AccelerationStructure(
 
   this->_tlasBuffer = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       tlasBuildSizes.accelerationStructureSize,
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -379,7 +374,6 @@ AccelerationStructure::AccelerationStructure(
 
   BufferAllocation tlasScratchBuffer = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       tlasBuildSizes.buildScratchSize,
       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,

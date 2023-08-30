@@ -43,7 +43,6 @@ void saveHdriImage(
 
   BufferAllocation stagingBuffer = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       width * height * 32 * 4,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       stagingAllocInfo);
