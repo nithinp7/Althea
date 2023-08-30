@@ -19,6 +19,8 @@
 #include <string>
 
 namespace AltheaEngine {
+static int currentPrimitiveIndex = 0;
+
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
@@ -265,6 +267,8 @@ Primitive::Primitive(
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material(app, materialAllocator) {
 
+  this->_constants.primitiveIndex = currentPrimitiveIndex++;
+  
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;

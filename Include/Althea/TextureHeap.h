@@ -25,14 +25,14 @@ public:
   uint32_t getSize() const { return this->_size; }
   uint32_t getCaacity() const { return this->_capacity; }
 
-  void
-  updateSetAndBinding(VkDevice device, VkDescriptorSet set, uint32_t binding);
+  const std::vector<VkDescriptorImageInfo>& getImageInfos() {
+    return this->_imageInfos;
+  }
 
 private:
-  void _initDescriptorWrite(const Texture& texture, uint32_t slotIdx);
+  void _initImageInfo(const Texture& texture, uint32_t slotIdx);
 
   std::vector<VkDescriptorImageInfo> _imageInfos{};
-  std::vector<VkWriteDescriptorSet> _descriptorWrites{};
 
   uint32_t _size;
   uint32_t _capacity;

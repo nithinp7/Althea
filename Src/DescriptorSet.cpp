@@ -220,10 +220,22 @@ DescriptorAssignment& DescriptorAssignment::bindTextureHeap(TextureHeap& heap) {
     throw std::runtime_error("Unexpected binding in descriptor set.");
   }
 
-  heap.updateSetAndBinding(
-      this->_device,
-      this->_descriptorSet,
-      this->_currentIndex++);
+  const std::vector<VkDescriptorImageInfo>& imageInfos = heap.getImageInfos();
+
+  VkWriteDescriptorSet& descriptorWrite =
+      this->_descriptorWrites[this->_currentIndex];
+  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrite.dstSet = this->_descriptorSet;
+  descriptorWrite.dstBinding = this->_currentIndex;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+  descriptorWrite.pBufferInfo = nullptr;
+  descriptorWrite.pImageInfo = imageInfos.data();
+  descriptorWrite.pTexelBufferView = nullptr;
+
+  ++this->_currentIndex;
+  return *this;
 }
 
 DescriptorAssignment& DescriptorAssignment::bindStorageImage(

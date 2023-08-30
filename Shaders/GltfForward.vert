@@ -37,6 +37,8 @@ layout(set=1, binding=0) uniform ConstantBufferObject {
   float occlusionStrength;
 
   float alphaCutoff;
+
+  int primId;
 } constants;
 
 layout(push_constant) uniform PushConstants {

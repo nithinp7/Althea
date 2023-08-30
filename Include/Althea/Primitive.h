@@ -61,6 +61,8 @@ struct ALTHEA_API PrimitiveConstants {
   float occlusionStrength = 1.0f;
 
   float alphaCutoff = 0.5f;
+
+  int primitiveIndex = 0;
 };
 
 struct ALTHEA_API TextureSlots {
