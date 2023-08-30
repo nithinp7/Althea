@@ -19,6 +19,8 @@ public:
   StructuredBuffer() = default;
 
   StructuredBuffer(const Application& app, uint32_t count) {
+    this->_structureArray.resize(count);
+
     // TODO: This assumes that the uniform buffer will be _often_ rewritten
     // and perhaps in a random pattern. We should prefer a different type of
     // memory if the uniform buffer will mostly be persistent.
@@ -29,7 +31,7 @@ public:
     this->_allocation = BufferUtilities::createBuffer(
         app,
         sizeof(TElement) * count,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         allocInfo);
   }
 
@@ -37,18 +39,25 @@ public:
     this->_structureArray[i] = element;
   }
 
-  void upload(VkCommandBuffer commandBuffer) const {
+  void upload() const {
     void* pData = this->_allocation.mapMemory();
-    memcpy(pData, this->_structureArray.data(), this->_structureArray.size() * sizeof(TElement));
+    memcpy(
+        pData,
+        this->_structureArray.data(),
+        this->_structureArray.size() * sizeof(TElement));
     this->_allocation.unmapMemory();
   }
 
-  const TElement& getElement(uint32_t i) const { return this->_structureArray[i]; }
+  const TElement& getElement(uint32_t i) const {
+    return this->_structureArray[i];
+  }
 
   const BufferAllocation& getAllocation() const { return this->_allocation; }
 
   size_t getCount() const { return this->_structureArray.size(); }
-  size_t getByteSize() const { return this->_structureArray.size() * sizeof(TElement); }
+  size_t getSize() const {
+    return this->_structureArray.size() * sizeof(TElement);
+  }
 
 private:
   std::vector<TElement> _structureArray;

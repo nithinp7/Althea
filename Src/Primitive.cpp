@@ -21,6 +21,12 @@
 namespace AltheaEngine {
 static int currentPrimitiveIndex = 0;
 
+namespace {
+struct PrimitivePushConstants {
+  glm::mat4 model{};
+  int primitiveId{};
+};
+} // namespace 
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
@@ -102,7 +108,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.enableDynamicFrontFace();
 
   // Add push constants for updating model transform
-  builder.layoutBuilder.addPushConstants<glm::mat4>();
+  builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
 }
 
 /*static*/
@@ -267,7 +273,7 @@ Primitive::Primitive(
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material(app, materialAllocator) {
 
-  this->_constants.primitiveIndex = currentPrimitiveIndex++;
+  this->_primitiveIndex = currentPrimitiveIndex++;
   
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
@@ -419,10 +425,11 @@ Primitive::Primitive(
         uvCount,
         true);
 
-    this->_constants.emissiveFactor = glm::vec3(
+    this->_constants.emissiveFactor = glm::vec4(
         static_cast<float>(material.emissiveFactor[0]),
         static_cast<float>(material.emissiveFactor[1]),
-        static_cast<float>(material.emissiveFactor[2]));
+        static_cast<float>(material.emissiveFactor[2]),
+        1.0f);
 
     this->_constants.alphaCutoff = static_cast<float>(material.alphaCutoff);
   }
@@ -588,7 +595,7 @@ void Primitive::draw(const DrawContext& context) const {
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
   context.bindDescriptorSets(this->_material);
   context.updatePushConstants(
-      this->_modelTransform * this->_relativeTransform,
+      PrimitivePushConstants{ this->_modelTransform * this->_relativeTransform, this->_primitiveIndex },
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }

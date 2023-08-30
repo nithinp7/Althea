@@ -47,7 +47,7 @@ struct ALTHEA_API AABB {
 // TODO: validate alignment, may be too big for inline block
 struct ALTHEA_API PrimitiveConstants {
   glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
-  glm::vec3 emissiveFactor{};
+  glm::vec4 emissiveFactor{};
 
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
@@ -62,7 +62,8 @@ struct ALTHEA_API PrimitiveConstants {
 
   float alphaCutoff = 0.5f;
 
-  int primitiveIndex = 0;
+  float padding1;
+  float padding2;
 };
 
 struct ALTHEA_API TextureSlots {
@@ -79,6 +80,10 @@ class ALTHEA_API Primitive {
 public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
+
+  const PrimitiveConstants& getConstants() const {
+    return this->_constants;
+  }
 
   const VertexBuffer<Vertex>& getVertexBuffer() const {
     return this->_vertexBuffer;
@@ -114,12 +119,18 @@ public:
     return this->_relativeTransform;
   }
 
+  int getPrimitiveIndex() const {
+    return this->_primitiveIndex;
+  }
+
 private:
   VkDevice _device;
 
   glm::mat4 _modelTransform;
   glm::mat4 _relativeTransform;
   bool _flipFrontFace = false;
+
+  int _primitiveIndex;
 
   PrimitiveConstants _constants;
   TextureSlots _textureSlots;

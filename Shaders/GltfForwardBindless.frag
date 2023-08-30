@@ -23,25 +23,16 @@ layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
 layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
 
-layout(set=1, binding=0) uniform ConstantBufferObject {
-  vec4 baseColorFactor;
-  vec3 emissiveFactor;
+#define PRIMITIVE_CONSTANTS_SET 0
+#define PRIMITIVE_CONSTANTS_BINDING 8
+#include "PrimitiveConstants.glsl"
 
-  int baseTextureCoordinateIndex;
-  int normalMapTextureCoordinateIndex;
-  int metallicRoughnessTextureCoordinateIndex;
-  int occlusionTextureCoordinateIndex;
-  int emissiveTextureCoordinateIndex;
-
-  float normalScale;
-  float metallicFactor;
-  float roughnessFactor;
-  float occlusionStrength;
-
-  float alphaCutoff;
-
+layout(push_constant) uniform PushConstants {
+  mat4 model;
   int primId;
-} constants;
+} pushConstants;
+
+#define constants primitiveConstants[pushConstants.primId]
 
 // layout(set=1, binding=1) uniform sampler2D baseColorTexture;
 // layout(set=1, binding=2) uniform sampler2D normalMapTexture;
@@ -49,11 +40,11 @@ layout(set=1, binding=0) uniform ConstantBufferObject {
 // layout(set=1, binding=4) uniform sampler2D occlusionTexture;
 // layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
-#define baseColorTexture textureHeap[5*constants.primId+0]
-#define normalMapTexture textureHeap[5*constants.primId+1]
-#define metallicRoughnessTexture textureHeap[5*constants.primId+2]
-#define occlusionTexture textureHeap[5*constants.primId+3]
-#define emissiveTexture textureHeap[5*constants.primId+4]
+#define baseColorTexture textureHeap[5*pushConstants.primId+0]
+#define normalMapTexture textureHeap[5*pushConstants.primId+1]
+#define metallicRoughnessTexture textureHeap[5*pushConstants.primId+2]
+#define occlusionTexture textureHeap[5*pushConstants.primId+3]
+#define emissiveTexture textureHeap[5*pushConstants.primId+4]
 
 void main() {
   GBuffer_Albedo = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
