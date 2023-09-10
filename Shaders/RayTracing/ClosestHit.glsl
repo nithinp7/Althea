@@ -29,8 +29,9 @@ struct Vertex {
   vec2 uvs[4];
 };
 
-layout(set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
-layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
+#extension GL_EXT_scalar_block_layout : enable
+layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
+layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
 
 void main() {
     vec3 bc = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
@@ -47,10 +48,11 @@ void main() {
      
     PrimitiveConstants primInfo = primitiveConstants[gl_InstanceCustomIndexEXT];
     // TODO: generalize
-    int i = 0;//primInfo.baseTextureCoordinateIndex;
-    vec2 uv = v0.uvs[i];// * bc.x + v1.uvs[i] * bc.y + v2.uvs[i] * bc.z;
+    int i = 0;//\primInfo.baseTextureCoordinateIndex;
+    vec2 uv = v0.uvs[i] * bc.x + v1.uvs[i] * bc.y + v2.uvs[i] * bc.z;
 
+    // vec3 color = vec3(float(gl_PrimitiveID % 1000) / 1000.0);//texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
     vec3 color = texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
 
-    payload = vec4(uv, 0.0, 1.0);
+    payload = vec4(color, 1.0);
 }

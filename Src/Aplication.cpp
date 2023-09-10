@@ -15,14 +15,21 @@
 
 namespace AltheaEngine {
 
-PFN_vkCreateAccelerationStructureKHR Application::vkCreateAccelerationStructureKHR;
-PFN_vkDestroyAccelerationStructureKHR Application::vkDestroyAccelerationStructureKHR;
-PFN_vkGetAccelerationStructureBuildSizesKHR Application::vkGetAccelerationStructureBuildSizesKHR;
-PFN_vkGetAccelerationStructureDeviceAddressKHR Application::vkGetAccelerationStructureDeviceAddressKHR;
-PFN_vkCmdBuildAccelerationStructuresKHR Application::vkCmdBuildAccelerationStructuresKHR;
-PFN_vkBuildAccelerationStructuresKHR Application::vkBuildAccelerationStructuresKHR;
+PFN_vkCreateAccelerationStructureKHR
+    Application::vkCreateAccelerationStructureKHR;
+PFN_vkDestroyAccelerationStructureKHR
+    Application::vkDestroyAccelerationStructureKHR;
+PFN_vkGetAccelerationStructureBuildSizesKHR
+    Application::vkGetAccelerationStructureBuildSizesKHR;
+PFN_vkGetAccelerationStructureDeviceAddressKHR
+    Application::vkGetAccelerationStructureDeviceAddressKHR;
+PFN_vkCmdBuildAccelerationStructuresKHR
+    Application::vkCmdBuildAccelerationStructuresKHR;
+PFN_vkBuildAccelerationStructuresKHR
+    Application::vkBuildAccelerationStructuresKHR;
 PFN_vkCmdTraceRaysKHR Application::vkCmdTraceRaysKHR;
-PFN_vkGetRayTracingShaderGroupHandlesKHR Application::vkGetRayTracingShaderGroupHandlesKHR;
+PFN_vkGetRayTracingShaderGroupHandlesKHR
+    Application::vkGetRayTracingShaderGroupHandlesKHR;
 PFN_vkCreateRayTracingPipelinesKHR Application::vkCreateRayTracingPipelinesKHR;
 
 std::string GProjectDirectory = "";
@@ -335,16 +342,20 @@ void Application::createInstance() {
   //         vkGetInstanceProcAddr(instance, "vkGetBufferDeviceAddressKHR"));
   // vkCmdBuildAccelerationStructuresKHR =
   //     reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
-  //         vkGetInstanceProcAddr(instance, "vkCmdBuildAccelerationStructuresKHR"));
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkCmdBuildAccelerationStructuresKHR"));
   // vkBuildAccelerationStructuresKHR =
   //     reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(
-  //         vkGetInstanceProcAddr(instance, "vkBuildAccelerationStructuresKHR"));
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkBuildAccelerationStructuresKHR"));
   // vkCreateAccelerationStructureKHR =
   //     reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
-  //         vkGetInstanceProcAddr(instance, "vkCreateAccelerationStructureKHR"));
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkCreateAccelerationStructureKHR"));
   // vkDestroyAccelerationStructureKHR =
   //     reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
-  //         vkGetInstanceProcAddr(instance, "vkDestroyAccelerationStructureKHR"));
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkDestroyAccelerationStructureKHR"));
   // vkGetAccelerationStructureBuildSizesKHR =
   //     reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
   //         vkGetInstanceProcAddr(
@@ -359,7 +370,8 @@ void Application::createInstance() {
   //     vkGetInstanceProcAddr(instance, "vkCmdTraceRaysKHR"));
   // vkGetRayTracingShaderGroupHandlesKHR =
   //     reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
-  //         vkGetInstanceProcAddr(instance, "vkGetRayTracingShaderGroupHandlesKHR"));
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkGetRayTracingShaderGroupHandlesKHR"));
   // vkCreateRayTracingPipelinesKHR =
   //     reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
   //         vkGetInstanceProcAddr(instance, "vkCreateRayTracingPipelinesKHR"));
@@ -469,15 +481,18 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
 
+  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+
   deviceFeatures.pNext = &multiviewFeatures;
   multiviewFeatures.pNext = &inlineBlockFeatures;
   inlineBlockFeatures.pNext = &accelFeature;
   accelFeature.pNext = &rtPipelineFeature;
   rtPipelineFeature.pNext = &bufferDevAddrFeature;
+  bufferDevAddrFeature.pNext = &scalarBlockLayoutFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
-
 
   return indices.isComplete() && extensionsSupported && swapChainAdequete &&
          deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
@@ -490,7 +505,8 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          // accelFeature.accelerationStructureHostCommands &&
          //  accelFeature.accelerationStructureIndirectBuild && ??
          rtPipelineFeature.rayTracingPipeline &&
-         bufferDevAddrFeature.bufferDeviceAddress;
+         bufferDevAddrFeature.bufferDeviceAddress &&
+         scalarBlockLayoutFeatures.scalarBlockLayout;
   //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
   //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
@@ -518,10 +534,12 @@ void Application::pickPhysicalDevice() {
   }
 
   vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-  
-  rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 
-  VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+  rayTracingProperties.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+
+  VkPhysicalDeviceProperties2 prop2{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   prop2.pNext = &rayTracingProperties;
   vkGetPhysicalDeviceProperties2(physicalDevice, &prop2);
 }
@@ -577,6 +595,11 @@ void Application::createLogicalDevice() {
   bufferDevAddrFeature.bufferDeviceAddress = true;
   bufferDevAddrFeature.pNext = &rtPipelineFeature;
 
+  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+  scalarBlockLayoutFeatures.scalarBlockLayout = true;
+  scalarBlockLayoutFeatures.pNext = &bufferDevAddrFeature;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.queueCreateInfoCount =
@@ -589,7 +612,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &bufferDevAddrFeature;
+  createInfo.pNext = &scalarBlockLayoutFeatures;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
