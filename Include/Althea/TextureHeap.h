@@ -7,13 +7,11 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
-#include <memory>
 #include <vector>
 
 namespace AltheaEngine {
 class Application;
 class Model;
-class Texture;
 
 class TextureHeap {
   friend class DescriptorAssignment;
@@ -23,7 +21,7 @@ public:
   TextureHeap(const std::vector<Model>& models);
 
   uint32_t getSize() const { return this->_size; }
-  uint32_t getCaacity() const { return this->_capacity; }
+  uint32_t getCapacity() const { return this->_capacity; }
 
   const std::vector<VkDescriptorImageInfo>& getImageInfos() {
     return this->_imageInfos;

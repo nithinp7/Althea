@@ -29,6 +29,8 @@ public:
 
   ResourcesAssignment& bindTextureHeap(TextureHeap& textureHeap);
 
+  ResourcesAssignment& bindBufferHeap(BufferHeap& bufferHeap);
+
   ResourcesAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
 

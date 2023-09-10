@@ -128,15 +128,15 @@ void RayTracingPipeline::RayTracingPipelineDeleter::operator()(
   vkDestroyPipeline(device, rayTracingPipeline, nullptr);
 }
 
-void RayTracingPipelineBuilder::setRayGenShader(const std::string& path) {
-  this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader);
+void RayTracingPipelineBuilder::setRayGenShader(const std::string& path, const ShaderDefines& defs) {
+  this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader, defs);
 }
 
-void RayTracingPipelineBuilder::addMissShader(const std::string& path) {
-  this->_missShaderBuilders.emplace_back(path, shaderc_miss_shader);
+void RayTracingPipelineBuilder::addMissShader(const std::string& path, const ShaderDefines& defs) {
+  this->_missShaderBuilders.emplace_back(path, shaderc_miss_shader, defs);
 }
 
-void RayTracingPipelineBuilder::addClosestHitShader(const std::string& path) {
-  this->_closestHitShaderBuilders.emplace_back(path, shaderc_closesthit_shader);
+void RayTracingPipelineBuilder::addClosestHitShader(const std::string& path, const ShaderDefines& defs) {
+  this->_closestHitShaderBuilders.emplace_back(path, shaderc_closesthit_shader, defs);
 }
 } // namespace AltheaEngine

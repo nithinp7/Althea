@@ -17,6 +17,7 @@ class Application;
 class DescriptorSetAllocator;
 class DescriptorAssignment;
 class TextureHeap;
+class BufferHeap;
 
 class ALTHEA_API DescriptorSetLayoutBuilder {
 public:
@@ -66,6 +67,16 @@ public:
    */
   DescriptorSetLayoutBuilder&
   addTextureHeapBinding(uint32_t textureCount, VkShaderStageFlags stageFlags);
+
+  /**
+   * @brief Add a buffer heap binding to the descriptor set layout.
+   *
+   * @param bufferCount The number of buffers in the heap.
+   * @param stageFlags The shader stages this binding should be accesible to.
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder&
+  addBufferHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
 
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
@@ -161,6 +172,9 @@ public:
 
   DescriptorAssignment& 
   bindTextureHeap(TextureHeap& heap);
+  
+  DescriptorAssignment& 
+  bindBufferHeap(BufferHeap& heap);
 
   DescriptorAssignment& bindStorageBuffer(
       const BufferAllocation& allocation,

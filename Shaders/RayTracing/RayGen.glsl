@@ -7,14 +7,14 @@
 
 layout(location = 0) rayPayloadEXT vec4 payload;
 
-layout(set=0, binding=0) uniform accelerationStructureEXT acc;
-
 #define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 1
+#define GLOBAL_UNIFORMS_BINDING 4
 #include <GlobalUniforms.glsl>
 
+layout(set=1, binding=0) uniform accelerationStructureEXT acc;
+
 // Output image
-layout(set=0, binding=2) uniform writeonly image2D img;
+layout(set=1, binding=1) uniform writeonly image2D img;
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
   const vec2 pixelCenter = vec2(launchID.xy) + vec2(0.5);
