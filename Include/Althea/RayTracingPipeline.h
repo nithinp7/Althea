@@ -34,7 +34,7 @@ private:
 
 class ALTHEA_API RayTracingPipeline {
 public:
-  RayTracingPipeline(Application& app, RayTracingPipelineBuilder&& builder);
+  RayTracingPipeline(const Application& app, RayTracingPipelineBuilder&& builder);
 
   VkPipelineLayout getLayout() const {
     return this->_pipelineLayout;

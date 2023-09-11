@@ -36,6 +36,7 @@ public:
   void bindTexture(ResourcesAssignment& assignment) const;
 
   const ImageView& getReflectionBufferTargetView() const { return this->_mipViews[0]; }
+  const Sampler& getReflectionBufferTargetSampler() const { return this->_mipSampler; }
 private:
   std::unique_ptr<ComputePipeline> _pConvolutionPass;
   std::unique_ptr<DescriptorSetAllocator> _pConvolutionMaterialAllocator;

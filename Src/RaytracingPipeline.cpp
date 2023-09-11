@@ -8,7 +8,7 @@
 namespace AltheaEngine {
 // TODO: AnyHit and Intersection shaders...
 RayTracingPipeline::RayTracingPipeline(
-    Application& app,
+    const Application& app,
     RayTracingPipelineBuilder&& builder)
     : _pipelineLayout(app, builder.layoutBuilder),
       _rayGenShader(app, builder._rayGenShaderBuilder) {

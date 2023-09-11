@@ -13,7 +13,7 @@ class ALTHEA_API ShaderBindingTable {
 public:
   ShaderBindingTable() = default;
   ShaderBindingTable(
-      Application& app,
+      const Application& app,
       const RayTracingPipeline& pipeline);
 
   VkBuffer getBuffer() const { return this->_sbt.getBuffer(); }

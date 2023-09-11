@@ -12,7 +12,7 @@ static uint32_t alignUp(uint32_t size, uint32_t align) {
 
 namespace AltheaEngine {
 ShaderBindingTable::ShaderBindingTable(
-    Application& app,
+    const Application& app,
     const RayTracingPipeline& pipeline) {
   
     uint32_t baseAlignment =
