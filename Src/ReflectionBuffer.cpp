@@ -138,10 +138,45 @@ void ReflectionBuffer::transitionToAttachment(
       &barrier);
 }
 
+void ReflectionBuffer::transitionToStorageImageWrite(
+    VkCommandBuffer commandBuffer,
+    VkPipelineStageFlags dstPipelineStageFlags) {
+  // Only the first mip needs to be transitioned to be a target
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.image = this->_reflectionBuffer.image;
+  barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  vkCmdPipelineBarrier(
+      commandBuffer,
+      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+      dstPipelineStageFlags,
+      0,
+      0,
+      nullptr,
+      0,
+      nullptr,
+      1,
+      &barrier);
+}
+
 void ReflectionBuffer::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    const FrameContext& context) {
+    const FrameContext& context,
+    VkImageLayout prevLayout,
+    VkAccessFlags prevAccess,
+    VkPipelineStageFlags srcStage) {
 
   this->_pConvolutionPass->bindPipeline(commandBuffer);
 
@@ -180,9 +215,9 @@ void ReflectionBuffer::convolveReflectionBuffer(
   VkImageMemoryBarrier readBarrier{};
   readBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   readBarrier.image = this->_reflectionBuffer.image;
-  readBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  readBarrier.oldLayout = prevLayout;
   readBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  readBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  readBarrier.srcAccessMask = prevAccess;
   readBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
   readBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   readBarrier.subresourceRange.baseMipLevel = 0;
@@ -192,7 +227,6 @@ void ReflectionBuffer::convolveReflectionBuffer(
   readBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   readBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
   uint32_t previousMipWidth = imageDetails.width;

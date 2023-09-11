@@ -31,7 +31,6 @@ public:
       VkCommandBuffer commandBuffer,
       VkDescriptorSetLayout globalSetLayout,
       const GBufferResources& gBuffer);
-  void transitionToAttachment(VkCommandBuffer commandBuffer);
   void captureReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,

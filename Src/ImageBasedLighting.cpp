@@ -577,16 +577,16 @@ IBLResources createResources(
   return resources;
 }
 
-void buildLayout(DescriptorSetLayoutBuilder& layoutBuilder) {
+void buildLayout(DescriptorSetLayoutBuilder& layoutBuilder, VkShaderStageFlags shaderStages) {
   layoutBuilder
       // Add slot for environmentMap
-      .addTextureBinding()
+      .addTextureBinding(shaderStages)
       // Add slot for prefiltered map
-      .addTextureBinding()
+      .addTextureBinding(shaderStages)
       // Add slot for irradianceMap
-      .addTextureBinding()
+      .addTextureBinding(shaderStages)
       // BRDF LUT
-      .addTextureBinding();
+      .addTextureBinding(shaderStages);
 }
 } // namespace ImageBasedLighting
 } // namespace AltheaEngine

@@ -60,18 +60,14 @@ RayTracedReflection::RayTracedReflection(
   this->_sbt = ShaderBindingTable(app, *this->_pReflectionPass);
 }
 
-void RayTracedReflection::transitionToAttachment(
-    VkCommandBuffer commandBuffer) {
-  this->_reflectionBuffer.transitionToAttachment(commandBuffer);
-}
-
 void RayTracedReflection::captureReflection(
     const Application& app,
     VkCommandBuffer commandBuffer,
     VkDescriptorSet globalSet,
     const FrameContext& context) {
-  // TODO make transition private function?
-  this->transitionToAttachment(commandBuffer);
+  this->_reflectionBuffer.transitionToStorageImageWrite(
+      commandBuffer,
+      VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
 
   vkCmdBindPipeline(
       commandBuffer,
@@ -99,7 +95,7 @@ void RayTracedReflection::captureReflection(
         &this->_sbt.getMissRegion(),
         &this->_sbt.getHitRegion(),
         &this->_sbt.getCallRegion(),
-        extent.width, // 1080,
+        extent.width,  // 1080,
         extent.height, // 960,
         1);
   }
@@ -109,7 +105,13 @@ void RayTracedReflection::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& context) {
-  this->_reflectionBuffer.convolveReflectionBuffer(app, commandBuffer, context);
+  this->_reflectionBuffer.convolveReflectionBuffer(
+      app,
+      commandBuffer,
+      context,
+      VK_IMAGE_LAYOUT_GENERAL,
+      VK_ACCESS_SHADER_WRITE_BIT,
+      VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
 }
 
 void RayTracedReflection::bindTexture(ResourcesAssignment& assignment) const {

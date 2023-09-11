@@ -26,6 +26,8 @@ IBLResources createResources(
     SingleTimeCommandBuffer& commandBuffer,
     const std::string& envMapName);
 
-void buildLayout(DescriptorSetLayoutBuilder& layoutBuilder);
+void buildLayout(
+    DescriptorSetLayoutBuilder& layoutBuilder,
+    VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL);
 } // namespace ImageBasedLighting
 } // namespace AltheaEngine

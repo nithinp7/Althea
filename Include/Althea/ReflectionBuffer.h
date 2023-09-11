@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ComputePipeline.h"
 #include "DeferredRendering.h"
 #include "DescriptorSet.h"
 #include "FrameBuffer.h"
@@ -9,11 +10,10 @@
 #include "ImageResource.h"
 #include "ImageView.h"
 #include "Library.h"
+#include "PerFrameResources.h"
 #include "RenderPass.h"
 #include "ResourcesAssignment.h"
 #include "Sampler.h"
-#include "ComputePipeline.h"
-#include "PerFrameResources.h"
 
 #include <vulkan/vulkan.h>
 
@@ -25,18 +25,27 @@ class Application;
 class ReflectionBuffer {
 public:
   ReflectionBuffer() = default;
-  ReflectionBuffer(
-      const Application& app,
-      VkCommandBuffer commandBuffer);
+  ReflectionBuffer(const Application& app, VkCommandBuffer commandBuffer);
   void transitionToAttachment(VkCommandBuffer commandBuffer);
+  void transitionToStorageImageWrite(
+      VkCommandBuffer commandBuffer,
+      VkPipelineStageFlags dstPipelineStageFlags);
   void convolveReflectionBuffer(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      const FrameContext& context);
+      const FrameContext& context,
+      VkImageLayout prevLayout,
+      VkAccessFlags prevAccess,
+      VkPipelineStageFlags srcStage);
   void bindTexture(ResourcesAssignment& assignment) const;
 
-  const ImageView& getReflectionBufferTargetView() const { return this->_mipViews[0]; }
-  const Sampler& getReflectionBufferTargetSampler() const { return this->_mipSampler; }
+  const ImageView& getReflectionBufferTargetView() const {
+    return this->_mipViews[0];
+  }
+  const Sampler& getReflectionBufferTargetSampler() const {
+    return this->_mipSampler;
+  }
+
 private:
   std::unique_ptr<ComputePipeline> _pConvolutionPass;
   std::unique_ptr<DescriptorSetAllocator> _pConvolutionMaterialAllocator;

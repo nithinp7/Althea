@@ -33,7 +33,6 @@ public:
       VkAccelerationStructureKHR tlas,
       const GBufferResources& gBuffer,
       const ShaderDefines& shaderDefs);
-  void transitionToAttachment(VkCommandBuffer commandBuffer);
   void captureReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,

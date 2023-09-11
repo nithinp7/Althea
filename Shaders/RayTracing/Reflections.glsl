@@ -1,12 +1,11 @@
+// Based on:
+// https://www.khronos.org/blog/ray-tracing-in-vulkan
 
-#version 450
+// Ray generation shader
+#version 460 core
+#extension GL_EXT_ray_tracing : enable
 
-#define PI 3.14159265359
-
-layout(location=0) in vec3 direction;
-layout(location=1) in vec2 uv;
-
-layout(location=0) out vec4 reflectedColor;
+layout(location = 0) rayPayloadEXT vec4 payload;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
 layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
@@ -23,6 +22,24 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 
 layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
 
+layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
+
+#define PRIMITIVE_CONSTANTS_SET 0
+#define PRIMITIVE_CONSTANTS_BINDING 8
+#include <PrimitiveConstants.glsl>
+
+struct Vertex {
+  vec3 position;
+  vec3 tangent;
+  vec3 bitangent;
+  vec3 normal;
+  vec2 uvs[4];
+};
+
+#extension GL_EXT_scalar_block_layout : enable
+layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
+layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
+
 // GBuffer textures
 layout(set=1, binding=0) uniform sampler2D gBufferPosition;
 layout(set=1, binding=1) uniform sampler2D gBufferNormal;
@@ -31,46 +48,52 @@ layout(set=1, binding=3) uniform sampler2D gBufferMetallicRoughnessOcclusion;
 
 #include <PBR/PBRMaterial.glsl>
 
-vec3 sampleEnvMap(vec3 dir) {
-  float yaw = atan(dir.z, dir.x);
-  float pitch = -atan(dir.y, length(dir.xz));
-  vec2 envMapUV = vec2(0.5 * yaw, pitch) / PI + 0.5;
+layout(set=1, binding=4) uniform accelerationStructureEXT acc;
 
-  return textureLod(environmentMap, envMapUV, 0.0).rgb;
-} 
+// Output image
+layout(set=1, binding=5) uniform writeonly image2D img;
 
-vec4 environmentLitSample(vec3 currentPos, vec2 currentUV, vec3 rayDir, vec3 normal) {
-  vec3 baseColor = texture(gBufferAlbedo, currentUV).rgb;
-  vec3 metallicRoughnessOcclusion = 
-      texture(gBufferMetallicRoughnessOcclusion, currentUV).rgb;
+vec2 computeUv(uvec3 launchID, uvec3 launchSize) {
+  const vec2 pixelCenter = vec2(launchID.xy) + vec2(0.5);
+	return pixelCenter/vec2(launchSize.xy);
+}
 
-  vec3 reflectedDirection = reflect(normalize(rayDir), normal);
-  vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughnessOcclusion.y), 1.0);
-  vec3 irradianceColor = sampleIrrMap(normal);
+vec3 computeDir(vec2 uv) {
+	vec2 d = uv * 2.0 - 1.0;
 
-  vec3 material = 
-      pbrMaterial(
-        currentPos,
-        normalize(rayDir),
-        normal, 
-        baseColor.rgb, 
-        reflectedColor.rgb, 
-        irradianceColor,
-        metallicRoughnessOcclusion.x, 
-        metallicRoughnessOcclusion.y, 
-        metallicRoughnessOcclusion.z);
-  return vec4(material, 1.0);
+	vec4 origin = globals.inverseView * vec4(0,0,0,1);
+	vec4 target = globals.inverseProjection * vec4(d.x, d.y, 1, 1) ;
+	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
 void main() {
+  vec2 uv = computeUv(gl_LaunchIDEXT, gl_LaunchSizeEXT);
+  vec3 dir = computeDir(uv);
+
   vec4 position = texture(gBufferPosition, uv).rgba;
   if (position.a == 0.0) {
-    // Nothing in the GBuffer, draw the environment map
-    reflectedColor = vec4(0.0);
+    // Nothing in the GBuffer
+    imageStore(img, ivec2(gl_LaunchIDEXT), vec4(0.0));
+    return;
   }
 
   vec3 normal = normalize(texture(gBufferNormal, uv).xyz);
-  vec3 reflectedDirection = reflect(normalize(direction), normal);
+  vec3 reflectedDirection = reflect(normalize(dir), normal);
 
-  reflectedColor = raymarchGBuffer(uv, position.xyz, normal, reflectedDirection);
+  traceRayEXT(
+      acc, 
+      gl_RayFlagsOpaqueEXT, 
+      0xff, 
+      0, // sbtOffset
+      0, // sbtStride, 
+      0, // missIndex
+      position.xyz, 
+      0.0,
+      reflectedDirection,
+      1000.0, 
+      0 /* payload */);
+  
+  vec4 color = payload;
+
+  imageStore(img, ivec2(gl_LaunchIDEXT), color);
 }

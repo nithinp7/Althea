@@ -68,18 +68,12 @@ ScreenSpaceReflection::ScreenSpaceReflection(
   }
 }
 
-void ScreenSpaceReflection::transitionToAttachment(
-    VkCommandBuffer commandBuffer) {
-  this->_reflectionBuffer.transitionToAttachment(commandBuffer);
-}
-
 void ScreenSpaceReflection::captureReflection(
     const Application& app,
     VkCommandBuffer commandBuffer,
     VkDescriptorSet globalSet,
     const FrameContext& context) {
-  // TODO make transition private function?
-  this->transitionToAttachment(commandBuffer);
+  this->_reflectionBuffer.transitionToAttachment(commandBuffer);
 
   ActiveRenderPass pass = this->_pReflectionPass->begin(
       app,
@@ -95,7 +89,13 @@ void ScreenSpaceReflection::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& context) {
-  this->_reflectionBuffer.convolveReflectionBuffer(app, commandBuffer, context);
+  this->_reflectionBuffer.convolveReflectionBuffer(
+      app,
+      commandBuffer,
+      context,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
 
 void ScreenSpaceReflection::bindTexture(ResourcesAssignment& assignment) const {

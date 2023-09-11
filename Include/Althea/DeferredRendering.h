@@ -17,7 +17,9 @@ class Application;
 
 class ALTHEA_API GBufferResources {
 public:
-  static void buildMaterial(DescriptorSetLayoutBuilder& builder);
+  static void buildMaterial(
+      DescriptorSetLayoutBuilder& builder,
+      VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL);
 
   GBufferResources() = default;
   GBufferResources(const Application& app);
