@@ -11,6 +11,21 @@
 layout(location = 0) rayPayloadInEXT vec4 payload;
 hitAttributeEXT vec2 attribs;
 
+layout(set=0, binding=0) uniform sampler2D environmentMap; 
+layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
+layout(set=0, binding=2) uniform sampler2D irradianceMap;
+layout(set=0, binding=3) uniform sampler2D brdfLut;
+
+#define GLOBAL_UNIFORMS_SET 0
+#define GLOBAL_UNIFORMS_BINDING 4
+#include <GlobalUniforms.glsl>
+
+#define POINT_LIGHTS_SET 0
+#define POINT_LIGHTS_BINDING 5
+#include <PointLights.glsl>
+
+layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
+
 #ifndef TEXTURE_HEAP_COUNT
 #define TEXTURE_HEAP_COUNT 1
 #endif
@@ -33,6 +48,24 @@ struct Vertex {
 layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
 layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
 
+#include <PBR/PBRMaterial.glsl>
+
+#define baseColorTexture textureHeap[5*gl_InstanceCustomIndexEXT+0]
+#define normalMapTexture textureHeap[5*gl_InstanceCustomIndexEXT+1]
+#define metallicRoughnessTexture textureHeap[5*gl_InstanceCustomIndexEXT+2]
+#define occlusionTexture textureHeap[5*gl_InstanceCustomIndexEXT+3]
+#define emissiveTexture textureHeap[5*gl_InstanceCustomIndexEXT+4]
+
+#define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
+
+vec3 sampleEnvMap(vec3 dir) {
+  float yaw = atan(dir.z, dir.x);
+  float pitch = -atan(dir.y, length(dir.xz));
+  vec2 envMapUV = vec2(0.5 * yaw, pitch) / PI + 0.5;
+
+  return textureLod(environmentMap, envMapUV, 0.0).rgb;
+} 
+
 void main() {
     vec3 bc = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
@@ -44,15 +77,66 @@ void main() {
     Vertex v1 = vertexBufferHeap[gl_InstanceCustomIndexEXT].vertices[idx1];
     Vertex v2 = vertexBufferHeap[gl_InstanceCustomIndexEXT].vertices[idx2];
 
-    // TODO: Implement interpolation for all elems of vertex
-     
     PrimitiveConstants primInfo = primitiveConstants[gl_InstanceCustomIndexEXT];
-    // TODO: generalize
-    int i = 0;//\primInfo.baseTextureCoordinateIndex;
-    vec2 uv = v0.uvs[i] * bc.x + v1.uvs[i] * bc.y + v2.uvs[i] * bc.z;
+
+    Vertex v;
+    INTERPOLATE(position);
+    INTERPOLATE(tangent);
+    INTERPOLATE(bitangent);
+    INTERPOLATE(normal);
+    INTERPOLATE(uvs[0]);
+    INTERPOLATE(uvs[1]);
+    INTERPOLATE(uvs[2]);
+    INTERPOLATE(uvs[3]);
+
+    vec4 baseColor = 
+        texture(baseColorTexture, v.uvs[primInfo.baseTextureCoordinateIndex]) * primInfo.baseColorFactor;
+
+    vec3 normalMapSample = texture(normalMapTexture, v.uvs[primInfo.baseTextureCoordinateIndex]).rgb;
+    vec3 tangentSpaceNormal = 
+        (2.0 * normalMapSample - 1.0) *
+        vec3(primInfo.normalScale, primInfo.normalScale, 1.0);
+    vec3 globalNormal = 
+        normalize(
+          tangentSpaceNormal.x * v.tangent + 
+          tangentSpaceNormal.y * v.bitangent + 
+          tangentSpaceNormal.z * v.normal);
+
+    vec2 metallicRoughness = 
+        texture(metallicRoughnessTexture, v.uvs[primInfo.metallicRoughnessTextureCoordinateIndex]).bg *
+        vec2(primInfo.metallicFactor, primInfo.roughnessFactor);
+    float ambientOcclusion = 
+        texture(occlusionTexture, v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
+
+    vec3 rayDir = v.position - globals.inverseView[3].xyz;
+    vec3 reflectedDirection = reflect(normalize(rayDir), globalNormal);
+    vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughness.y), 1.0);
+    
+    vec3 irradianceColor = sampleIrrMap(globalNormal);
+    // TODO: Might have to handle this logic in AnyHit shader?
+    // if (GBuffer_Albedo.a < primInfo.alphaCutoff) {
+    //   discard;
+    // }
+
+    
+    vec3 material = 
+        pbrMaterial(
+          v.position,
+          rayDir,
+          globalNormal, 
+          baseColor.rgb, 
+          reflectedColor.rgb, 
+          irradianceColor,
+          metallicRoughness.x, 
+          metallicRoughness.y, 
+          ambientOcclusion);
+
+#ifndef SKIP_TONEMAP
+    material = vec3(1.0) - exp(-material * globals.exposure);
+#endif
 
     // vec3 color = vec3(float(gl_PrimitiveID % 1000) / 1000.0);//texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
-    vec3 color = texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
+    // vec3 color = texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
 
-    payload = vec4(color, 1.0);
+    payload = vec4(baseColor.rgb, 1.0);
 }
