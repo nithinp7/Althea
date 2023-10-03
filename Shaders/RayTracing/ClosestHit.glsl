@@ -7,6 +7,7 @@
 #extension GL_EXT_ray_tracing : enable
 // TODO: enable this ext in vulkan
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_buffer_reference2 : enable
 
 #include "RayPayload.glsl"
 
@@ -129,15 +130,17 @@ void main() {
           payload.rayDirIn,
           globalNormal, 
           baseColor.rgb, 
-          reflectedColor.rgb, 
+          vec3(0.0),//reflectedColor.rgb, 
           irradianceColor,
           metallicRoughness.x, 
           metallicRoughness.y, 
           ambientOcclusion);
 
+  // TODO: Why is gl_ObjectToWorldEXT identity???
     // material = vec3(1.0, 0.0, 0.0);
     // material.xy = vec3(metallicRoughness, ambientOcclusion);
-    material = gl_ObjectToWorldEXT[3];//vec3(log(length(gl_ObjectToWorldEXT[3]) / 10.0));
+    // material = vec3(log(length(gl_ObjectToWorldEXT[3]) / 10.0));
+    // material = vec3(determinant(mat3(gl_ObjectToWorldEXT)));//vec3(log(length(gl_ObjectToWorldEXT[3]) / 10.0));
 
 #ifndef SKIP_TONEMAP
     material = vec3(1.0) - exp(-material * globals.exposure);
