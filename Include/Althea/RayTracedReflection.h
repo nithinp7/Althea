@@ -14,7 +14,6 @@
 #include "ReflectionBuffer.h"
 #include "ResourcesAssignment.h"
 #include "Sampler.h"
-#include "ShaderBindingTable.h"
 
 #include <vulkan/vulkan.h>
 
@@ -45,11 +44,12 @@ public:
 
   void bindTexture(ResourcesAssignment& assignment) const;
 
+  void tryRecompileShaders(Application& app);
+
 private:
   ReflectionBuffer _reflectionBuffer;
 
   std::unique_ptr<RayTracingPipeline> _pReflectionPass;
-  ShaderBindingTable _sbt;
   std::unique_ptr<DescriptorSetAllocator> _pReflectionMaterialAllocator;
   std::unique_ptr<Material> _pReflectionMaterial;
 };

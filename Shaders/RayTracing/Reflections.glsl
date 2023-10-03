@@ -5,7 +5,9 @@
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
 
-layout(location = 0) rayPayloadEXT vec4 payload;
+#include "RayPayload.glsl"
+
+layout(location = 0) rayPayloadEXT RayPayload payload;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
 layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
@@ -77,8 +79,13 @@ void main() {
     return;
   }
 
+  vec3 metallicRoughnessOcclusion = texture(gBufferMetallicRoughnessOcclusion, uv).xyz;
   vec3 normal = normalize(texture(gBufferNormal, uv).xyz);
   vec3 reflectedDirection = reflect(normalize(dir), normal);
+  position.xyz += reflectedDirection * 0.1;
+
+  payload.rayOriginIn.xyz = position.xyz;
+  payload.rayDirIn.xyz = reflectedDirection;
 
   traceRayEXT(
       acc, 
@@ -93,7 +100,7 @@ void main() {
       1000.0, 
       0 /* payload */);
   
-  vec4 color = payload;
-
+  vec4 color = payload.colorOut;
+  
   imageStore(img, ivec2(gl_LaunchIDEXT), color);
 }

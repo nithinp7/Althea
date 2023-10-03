@@ -10,12 +10,13 @@ namespace AltheaEngine {
 RayTracingPipeline::RayTracingPipeline(
     const Application& app,
     RayTracingPipelineBuilder&& builder)
-    : _pipelineLayout(app, builder.layoutBuilder),
-      _rayGenShader(app, builder._rayGenShaderBuilder) {
+    : _builder(std::move(builder)),
+      _pipelineLayout(app, _builder.layoutBuilder),
+      _rayGenShader(app, _builder._rayGenShaderBuilder) {
   uint32_t missCount =
-      static_cast<uint32_t>(builder._missShaderBuilders.size());
+      static_cast<uint32_t>(_builder._missShaderBuilders.size());
   uint32_t hitCount =
-      static_cast<uint32_t>(builder._closestHitShaderBuilders.size());
+      static_cast<uint32_t>(_builder._closestHitShaderBuilders.size());
 
   if (missCount == 0 || hitCount == 0) {
     throw std::runtime_error("Cannot create ray tracing pipeline without at "
@@ -23,12 +24,12 @@ RayTracingPipeline::RayTracingPipeline(
   }
 
   this->_missShaders.reserve(missCount);
-  for (ShaderBuilder& missBuilder : builder._missShaderBuilders) {
+  for (ShaderBuilder& missBuilder : _builder._missShaderBuilders) {
     this->_missShaders.emplace_back(app, missBuilder);
   }
 
   this->_closestHitShaders.reserve(hitCount);
-  for (ShaderBuilder& hitBuilder : builder._closestHitShaderBuilders) {
+  for (ShaderBuilder& hitBuilder : _builder._closestHitShaderBuilders) {
     this->_closestHitShaders.emplace_back(app, hitBuilder);
   }
 
@@ -120,12 +121,129 @@ RayTracingPipeline::RayTracingPipeline(
   }
 
   this->_pipeline.set(device, pipeline);
+
+  this->_sbt = ShaderBindingTable(app, *this);
 }
 
 void RayTracingPipeline::RayTracingPipelineDeleter::operator()(
     VkDevice device,
     VkPipeline rayTracingPipeline) {
   vkDestroyPipeline(device, rayTracingPipeline, nullptr);
+}
+
+bool RayTracingPipeline::recompileStaleShaders() {
+  if (this->_outdated) {
+    return false;
+  }
+
+  bool stale = false;
+  if (this->_builder._rayGenShaderBuilder.reloadIfStale()) {
+    stale = true;
+    this->_builder._rayGenShaderBuilder.recompile();
+  }
+
+  for (ShaderBuilder& shader : this->_builder._closestHitShaderBuilders) {
+    if (shader.reloadIfStale()) {
+      stale = true;
+      shader.recompile();
+    }
+  }
+
+  for (ShaderBuilder& shader : this->_builder._missShaderBuilders) {
+    if (shader.reloadIfStale()) {
+      stale = true;
+      shader.recompile();
+    }
+  }
+
+  return stale;
+}
+
+bool RayTracingPipeline::hasShaderRecompileErrors() const {
+  if (this->_outdated) {
+    // This is not necessarily a shader recompile error...
+    // but we don't want to recreate the pipeline if it has already
+    // been recreated from.
+    return true;
+  }
+
+  if (this->_builder._rayGenShaderBuilder.hasErrors()) {
+    return true;
+  }
+
+  for (const ShaderBuilder& shader : this->_builder._closestHitShaderBuilders) {
+    if (shader.hasErrors()) {
+      return true;
+    }
+  }
+
+  for (const ShaderBuilder& shader : this->_builder._missShaderBuilders) {
+    if (shader.hasErrors()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::string RayTracingPipeline::getShaderRecompileErrors() const {
+  if (this->_outdated) {
+    return "";
+  }
+
+  std::string errors;
+  if (this->_builder._rayGenShaderBuilder.hasErrors()) {
+    errors += this->_builder._rayGenShaderBuilder.getErrors() + "\n";
+  }
+
+  for (const ShaderBuilder& shader : this->_builder._closestHitShaderBuilders) {
+    if (shader.hasErrors()) {
+      errors += shader.getErrors() + "\n";
+    }
+  }
+
+  for (const ShaderBuilder& shader : this->_builder._missShaderBuilders) {
+    if (shader.hasErrors()) {
+      errors += shader.getErrors() + "\n";
+    }
+  }
+
+  return errors;
+}
+
+void RayTracingPipeline::traceRays(const VkExtent2D& extent, VkCommandBuffer commandBuffer) const {
+  Application::vkCmdTraceRaysKHR(
+      commandBuffer,
+      &this->_sbt.getRayGenRegion(),
+      &this->_sbt.getMissRegion(),
+      &this->_sbt.getHitRegion(),
+      &this->_sbt.getCallRegion(),
+      extent.width,
+      extent.height,
+      1);
+}
+
+void RayTracingPipeline::recreatePipeline(Application& app) {
+  // Mark this pipeline as outdated so we don't recreate another pipeline
+  // from it.
+  // TODO: This may be a silly constraint, the only reason for it is that we
+  // are moving away the context and builder objects when recreating the
+  // pipeline...
+  this->_outdated = true;
+
+  RayTracingPipeline newPipeline(
+      app,
+      std::move(this->_builder));
+
+  // Since they will now have invalid values.
+  this->_builder = {};
+
+  RayTracingPipeline* pOldPipeline = new RayTracingPipeline(std::move(*this));
+  app.addDeletiontask(std::move(DeletionTask{
+      [pOldPipeline]() { delete pOldPipeline; },
+      app.getCurrentFrameRingBufferIndex()}));
+
+  *this = std::move(newPipeline);
 }
 
 void RayTracingPipelineBuilder::setRayGenShader(const std::string& path, const ShaderDefines& defs) {

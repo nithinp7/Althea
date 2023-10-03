@@ -4,8 +4,11 @@
 // Miss shader
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
-layout(location = 0) rayPayloadInEXT vec4 payload;
+
+#include "RayPayload.glsl"
+
+layout(location = 0) rayPayloadInEXT RayPayload payload;
 
 void main() {
-    payload = vec4(1.0, 0.0, 0.0, 1.0);
+    payload.colorOut = vec4(1.0, 0.0, 0.0, 1.0);
 }

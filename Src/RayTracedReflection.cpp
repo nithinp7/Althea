@@ -3,6 +3,7 @@
 #include "Application.h"
 
 #include <cstdint>
+#include <iostream>
 
 namespace AltheaEngine {
 
@@ -56,8 +57,6 @@ RayTracedReflection::RayTracedReflection(
     this->_pReflectionPass =
         std::make_unique<RayTracingPipeline>(app, std::move(pipelineBuilder));
   }
-
-  this->_sbt = ShaderBindingTable(app, *this->_pReflectionPass);
 }
 
 void RayTracedReflection::captureReflection(
@@ -89,15 +88,7 @@ void RayTracedReflection::captureReflection(
         nullptr);
 
     const VkExtent2D& extent = app.getSwapChainExtent();
-    Application::vkCmdTraceRaysKHR(
-        commandBuffer,
-        &this->_sbt.getRayGenRegion(),
-        &this->_sbt.getMissRegion(),
-        &this->_sbt.getHitRegion(),
-        &this->_sbt.getCallRegion(),
-        extent.width,  // 1080,
-        extent.height, // 960,
-        1);
+    this->_pReflectionPass->traceRays(extent, commandBuffer);
   }
 }
 
@@ -118,4 +109,13 @@ void RayTracedReflection::bindTexture(ResourcesAssignment& assignment) const {
   this->_reflectionBuffer.bindTexture(assignment);
 }
 
+void RayTracedReflection::tryRecompileShaders(Application& app) {
+  if (this->_pReflectionPass->recompileStaleShaders()) {
+    if (this->_pReflectionPass->hasShaderRecompileErrors()) {
+      std::cout << this->_pReflectionPass->getShaderRecompileErrors() << "\n";
+    } else {
+      this->_pReflectionPass->recreatePipeline(app);
+    }
+  }
+}
 } // namespace AltheaEngine

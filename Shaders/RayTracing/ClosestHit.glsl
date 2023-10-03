@@ -8,7 +8,9 @@
 // TODO: enable this ext in vulkan
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) rayPayloadInEXT vec4 payload;
+#include "RayPayload.glsl"
+
+layout(location = 0) rayPayloadInEXT RayPayload payload;
 hitAttributeEXT vec2 attribs;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
@@ -89,6 +91,8 @@ void main() {
     INTERPOLATE(uvs[2]);
     INTERPOLATE(uvs[3]);
 
+    // TODO: Model matrix heap needed to reconstruct world position?? Is it somewhere accessible from accel str
+    vec3 worldPos = gl_ObjectToWorldEXT * vec4(v.position, 1.0);
     vec4 baseColor = 
         texture(baseColorTexture, v.uvs[primInfo.baseTextureCoordinateIndex]) * primInfo.baseColorFactor;
 
@@ -97,10 +101,11 @@ void main() {
         (2.0 * normalMapSample - 1.0) *
         vec3(primInfo.normalScale, primInfo.normalScale, 1.0);
     vec3 globalNormal = 
-        normalize(
+        normalize(gl_ObjectToWorldEXT *
+        vec4(normalize(
           tangentSpaceNormal.x * v.tangent + 
           tangentSpaceNormal.y * v.bitangent + 
-          tangentSpaceNormal.z * v.normal);
+          tangentSpaceNormal.z * v.normal), 0.0));
 
     vec2 metallicRoughness = 
         texture(metallicRoughnessTexture, v.uvs[primInfo.metallicRoughnessTextureCoordinateIndex]).bg *
@@ -108,8 +113,7 @@ void main() {
     float ambientOcclusion = 
         texture(occlusionTexture, v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
 
-    vec3 rayDir = v.position - globals.inverseView[3].xyz;
-    vec3 reflectedDirection = reflect(normalize(rayDir), globalNormal);
+    vec3 reflectedDirection = reflect(payload.rayDirIn, globalNormal);
     vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughness.y), 1.0);
     
     vec3 irradianceColor = sampleIrrMap(globalNormal);
@@ -121,8 +125,8 @@ void main() {
     
     vec3 material = 
         pbrMaterial(
-          v.position,
-          rayDir,
+          worldPos,
+          payload.rayDirIn,
           globalNormal, 
           baseColor.rgb, 
           reflectedColor.rgb, 
@@ -131,6 +135,10 @@ void main() {
           metallicRoughness.y, 
           ambientOcclusion);
 
+    // material = vec3(1.0, 0.0, 0.0);
+    // material.xy = vec3(metallicRoughness, ambientOcclusion);
+    material = gl_ObjectToWorldEXT[3];//vec3(log(length(gl_ObjectToWorldEXT[3]) / 10.0));
+
 #ifndef SKIP_TONEMAP
     material = vec3(1.0) - exp(-material * globals.exposure);
 #endif
@@ -138,5 +146,5 @@ void main() {
     // vec3 color = vec3(float(gl_PrimitiveID % 1000) / 1000.0);//texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
     // vec3 color = texture(textureHeap[5*gl_InstanceCustomIndexEXT], uv).rgb;
 
-    payload = vec4(baseColor.rgb, 1.0);
+    payload.colorOut = vec4(material, 1.0);
 }
