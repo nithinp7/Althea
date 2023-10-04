@@ -5,7 +5,8 @@
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
 
-layout(location = 0) rayPayloadEXT vec4 payload;
+#include "RayPayload.glsl"
+layout(location = 0) rayPayloadEXT RayPayload payload;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
@@ -29,6 +30,8 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 void main() {
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
+  payload.rayOriginIn = rayOrigin;
+  payload.rayDirIn = rayDir;
   traceRayEXT(
       acc, 
       gl_RayFlagsOpaqueEXT, 
@@ -43,7 +46,7 @@ void main() {
       0 /* payload */);
   
   // vec3 dirCol = rayDir * 0.5 + vec3(0.5);
-  vec4 color = payload;//vec4(payload.rgb + dirCol, 1.0);
+  vec4 color = payload.colorOut;//vec4(payload.rgb + dirCol, 1.0);
 
   imageStore(img, ivec2(gl_LaunchIDEXT), color);
 }
