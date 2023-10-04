@@ -78,6 +78,10 @@ struct ALTHEA_API TextureSlots {
 
 class ALTHEA_API Primitive {
 public:
+  // TODO: This is super hacky, need an actual, flexible way of managing
+  // bindless indices
+  static void resetPrimitiveIndexCount();
+
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 

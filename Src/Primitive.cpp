@@ -82,6 +82,11 @@ void TextureSlots::fillEmptyWithDefaults() {
 }
 
 /*static*/
+void Primitive::resetPrimitiveIndexCount() {
+  currentPrimitiveIndex = 0;
+}
+
+/*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder
       .setPrimitiveType(PrimitiveType::TRIANGLES)
