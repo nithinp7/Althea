@@ -3,7 +3,6 @@
 #include "FrameContext.h"
 #include "Library.h"
 #include "UniformBuffer.h"
-#include "SingleTimeCommandBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -24,18 +23,17 @@ template <typename TUniforms> class ALTHEA_API TransientUniforms {
 public:
   TransientUniforms() = default;
 
-  TransientUniforms(const Application& app, SingleTimeCommandBuffer& commandBuffer) {
+  TransientUniforms(const Application& app) {
     for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-      this->_uniformBuffers.emplace_back(app, commandBuffer);
+      this->_uniformBuffers.emplace_back(app);
     }
   }
 
   TransientUniforms(
       const Application& app,
-      SingleTimeCommandBuffer& commandBuffer,
       const TUniforms& uniforms) {
     for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-      this->_uniformBuffers.emplace_back(app, commandBuffer, uniforms);
+      this->_uniformBuffers.emplace_back(app, uniforms);
     }
   }
 

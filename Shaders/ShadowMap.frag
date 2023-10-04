@@ -1,5 +1,8 @@
-
 #version 450
+
+#ifdef POINT_LIGHTS_BINDLESS
+#include "ShadowMapBindless.frag"
+#else 
 
 layout(location=0) in vec3 worldPosCS;
 layout(location=1) in vec2 baseColorUV;
@@ -42,3 +45,5 @@ void main() {
 
   gl_FragDepth = length(worldPosCS) / zFar;
 }
+
+#endif

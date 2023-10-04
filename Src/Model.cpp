@@ -149,7 +149,7 @@ Model::Model(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     const std::string& path,
-    DescriptorSetAllocator& materialAllocator) {
+    DescriptorSetAllocator* materialAllocator) {
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
 
@@ -269,7 +269,7 @@ void Model::_loadNode(
     const CesiumGltf::Model& model,
     const CesiumGltf::Node& node,
     const glm::mat4& transform,
-    DescriptorSetAllocator& materialAllocator) {
+    DescriptorSetAllocator* materialAllocator) {
   static constexpr std::array<double, 16> identityMatrix = {
       1.0,
       0.0,

@@ -10,6 +10,15 @@ ResourcesAssignment::ResourcesAssignment(
   }
 }
 
+ResourcesAssignment& ResourcesAssignment::bindAccelerationStructure(
+    VkAccelerationStructureKHR accelerationStructure) {
+  for (DescriptorAssignment& assignment : this->_assignments) {
+    assignment.bindAccelerationStructure(accelerationStructure);
+  }
+
+  return *this;
+}
+
 ResourcesAssignment& ResourcesAssignment::bindTexture(const Texture& texture) {
   return this->bindTexture(texture.getImageView(), texture.getSampler());
 }
@@ -23,6 +32,24 @@ ResourcesAssignment&
 ResourcesAssignment::bindTexture(VkImageView imageView, VkSampler sampler) {
   for (DescriptorAssignment& assignment : this->_assignments) {
     assignment.bindTextureDescriptor(imageView, sampler);
+  }
+
+  return *this;
+}
+
+ResourcesAssignment&
+ResourcesAssignment::bindTextureHeap(TextureHeap& textureHeap) {
+  for (DescriptorAssignment& assignment : this->_assignments) {
+    assignment.bindTextureHeap(textureHeap);
+  }
+
+  return *this;
+}
+
+ResourcesAssignment&
+ResourcesAssignment::bindBufferHeap(BufferHeap& bufferHeap) {
+  for (DescriptorAssignment& assignment : this->_assignments) {
+    assignment.bindBufferHeap(bufferHeap);
   }
 
   return *this;

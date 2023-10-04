@@ -28,7 +28,7 @@ namespace CesiumGltf {
 struct ImageCesium;
 };
 
-namespace AltheaEngine {   
+namespace AltheaEngine {
 class IGameInstance;
 
 extern std::string GProjectDirectory;
@@ -38,6 +38,21 @@ extern std::string GEngineDirectory;
 // the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
 public:
+  static PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
+  static PFN_vkDestroyAccelerationStructureKHR
+      vkDestroyAccelerationStructureKHR;
+  static PFN_vkGetAccelerationStructureBuildSizesKHR
+      vkGetAccelerationStructureBuildSizesKHR;
+  static PFN_vkGetAccelerationStructureDeviceAddressKHR
+      vkGetAccelerationStructureDeviceAddressKHR;
+  static PFN_vkCmdBuildAccelerationStructuresKHR
+      vkCmdBuildAccelerationStructuresKHR;
+  static PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
+  static PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
+  static PFN_vkGetRayTracingShaderGroupHandlesKHR
+      vkGetRayTracingShaderGroupHandlesKHR;
+  static PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+
   Application(
       const std::string& projectDirectory,
       const std::string& engineDirectory);
@@ -64,7 +79,10 @@ private:
 
   const std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_MULTIVIEW_EXTENSION_NAME};
+      VK_KHR_MULTIVIEW_EXTENSION_NAME,
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME};
 
 #ifdef NDEBUG
   const bool enableValidationLayers = false;
@@ -86,6 +104,7 @@ private:
   VkQueue presentQueue;
 
   VkPhysicalDeviceProperties physicalDeviceProperties{};
+  VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties{};
 
   VkSwapchainKHR swapChain;
   std::vector<VkImage> swapChainImages;
@@ -177,6 +196,11 @@ public:
 
   const VkPhysicalDeviceProperties& getPhysicalDeviceProperties() const {
     return physicalDeviceProperties;
+  }
+
+  const VkPhysicalDeviceRayTracingPipelinePropertiesKHR&
+  getRayTracingProperties() const {
+    return rayTracingProperties;
   }
 
   const VkCommandPool& getCommandPool() const { return commandPool; }

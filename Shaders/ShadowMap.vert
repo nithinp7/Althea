@@ -1,5 +1,8 @@
-
 #version 450
+
+#ifdef POINT_LIGHTS_BINDLESS
+#include "ShadowMapBindless.vert"
+#else 
 
 #extension GL_EXT_multiview : enable
 
@@ -49,3 +52,5 @@ void main() {
   worldPosCS = csPos.xyz / csPos.w;
   baseColorUV = uvs[constants.baseTextureCoordinateIndex];
 }
+
+#endif

@@ -218,7 +218,7 @@ GraphicsPipeline::GraphicsPipeline(
           1,
           &pipelineInfo,
           nullptr,
-          &pipeline)) {
+          &pipeline) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create graphics pipeline!");
   }
 

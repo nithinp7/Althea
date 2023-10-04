@@ -7,16 +7,18 @@
 
 namespace AltheaEngine {
 /*static*/
-void GBufferResources::buildMaterial(DescriptorSetLayoutBuilder& builder) {
+void GBufferResources::buildMaterial(
+    DescriptorSetLayoutBuilder& builder,
+    VkShaderStageFlags shaderStages) {
   builder
       // GBuffer Position
-      .addTextureBinding(VK_SHADER_STAGE_FRAGMENT_BIT)
+      .addTextureBinding(shaderStages)
       // GBuffer Normal
-      .addTextureBinding(VK_SHADER_STAGE_FRAGMENT_BIT)
+      .addTextureBinding(shaderStages)
       // GBuffer Albedo
-      .addTextureBinding(VK_SHADER_STAGE_FRAGMENT_BIT)
+      .addTextureBinding(shaderStages)
       // GBuffer Metallic-Roughness-Occlusion
-      .addTextureBinding(VK_SHADER_STAGE_FRAGMENT_BIT);
+      .addTextureBinding(shaderStages);
 }
 
 GBufferResources::GBufferResources(const Application& app) {

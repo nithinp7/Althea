@@ -15,6 +15,23 @@
 
 namespace AltheaEngine {
 
+PFN_vkCreateAccelerationStructureKHR
+    Application::vkCreateAccelerationStructureKHR;
+PFN_vkDestroyAccelerationStructureKHR
+    Application::vkDestroyAccelerationStructureKHR;
+PFN_vkGetAccelerationStructureBuildSizesKHR
+    Application::vkGetAccelerationStructureBuildSizesKHR;
+PFN_vkGetAccelerationStructureDeviceAddressKHR
+    Application::vkGetAccelerationStructureDeviceAddressKHR;
+PFN_vkCmdBuildAccelerationStructuresKHR
+    Application::vkCmdBuildAccelerationStructuresKHR;
+PFN_vkBuildAccelerationStructuresKHR
+    Application::vkBuildAccelerationStructuresKHR;
+PFN_vkCmdTraceRaysKHR Application::vkCmdTraceRaysKHR;
+PFN_vkGetRayTracingShaderGroupHandlesKHR
+    Application::vkGetRayTracingShaderGroupHandlesKHR;
+PFN_vkCreateRayTracingPipelinesKHR Application::vkCreateRayTracingPipelinesKHR;
+
 std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
@@ -149,7 +166,8 @@ void Application::drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) !=
+      VK_SUCCESS) {
     throw std::runtime_error("Failed to submit draw command buffer!");
   }
 
@@ -318,6 +336,45 @@ void Application::createInstance() {
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create instance!");
   }
+
+  // vkGetBufferDeviceAddressKHR =
+  //     reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkGetBufferDeviceAddressKHR"));
+  // vkCmdBuildAccelerationStructuresKHR =
+  //     reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkCmdBuildAccelerationStructuresKHR"));
+  // vkBuildAccelerationStructuresKHR =
+  //     reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkBuildAccelerationStructuresKHR"));
+  // vkCreateAccelerationStructureKHR =
+  //     reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkCreateAccelerationStructureKHR"));
+  // vkDestroyAccelerationStructureKHR =
+  //     reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkDestroyAccelerationStructureKHR"));
+  // vkGetAccelerationStructureBuildSizesKHR =
+  //     reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+  //         vkGetInstanceProcAddr(
+  //             instance,
+  //             "vkGetAccelerationStructureBuildSizesKHR"));
+  // vkGetAccelerationStructureDeviceAddressKHR =
+  //     reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
+  //         vkGetInstanceProcAddr(
+  //             instance,
+  //             "vkGetAccelerationStructureDeviceAddressKHR"));
+  // vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
+  //     vkGetInstanceProcAddr(instance, "vkCmdTraceRaysKHR"));
+  // vkGetRayTracingShaderGroupHandlesKHR =
+  //     reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
+  //         vkGetInstanceProcAddr(instance,
+  //         "vkGetRayTracingShaderGroupHandlesKHR"));
+  // vkCreateRayTracingPipelinesKHR =
+  //     reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
+  //         vkGetInstanceProcAddr(instance, "vkCreateRayTracingPipelinesKHR"));
 }
 
 void Application::createSurface() {
@@ -388,8 +445,6 @@ bool Application::checkDeviceExtensionSupport(
     requiredExtensions.erase(extension.extensionName);
   }
 
-  assert(requiredExtensions.empty());
-
   return requiredExtensions.empty();
 }
 
@@ -417,8 +472,24 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
 
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+
+  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
+
+  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+
   deviceFeatures.pNext = &multiviewFeatures;
   multiviewFeatures.pNext = &inlineBlockFeatures;
+  inlineBlockFeatures.pNext = &accelFeature;
+  accelFeature.pNext = &rtPipelineFeature;
+  rtPipelineFeature.pNext = &bufferDevAddrFeature;
+  bufferDevAddrFeature.pNext = &scalarBlockLayoutFeatures;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -430,9 +501,15 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.fillModeNonSolid &&
          deviceFeatures.features.imageCubeArray &&
          inlineBlockFeatures.inlineUniformBlock &&
-         multiviewFeatures
-             .multiview; // &&
-                         // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
+         multiviewFeatures.multiview && accelFeature.accelerationStructure &&
+         // accelFeature.accelerationStructureHostCommands &&
+         //  accelFeature.accelerationStructureIndirectBuild && ??
+         rtPipelineFeature.rayTracingPipeline &&
+         bufferDevAddrFeature.bufferDeviceAddress &&
+         scalarBlockLayoutFeatures.scalarBlockLayout;
+  //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
+  //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
+  // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 void Application::pickPhysicalDevice() {
@@ -457,6 +534,14 @@ void Application::pickPhysicalDevice() {
   }
 
   vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+  rayTracingProperties.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+
+  VkPhysicalDeviceProperties2 prop2{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+  prop2.pNext = &rayTracingProperties;
+  vkGetPhysicalDeviceProperties2(physicalDevice, &prop2);
 }
 
 void Application::createLogicalDevice() {
@@ -495,6 +580,26 @@ void Application::createLogicalDevice() {
   multiviewFeatures.multiview = VK_TRUE;
   multiviewFeatures.pNext = &inlineBlockFeatures;
 
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+  accelFeature.accelerationStructure = true;
+  accelFeature.pNext = &multiviewFeatures;
+
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+  rtPipelineFeature.rayTracingPipeline = true;
+  rtPipelineFeature.pNext = &accelFeature;
+
+  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
+  bufferDevAddrFeature.bufferDeviceAddress = true;
+  bufferDevAddrFeature.pNext = &rtPipelineFeature;
+
+  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+  scalarBlockLayoutFeatures.scalarBlockLayout = true;
+  scalarBlockLayoutFeatures.pNext = &bufferDevAddrFeature;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.queueCreateInfoCount =
@@ -507,7 +612,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &multiviewFeatures;
+  createInfo.pNext = &scalarBlockLayoutFeatures;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
@@ -524,6 +629,37 @@ void Application::createLogicalDevice() {
 
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+  vkCmdBuildAccelerationStructuresKHR =
+      reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
+          vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
+  vkBuildAccelerationStructuresKHR =
+      reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(
+          vkGetDeviceProcAddr(device, "vkBuildAccelerationStructuresKHR"));
+  vkCreateAccelerationStructureKHR =
+      reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
+          vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureKHR"));
+  vkDestroyAccelerationStructureKHR =
+      reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
+          vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureKHR"));
+  vkGetAccelerationStructureBuildSizesKHR =
+      reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+          vkGetDeviceProcAddr(
+              device,
+              "vkGetAccelerationStructureBuildSizesKHR"));
+  vkGetAccelerationStructureDeviceAddressKHR =
+      reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
+          vkGetDeviceProcAddr(
+              device,
+              "vkGetAccelerationStructureDeviceAddressKHR"));
+  vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
+      vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
+  vkGetRayTracingShaderGroupHandlesKHR =
+      reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
+          vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
+  vkCreateRayTracingPipelinesKHR =
+      reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
+          vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
 }
 
 Application::SwapChainSupportDetails
@@ -536,7 +672,6 @@ Application::querySwapChainSupport(const VkPhysicalDevice& device) const {
 
   uint32_t formatCount;
   vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
   if (formatCount) {
     details.formats.resize(formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(

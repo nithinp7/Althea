@@ -19,7 +19,7 @@ layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
-  vec3 emissiveFactor;
+  vec4 emissiveFactor;
 
   int baseTextureCoordinateIndex;
   int normalMapTextureCoordinateIndex;
@@ -33,6 +33,9 @@ layout(set=1, binding=0) uniform ConstantBufferObject {
   float occlusionStrength;
 
   float alphaCutoff;
+
+  float padding1;
+  float padding2;
 } constants;
 
 layout(set=1, binding=1) uniform sampler2D baseColorTexture;

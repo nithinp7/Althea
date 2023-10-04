@@ -23,7 +23,7 @@ layout(location=9) out vec3 direction;
 
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
-  vec3 emissiveFactor;
+  vec4 emissiveFactor;
 
   int baseTextureCoordinateIndex;
   int normalMapTextureCoordinateIndex;
@@ -37,6 +37,9 @@ layout(set=1, binding=0) uniform ConstantBufferObject {
   float occlusionStrength;
 
   float alphaCutoff;
+
+  float padding1;
+  float padding2;
 } constants;
 
 layout(push_constant) uniform PushConstants {

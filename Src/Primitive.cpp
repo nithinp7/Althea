@@ -19,6 +19,14 @@
 #include <string>
 
 namespace AltheaEngine {
+static int currentPrimitiveIndex = 0;
+
+namespace {
+struct PrimitivePushConstants {
+  glm::mat4 model{};
+  int primitiveId{};
+};
+} // namespace 
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
@@ -74,6 +82,11 @@ void TextureSlots::fillEmptyWithDefaults() {
 }
 
 /*static*/
+void Primitive::resetPrimitiveIndexCount() {
+  currentPrimitiveIndex = 0;
+}
+
+/*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder
       .setPrimitiveType(PrimitiveType::TRIANGLES)
@@ -100,7 +113,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.enableDynamicFrontFace();
 
   // Add push constants for updating model transform
-  builder.layoutBuilder.addPushConstants<glm::mat4>();
+  builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
 }
 
 /*static*/
@@ -258,13 +271,14 @@ Primitive::Primitive(
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
     const glm::mat4& nodeTransform,
-    DescriptorSetAllocator& materialAllocator)
+    DescriptorSetAllocator* pMaterialAllocator)
     : _device(app.getDevice()),
       _modelTransform(1.0f),
       _relativeTransform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
-      _material(app, materialAllocator) {
-
+      _material() {
+  this->_primitiveIndex = currentPrimitiveIndex++;
+  
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;
@@ -415,10 +429,11 @@ Primitive::Primitive(
         uvCount,
         true);
 
-    this->_constants.emissiveFactor = glm::vec3(
+    this->_constants.emissiveFactor = glm::vec4(
         static_cast<float>(material.emissiveFactor[0]),
         static_cast<float>(material.emissiveFactor[1]),
-        static_cast<float>(material.emissiveFactor[2]));
+        static_cast<float>(material.emissiveFactor[2]),
+        1.0f);
 
     this->_constants.alphaCutoff = static_cast<float>(material.alphaCutoff);
   }
@@ -529,29 +544,71 @@ Primitive::Primitive(
     GeometryUtilities::computeTangentSpace(vertices, normalMapUvIndex);
   }
 
+  // Compute AABB
+  if (vertices.size() > 0) {
+    this->_aabb.min = this->_aabb.max = vertices[0].position;
+    for (size_t i = 1; i < vertices.size(); ++i) {
+      this->_aabb.min = glm::min(this->_aabb.min, vertices[i].position);
+      this->_aabb.max = glm::max(this->_aabb.max, vertices[i].position);
+    }
+  } else {
+    throw std::runtime_error(
+        "Attempting to create a primitive with no vertices!");
+  }
+
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
-  this->_material.assign()
-      .bindInlineConstants(this->_constants)
-      .bindTexture(*this->_textureSlots.pBaseTexture)
-      .bindTexture(*this->_textureSlots.pNormalMapTexture)
-      .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
-      .bindTexture(*this->_textureSlots.pOcclusionTexture)
-      .bindTexture(*this->_textureSlots.pEmissiveTexture);
+  if (pMaterialAllocator)
+  {
+    this->_material = Material(app, *pMaterialAllocator);
+    this->_material.assign()
+        .bindInlineConstants(this->_constants)
+        .bindTexture(*this->_textureSlots.pBaseTexture)
+        .bindTexture(*this->_textureSlots.pNormalMapTexture)
+        .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
+        .bindTexture(*this->_textureSlots.pOcclusionTexture)
+        .bindTexture(*this->_textureSlots.pEmissiveTexture);
+  }
+
+  // If the material allocator is null, assume we are using bindless textures
 }
 
 void Primitive::setModelTransform(const glm::mat4& model) {
   this->_modelTransform = model;
 }
 
+AABB Primitive::computeWorldAABB() const {
+  const std::vector<Vertex>& vertices = this->_vertexBuffer.getVertices();
+
+  if (vertices.empty()) 
+    throw std::runtime_error("Attempting to compute world AABB with empty vertices");
+
+  glm::mat4 worldTransform = this->_modelTransform * this->_relativeTransform;
+
+  AABB aabb;
+  aabb.min = aabb.max =
+      glm::vec3(worldTransform * glm::vec4(vertices[0].position, 1.0f));
+
+  for (size_t i = 0; i < vertices.size(); ++i) {
+    glm::vec3 worldPos(worldTransform * glm::vec4(vertices[i].position, 1.0f));
+    aabb.min = glm::min(aabb.min, worldPos);
+    aabb.max = glm::max(aabb.max, worldPos);
+  }
+
+  return aabb;
+}
+
 void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  context.bindDescriptorSets(this->_material);
+  if (this->_material)
+    context.bindDescriptorSets(this->_material);
+  else 
+    context.bindDescriptorSets();
   context.updatePushConstants(
-      this->_modelTransform * this->_relativeTransform,
+      PrimitivePushConstants{ this->_modelTransform * this->_relativeTransform, this->_primitiveIndex },
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }

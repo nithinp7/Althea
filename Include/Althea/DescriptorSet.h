@@ -16,10 +16,20 @@ namespace AltheaEngine {
 class Application;
 class DescriptorSetAllocator;
 class DescriptorAssignment;
+class TextureHeap;
+class BufferHeap;
 
 class ALTHEA_API DescriptorSetLayoutBuilder {
 public:
   DescriptorSetLayoutBuilder() {}
+
+  /**
+   * @brief Add an acceleration structure binding to the descriptor set layout.
+   *
+   * @return this builder.
+   */
+  DescriptorSetLayoutBuilder& addAccelerationStructureBinding(
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 
   /**
    * @brief Add an image binding to the descriptor set layout for access in a
@@ -47,6 +57,26 @@ public:
    */
   DescriptorSetLayoutBuilder& addTextureBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  /**
+   * @brief Add a texture heap binding to the descriptor set layout.
+   *
+   * @param textureCount The number of textures in the heap.
+   * @param stageFlags The shader stages this binding should be accesible to.
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder&
+  addTextureHeapBinding(uint32_t textureCount, VkShaderStageFlags stageFlags);
+
+  /**
+   * @brief Add a buffer heap binding to the descriptor set layout.
+   *
+   * @param bufferCount The number of buffers in the heap.
+   * @param stageFlags The shader stages this binding should be accesible to.
+   * @return This builder.
+   */
+  DescriptorSetLayoutBuilder&
+  addBufferHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
 
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
@@ -137,6 +167,15 @@ public:
   DescriptorAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
 
+  DescriptorAssignment&
+  bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
+
+  DescriptorAssignment& 
+  bindTextureHeap(TextureHeap& heap);
+  
+  DescriptorAssignment& 
+  bindBufferHeap(BufferHeap& heap);
+
   DescriptorAssignment& bindStorageBuffer(
       const BufferAllocation& allocation,
       size_t bufferOffset,
@@ -157,8 +196,7 @@ public:
 
     const BufferAllocation& allocation = ubo.getAllocation();
 
-    this->_descriptorBufferInfos.push_back(
-        std::make_unique<VkDescriptorBufferInfo>());
+    this->_descriptorBufferInfos.push_back(new VkDescriptorBufferInfo());
     VkDescriptorBufferInfo& uniformBufferInfo =
         *this->_descriptorBufferInfos.back();
     uniformBufferInfo.buffer = allocation.getBuffer();
@@ -195,7 +233,7 @@ public:
     }
 
     this->_inlineConstantWrites.push_back(
-        std::make_unique<VkWriteDescriptorSetInlineUniformBlock>());
+        new VkWriteDescriptorSetInlineUniformBlock());
     VkWriteDescriptorSetInlineUniformBlock& inlineConstantsWrite =
         *this->_inlineConstantWrites.back();
     inlineConstantsWrite.sType =
@@ -231,10 +269,12 @@ private:
 
   // Temporary storage of info needed for descriptor writes
   // TODO: Is there a better way to do this? It looks awkward
-  std::vector<std::unique_ptr<VkWriteDescriptorSetInlineUniformBlock>>
-      _inlineConstantWrites;
-  std::vector<std::unique_ptr<VkDescriptorBufferInfo>> _descriptorBufferInfos;
-  std::vector<std::unique_ptr<VkDescriptorImageInfo>> _descriptorImageInfos;
+  std::vector<VkWriteDescriptorSetInlineUniformBlock*> _inlineConstantWrites;
+  std::vector<VkDescriptorBufferInfo*> _descriptorBufferInfos;
+  std::vector<VkDescriptorImageInfo*> _descriptorImageInfos;
+  std::vector<VkWriteDescriptorSetAccelerationStructureKHR*>
+      _descriptorAccelerationStructures;
+  std::vector<VkAccelerationStructureKHR*> _accelerationStructures;
 };
 
 // NOTE: In Vulkan there are no such things as "descriptor set pools", only

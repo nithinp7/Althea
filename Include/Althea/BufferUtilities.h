@@ -23,17 +23,14 @@ public:
       size_t size);
   static BufferAllocation createBuffer(
       const Application& app,
-      VkCommandBuffer commandBuffer,
       VkDeviceSize size,
       VkBufferUsageFlags usage,
       const VmaAllocationCreateInfo& allocInfo);
   static BufferAllocation createStagingBuffer(
       const Application& app,
-      VkCommandBuffer commandBuffer,
       size_t bufferSize);
   static BufferAllocation createStagingBuffer(
       const Application& app,
-      VkCommandBuffer commandBuffer,
       gsl::span<const std::byte> srcBuffer);
 };
 } // namespace AltheaEngine

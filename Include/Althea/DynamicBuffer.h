@@ -30,7 +30,6 @@ public:
 
   DynamicBuffer(
       const Application& app,
-      VkCommandBuffer commandBuffer,
       VkBufferUsageFlags usage,
       size_t bufferSize,
       size_t offsetAlignment = 1);

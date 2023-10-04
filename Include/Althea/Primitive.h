@@ -39,10 +39,15 @@ struct ALTHEA_API Vertex {
   glm::vec2 uvs[MAX_UV_COORDS]{};
 };
 
+struct ALTHEA_API AABB {
+  glm::vec3 min{};
+  glm::vec3 max{};
+};
+
 // TODO: validate alignment, may be too big for inline block
 struct ALTHEA_API PrimitiveConstants {
   glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
-  glm::vec3 emissiveFactor{};
+  glm::vec4 emissiveFactor{};
 
   int32_t baseTextureCoordinateIndex{};
   int32_t normalMapTextureCoordinateIndex{};
@@ -56,6 +61,9 @@ struct ALTHEA_API PrimitiveConstants {
   float occlusionStrength = 1.0f;
 
   float alphaCutoff = 0.5f;
+
+  float padding1;
+  float padding2;
 };
 
 struct ALTHEA_API TextureSlots {
@@ -70,8 +78,54 @@ struct ALTHEA_API TextureSlots {
 
 class ALTHEA_API Primitive {
 public:
+  // TODO: This is super hacky, need an actual, flexible way of managing
+  // bindless indices
+  static void resetPrimitiveIndexCount();
+
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
+
+  const PrimitiveConstants& getConstants() const {
+    return this->_constants;
+  }
+
+  const VertexBuffer<Vertex>& getVertexBuffer() const {
+    return this->_vertexBuffer;
+  }
+
+  const IndexBuffer& getIndexBuffer() const {
+    return this->_indexBuffer;
+  }
+
+  const std::vector<Vertex>& getVertices() const {
+    return this->_vertexBuffer.getVertices();
+  }
+
+  const std::vector<uint32_t>& getIndices() const {
+    return this->_indexBuffer.getIndices();
+  }
+
+  const TextureSlots& getTextures() const {
+    return this->_textureSlots;
+  }
+
+  AABB computeWorldAABB() const;
+
+  const AABB& getAABB() const {
+    return this->_aabb;
+  }
+
+  glm::mat4 computeWorldTransform() const {
+    return this->_modelTransform * this->_relativeTransform;
+  }
+
+  const glm::mat4& getRelativeTransform() const {
+    return this->_relativeTransform;
+  }
+
+  int getPrimitiveIndex() const {
+    return this->_primitiveIndex;
+  }
 
 private:
   VkDevice _device;
@@ -80,12 +134,16 @@ private:
   glm::mat4 _relativeTransform;
   bool _flipFrontFace = false;
 
+  int _primitiveIndex;
+
   PrimitiveConstants _constants;
   TextureSlots _textureSlots;
 
   VertexBuffer<Vertex> _vertexBuffer;
   IndexBuffer _indexBuffer;
   Material _material;
+
+  AABB _aabb;
 
 public:
   Primitive(
@@ -94,7 +152,7 @@ public:
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
       const glm::mat4& nodeTransform,
-      DescriptorSetAllocator& materialAllocator);
+      DescriptorSetAllocator* pMaterialAllocator = nullptr);
 
   void setModelTransform(const glm::mat4& model);
   void draw(const DrawContext& context) const;

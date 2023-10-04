@@ -4,6 +4,7 @@
 #include "ImageResource.h"
 #include "Library.h"
 #include "Texture.h"
+#include "TextureHeap.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
 
@@ -17,11 +18,18 @@ class ALTHEA_API ResourcesAssignment {
 public:
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 
+  ResourcesAssignment&
+  bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
+
   ResourcesAssignment& bindTexture(const Texture& texture);
 
   ResourcesAssignment& bindTexture(const ImageResource& texture);
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
+
+  ResourcesAssignment& bindTextureHeap(TextureHeap& textureHeap);
+
+  ResourcesAssignment& bindBufferHeap(BufferHeap& bufferHeap);
 
   ResourcesAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);

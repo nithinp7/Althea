@@ -19,14 +19,15 @@ IndexBuffer::IndexBuffer(
   this->_indices.resize(bufferSize / sizeof(uint32_t));
 
   VmaAllocationCreateInfo deviceAllocInfo{};
-  deviceAllocInfo.flags = 0;
   deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   this->_allocation = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
       deviceAllocInfo);
 
   BufferUtilities::copyBuffer(
@@ -50,14 +51,15 @@ IndexBuffer::IndexBuffer(
   VkBuffer stagingBuffer = commandBuffer.createStagingBuffer(app, indicesView);
 
   VmaAllocationCreateInfo deviceAllocInfo{};
-  deviceAllocInfo.flags = 0;
   deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   this->_allocation = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       indicesView.size(),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
       deviceAllocInfo);
 
   BufferUtilities::copyBuffer(
@@ -79,17 +81,18 @@ IndexBuffer::IndexBuffer(
       sizeof(uint32_t) * this->_indices.size());
 
   BufferAllocation* pStagingAllocation = new BufferAllocation(
-      BufferUtilities::createStagingBuffer(app, commandBuffer, indicesView));
+      BufferUtilities::createStagingBuffer(app, indicesView));
 
   VmaAllocationCreateInfo deviceAllocInfo{};
-  deviceAllocInfo.flags = 0;
   deviceAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
   this->_allocation = BufferUtilities::createBuffer(
       app,
-      commandBuffer,
       indicesView.size(),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
       deviceAllocInfo);
 
   BufferUtilities::copyBuffer(

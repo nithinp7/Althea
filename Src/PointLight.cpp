@@ -1,8 +1,8 @@
 #include "PointLight.h"
 
 #include "Application.h"
-#include "Primitive.h"
 #include "Camera.h"
+#include "Primitive.h"
 
 #include <glm/gtc/constants.hpp>
 
@@ -17,13 +17,18 @@ PointLightCollection::PointLightCollection(
     SingleTimeCommandBuffer& commandBuffer,
     size_t lightCount,
     bool createShadowMap,
-    VkDescriptorSetLayout gltfMaterialLayout)
-    : _dirty(true),
+    VkDescriptorSetLayout globalSetLayout,
+    bool bindless,
+    uint32_t primConstBufferBinding,
+    uint32_t textureHeapBinding,
+    uint32_t textureHeapCount)
+    : 
+      _usingBindless(bindless),
+      _dirty(true),
       _useShadowMaps(createShadowMap),
       _lights(),
       _buffer(
           app,
-          commandBuffer,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
           lightCount * sizeof(PointLight),
           app.getPhysicalDeviceProperties()
@@ -48,7 +53,7 @@ PointLightCollection::PointLightCollection(
 
     for (size_t i = 0; i < lightCount; ++i) {
       this->_shadowResources.emplace_back(app, shadowLayoutBuilder);
-      this->_shadowUniforms.emplace_back(app, commandBuffer);
+      this->_shadowUniforms.emplace_back(app);
       this->_shadowResources.back().assign().bindTransientUniforms(
           this->_shadowUniforms.back());
     }
@@ -65,23 +70,28 @@ PointLightCollection::PointLightCollection(
 
       Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
+      ShaderDefines defs{};
+      if (bindless)
+      {
+        defs.emplace("POINT_LIGHTS_BINDLESS", "");
+        defs.emplace("PRIMITIVE_CONSTANTS_BINDING", std::to_string(primConstBufferBinding));
+        defs.emplace("TEXTURE_HEAP_BINDING", std::to_string(textureHeapBinding));
+        defs.emplace("TEXTURE_HEAP_COUNT", std::to_string(textureHeapCount));
+      }
+
       subpassBuilder
           .pipelineBuilder
           // Vertex shader
-          .addVertexShader(GEngineDirectory + "/Shaders/ShadowMap.vert")
-          .addFragmentShader(GEngineDirectory + "/Shaders/ShadowMap.frag")
+          .addVertexShader(GEngineDirectory + "/Shaders/ShadowMap.vert", defs)
+          .addFragmentShader(GEngineDirectory + "/Shaders/ShadowMap.frag", defs)
           // TODO: Still need fragment shader for opacity masking?
 
           // Pipeline resource layouts
           .layoutBuilder
           // Shadow pass resources
-          // TODO: Verify that this works, all the shadow resources should have
-          // the same layout, but I don't know how layout-matching is checked /
-          // enforced in Vulkan.
           .addDescriptorSet(this->_shadowResources[0].getLayout())
-          // Material (per-object) resources (diffuse, normal map,
-          // metallic-roughness, etc)
-          .addDescriptorSet(gltfMaterialLayout);
+          // Global resource heaps
+          .addDescriptorSet(globalSetLayout);
     }
 
     VkClearValue depthClear;
@@ -208,7 +218,8 @@ void PointLightCollection::drawShadowMaps(
     Application& app,
     VkCommandBuffer commandBuffer,
     const FrameContext& frame,
-    const std::vector<Model>& models) {
+    const std::vector<Model>& models,
+    VkDescriptorSet globalSet) {
 
   // Shadow passes
   this->_shadowMap.transitionToAttachment(commandBuffer);
@@ -222,9 +233,11 @@ void PointLightCollection::drawShadowMaps(
         frame,
         this->_shadowFrameBuffers[i]);
 
-    VkDescriptorSet shadowDescriptorSet =
-        this->_shadowResources[i].getCurrentDescriptorSet(frame);
-    pass.setGlobalDescriptorSets(gsl::span(&shadowDescriptorSet, 1));
+    VkDescriptorSet sets[2] = {
+        this->_shadowResources[i].getCurrentDescriptorSet(frame),
+        globalSet };
+    
+    pass.setGlobalDescriptorSets(gsl::span(sets, this->_usingBindless ? 2 : 1));
 
     // Draw models
     for (const Model& model : models) {
