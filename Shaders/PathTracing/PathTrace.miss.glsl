@@ -24,6 +24,7 @@ vec3 sampleEnvMap(vec3 dir) {
 void main() {
     // TODO: homog position might be better...
     payload.p = vec3(0.0);
-    payload.n = vec3(0.0);
+    payload.wi = vec3(0.0);
+    payload.throughput = vec3(1.0);
     payload.Lo = sampleEnvMap(-payload.wo);
 }

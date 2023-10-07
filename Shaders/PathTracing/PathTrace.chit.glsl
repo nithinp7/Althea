@@ -125,34 +125,33 @@ void main() {
     // }
 
     vec3 rayDir = -payload.wo;
-    vec3 reflectedDirection = reflect(rayDir, globalNormal);
+    //vec3 reflectedDirection = reflect(rayDir, globalNormal);
     // TODO: Recursive ray...
-    vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughness.y), 1.0); 
+    //vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughness.y), 1.0); 
     
-    vec3 irradianceColor = sampleIrrMap(globalNormal);
+   // vec3 irradianceColor = sampleIrrMap(globalNormal);
     // TODO: Might have to handle this logic in AnyHit shader?
     // if (GBuffer_Albedo.a < primInfo.alphaCutoff) {
     //   discard;
     // }
 
-    
-    vec3 material = 
-        pbrMaterial(
+    // TODO: Change notation in Payload struct to use wow and wiw (world space)
+    float pdf;
+    vec3 f = 
+        sampleMicrofacetBrdf(
+          payload.xi,
           worldPos,
           rayDir,
-          globalNormal, 
-          baseColor.rgb, 
-          vec3(0.0),//reflectedColor.rgb, 
-          irradianceColor,
-          metallicRoughness.x, 
-          metallicRoughness.y, 
-          ambientOcclusion);
-
-#ifndef SKIP_TONEMAP
-    material = vec3(1.0) - exp(-material * globals.exposure);
-#endif
+          globalNormal,
+          baseColor.rgb,
+          metallicRoughness.x,
+          metallicRoughness.y,
+          payload.wi,
+          pdf);
+    
+    // TODO: Clamp low pdf samples (avoids fireflies...)
 
     payload.p = worldPos;
-    payload.n = globalNormal;
-    payload.Lo = vec3(0.0);
+    payload.throughput = f * abs(dot(payload.wi, globalNormal)) / pdf;
+    payload.Lo = vec3(0.0); // TODO: Check emissiveness first
 }

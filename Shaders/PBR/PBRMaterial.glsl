@@ -1,4 +1,22 @@
 #define PI 3.14159265359
+#define INV_PI 0.3183098861837697
+#define TWO_PI 6.28318530717958648
+
+// Useful functions for transforming directions
+// TODO: check if the exact tangent, bitangent coords matter
+void coordinateSystem(in vec3 v1, out vec3 v2, out vec3 v3) {
+    if (abs(v1.x) > abs(v1.y))
+            v2 = vec3(-v1.z, 0, v1.x) / sqrt(v1.x * v1.x + v1.z * v1.z);
+        else
+            v2 = vec3(0, v1.z, -v1.y) / sqrt(v1.y * v1.y + v1.z * v1.z);
+        v3 = cross(v1, v2);
+}
+
+mat3 LocalToWorld(vec3 nor) {
+    vec3 tan, bit;
+    coordinateSystem(nor, tan, bit);
+    return mat3(tan, bit, nor);
+}
 
 vec3 sampleEnvMap(vec3 reflectedDirection, float roughness) {
   float yaw = atan(reflectedDirection.z, reflectedDirection.x);
@@ -158,4 +176,67 @@ vec3 pbrMaterial(
   }
 
   return color;
+}
+
+// TODO: What does this do
+float Lambda(vec3 w, float roughness) {
+  float tan2Theta = (w.x * w.x + w.y * w.y) / (w.z * w.z);
+  return (-1.0 + sqrt(1.0 + roughness * roughness * tan2Theta)) / 2.0;
+}
+
+vec3 sampleMicrofacetBrdf(
+    vec2 xi,
+    vec3 worldPos,
+    vec3 V,
+    vec3 N, 
+    vec3 baseColor,
+    float metallic, 
+    float roughness,
+    //float ambientOcclusion TODO Useful??
+    out vec3 wiw,
+    out float pdf) {
+  mat3 localToWorld = LocalToWorld(N);
+  mat3 worldToLocal = transpose(localToWorld);
+  vec3 wo = worldToLocal * -V;
+
+  if (wo.z <= 0.0) {
+    return vec3(0.0);
+  }
+
+  vec3 wh; // sampled half-vector
+  float D; // trowbridgeReitzD - differential area
+
+  // Sample half-vector and compute differential area
+  {
+    // phi is a yaw angle about the surface normal and theta
+    // is the angle between the normal and wh
+    float phi = TWO_PI * xi[0];
+    // x/(1-x) is a barrier function that goes from [0,inf] for x=[0,1]
+    float e = xi[1] / (1.0 - xi[1]);
+    // TODO: Visualize this in desmos
+    float tan2Theta = roughness * roughness * e;
+    float cosTheta = 1.0 / sqrt(1.0 + tan2Theta);
+    float cos2Theta = 1.0 / (1.0 + tan2Theta);
+    float sinTheta = sqrt(max(1.0 - cos2Theta, 0.0));
+
+    float cosPhi = cos(phi);
+    float sinPhi = sin(phi);
+
+    wh = vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta); 
+
+    // TODO: Where does this come from??
+    D = 1.0 / (PI * roughness * roughness * cos2Theta * cosTheta * (1.0 + e) * (1.0 + e));
+  }
+
+  pdf = D / (4.0 * dot(wo, wh));
+  vec3 wi = reflect(-wo, wh);
+  wiw = localToWorld * wi; 
+  
+  // Evaluate the actual brdf
+  if (wi.z == 0.0 || wo.z == 0.0) return vec3(0.0);
+  if (wh == vec3(0.0)) return vec3(0.0);
+  vec3 F = vec3(1.0);
+  float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
+
+  return baseColor * D * G * F / (4.0 * wi.z * wo.z);
 }
