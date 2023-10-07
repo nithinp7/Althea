@@ -5,6 +5,11 @@
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
 
+#define PI 3.14159265359
+#define INV_PI 0.3183098861837697
+
+#include <Misc/Sampling.glsl>
+
 #include "PathTracePayload.glsl"
 layout(location = 0) rayPayloadEXT PathTracePayload payload;
 
@@ -15,7 +20,11 @@ layout(location = 0) rayPayloadEXT PathTracePayload payload;
 layout(set=1, binding=0) uniform accelerationStructureEXT acc;
 
 // Output image
-layout(set=1, binding=1) uniform writeonly image2D img;
+layout(set=1, binding=1, rgba8) uniform image2D img;
+
+layout(push_constant) uniform PathTracePushConstants {
+  uint frameNumber; // frames since camera moved
+} pushConstants;
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
   const vec2 pixelCenter = vec2(launchID.xy) + vec2(0.5);
@@ -28,24 +37,51 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 }
 
 void main() {
+  ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
+
+  vec3 prevColor = imageLoad(img, pixelPos).rgb;
+  if (pushConstants.frameNumber == 0)
+    prevColor = vec3(0.0);
+
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
-  payload.o = rayOrigin;
-  payload.wo = -rayDir;
-  traceRayEXT(
-      acc, 
-      gl_RayFlagsOpaqueEXT, 
-      0xff, 
-      0, // sbtOffset
-      0, // sbtStride, 
-      0, // missIndex
-      rayOrigin, 
-      0.0,
-      rayDir,
-      1000.0, 
-      0 /* payload */);
-  
-  vec4 color = vec4(payload.Lo, 1.0);
 
-  imageStore(img, ivec2(gl_LaunchIDEXT), color);
+  // "Naive" path-tracing
+  float throughput = 1.0;
+  vec3 color = vec3(0.0);
+  for (int i = 0; i < 5; ++i)
+  {
+    payload.o = rayOrigin;
+    payload.wo = -rayDir;
+    traceRayEXT(
+        acc, 
+        gl_RayFlagsOpaqueEXT, 
+        0xff, 
+        0, // sbtOffset
+        0, // sbtStride, 
+        0, // missIndex
+        rayOrigin, 
+        0.0,
+        rayDir,
+        1000.0, 
+        0 /* payload */);
+    
+    if (payload.Lo.x > 0.0 || payload.Lo.y > 0.0 || payload.Lo.z > 0.0)
+    {
+      // Ray hit a light, terminate immediately
+      color = throughput * payload.Lo;
+      break;
+    }
+
+    vec3 localRayDir = sampleHemisphereCosine();
+    rayDir = normalize(LocalToWorld(payload.n) * localRayDir);
+    rayOrigin = payload.p + 0.1 * rayDir;
+
+    throughput *= INV_PI; // TODO: Actually use the pdf...
+    // In this case the lambertian term and the cos in the 
+    // pdf cancel out. 
+  }
+
+  vec3 blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+  imageStore(img, pixelPos, vec4(blendedColor, 1.0));
 }

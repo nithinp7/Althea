@@ -114,6 +114,16 @@ void main() {
     float ambientOcclusion = 
         texture(occlusionTexture, v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
 
+    // TODO: Support emissive objects
+    // vec3 emissive = texture(emissiveTexture, v.uvs[primInfo.emissiveTextureCoordinateIndex]).rgb * primInfo.emissiveFactor.rgb;
+
+    // if (emissive.x >  0.0 || emissive > 0.0 || emissive > 0.0)
+    // {
+    //   // TODO: Actually allow reflections off of lights
+    //   payload.Lo = emissive;
+    //   return;
+    // }
+
     vec3 rayDir = -payload.wo;
     vec3 reflectedDirection = reflect(rayDir, globalNormal);
     // TODO: Recursive ray...
@@ -142,5 +152,7 @@ void main() {
     material = vec3(1.0) - exp(-material * globals.exposure);
 #endif
 
-    payload.Lo = material;
+    payload.p = worldPos;
+    payload.n = globalNormal;
+    payload.Lo = vec3(0.0);
 }

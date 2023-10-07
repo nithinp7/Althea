@@ -5,7 +5,6 @@ struct PathTracePayload {
 
   // RAY OUTPUT
   vec3 p; // position of hit
-  vec3 nextRayDir; // the continuation ray direction
+  vec3 n; // surface normal direction at p
   vec3 Lo; // outgoing light
-  float throughput; // the portion of Li at p that contributes to Lo 
 };

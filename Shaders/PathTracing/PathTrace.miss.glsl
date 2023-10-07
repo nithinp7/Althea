@@ -21,8 +21,9 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
-// TODO: Sample env map here...
 void main() {
+    // TODO: homog position might be better...
     payload.p = vec3(0.0);
+    payload.n = vec3(0.0);
     payload.Lo = sampleEnvMap(-payload.wo);
 }
