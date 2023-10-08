@@ -13,7 +13,7 @@ layout(location = 0) rayPayloadEXT PathTracePayload payload;
 layout(set=1, binding=0) uniform accelerationStructureEXT acc;
 
 // Output image
-layout(set=1, binding=1, rgba8) uniform image2D img;
+layout(set=1, binding=1, rgba32f) uniform image2D img;
 
 layout(push_constant) uniform PathTracePushConstants {
   uint frameNumber; // frames since camera moved
@@ -42,7 +42,7 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
 
-  seed = uvec2(gl_LaunchIDEXT * (1 + pushConstants.frameNumber));// + uvec2(pushConstants.frameNumber);
+  seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.frameNumber+1, pushConstants.frameNumber+2);
 
   vec3 prevColor = imageLoad(img, pixelPos).rgb;
   if (pushConstants.frameNumber == 0)
@@ -54,7 +54,7 @@ void main() {
   // "Naive" path-tracing
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     payload.o = rayOrigin;
     payload.wo = -rayDir;
@@ -80,7 +80,7 @@ void main() {
     }
 
     rayDir = payload.wi;
-    rayOrigin = payload.p;
+    rayOrigin = payload.p + 0.01 * rayDir;;
 
     throughput *= payload.throughput; // TODO: Actually use the pdf...
     // In this case the lambertian term and the cos in the 
@@ -88,5 +88,11 @@ void main() {
   }
 
   vec3 blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+  if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0)
+    blendedColor = vec3(1000.0, 0.0, 0.0);
+  
+  if (isnan(color.x) || isnan(color.y) || isnan(color.z))
+    blendedColor = vec3(0.0, 1000.0, 0.0);
+    
   imageStore(img, pixelPos, vec4(blendedColor, 1.0));
 }

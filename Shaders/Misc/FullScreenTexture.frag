@@ -18,6 +18,7 @@ void main() {
 
 #ifndef SKIP_TONEMAP
   texSample = vec3(1.0) - exp(-texSample * globals.exposure);
+  //texSample = texSample / (vec3(1.0) + texSample);
 #endif
 
   outColor = vec4(texSample, 1.0);

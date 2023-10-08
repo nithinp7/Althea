@@ -203,8 +203,11 @@ vec3 sampleMicrofacetBrdf(
     return vec3(0.0);
   }
 
+  if (roughness < 0.0001) roughness = 0.0001;
+
   vec3 wh; // sampled half-vector
   float D; // trowbridgeReitzD - differential area
+  float woDotwh;
 
   // Sample half-vector and compute differential area
   {
@@ -213,6 +216,8 @@ vec3 sampleMicrofacetBrdf(
     float phi = TWO_PI * xi[0];
     // x/(1-x) is a barrier function that goes from [0,inf] for x=[0,1]
     float e = xi[1] / (1.0 - xi[1]);
+    if (isinf(e)) return vec3(0.0);
+
     // TODO: Visualize this in desmos
     float tan2Theta = roughness * roughness * e;
     float cosTheta = 1.0 / sqrt(1.0 + tan2Theta);
@@ -223,14 +228,23 @@ vec3 sampleMicrofacetBrdf(
     float sinPhi = sin(phi);
 
     wh = vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta); 
+    woDotwh = dot(wo, wh);
+    if (woDotwh < 0.0) {
+      woDotwh = -woDotwh;
+      wh = -wh;
+    }
 
     // TODO: Where does this come from??
     D = 1.0 / (PI * roughness * roughness * cos2Theta * cosTheta * (1.0 + e) * (1.0 + e));
   }
 
-  pdf = D / (4.0 * dot(wo, wh));
+  pdf = D / (4.0 * woDotwh);
   vec3 wi = reflect(-wo, wh);
-  wiw = localToWorld * wi; 
+  if (wi.z * wo.z < 0.0) {
+    return vec3(0.0);
+  }
+
+  wiw = normalize(localToWorld * wi);
   
   // Evaluate the actual brdf
   if (wi.z == 0.0 || wo.z == 0.0) return vec3(0.0);

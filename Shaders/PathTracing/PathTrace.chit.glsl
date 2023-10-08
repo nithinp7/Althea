@@ -149,9 +149,15 @@ void main() {
           payload.wi,
           pdf);
     
-    // TODO: Clamp low pdf samples (avoids fireflies...)
-
     payload.p = worldPos;
-    payload.throughput = f * abs(dot(payload.wi, globalNormal)) / pdf;
     payload.Lo = vec3(0.0); // TODO: Check emissiveness first
+
+
+    // TODO: Clamp low pdf samples (avoids fireflies...)
+    if (f != vec3(0.0))
+    {
+      payload.throughput = f * abs(dot(payload.wi, globalNormal)) / pdf;
+    } else {
+      payload.throughput = vec3(0.0);
+    }
 }
