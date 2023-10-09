@@ -218,6 +218,8 @@ public:
   VkFormat getDepthImageFormat() const { return depthImageFormat; }
 
   VkImageView getDepthImageView() const { return depthImageView; }
+  
+  Image& getDepthImage() { return depthImage; }
 
   bool hasStencilComponent() const;
 

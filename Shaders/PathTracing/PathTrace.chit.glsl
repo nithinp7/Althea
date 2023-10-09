@@ -149,7 +149,7 @@ void main() {
           payload.wi,
           pdf);
     
-    payload.p = worldPos;
+    payload.p = vec4(worldPos, 1.0);
     payload.Lo = vec3(0.0); // TODO: Check emissiveness first
 
 

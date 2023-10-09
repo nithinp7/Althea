@@ -13,7 +13,9 @@ layout(location = 0) rayPayloadEXT PathTracePayload payload;
 layout(set=1, binding=0) uniform accelerationStructureEXT acc;
 
 // Output image
-layout(set=1, binding=1, rgba32f) uniform image2D img;
+layout(set=1, binding=1) uniform sampler2D prevImg;
+// Motion vectors
+layout(set=1, binding=2, rgba32f) uniform image2D img;
 
 layout(push_constant) uniform PathTracePushConstants {
   uint frameNumber; // frames since camera moved
@@ -41,17 +43,16 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 
 void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
+  // TODO: double check this works
+  vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
 
   seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.frameNumber+1, pushConstants.frameNumber+2);
-
-  vec3 prevColor = imageLoad(img, pixelPos).rgb;
-  if (pushConstants.frameNumber == 0)
-    prevColor = vec3(0.0);
 
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
 
-  // "Naive" path-tracing
+  vec2 prevScrUv = vec2(-1.0);
+
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
   for (int i = 0; i < 3; ++i)
@@ -71,7 +72,13 @@ void main() {
         rayDir,
         1000.0, 
         0 /* payload */);
-    
+
+    if (i == 0) {
+      // Compute prev screen-pos
+      vec4 prevScrUvH = globals.projection * globals.prevView * payload.p;
+      prevScrUv = prevScrUvH.xy / prevScrUvH.w * 0.5 + vec2(0.5);
+    }
+
     if (payload.Lo.x > 0.0 || payload.Lo.y > 0.0 || payload.Lo.z > 0.0)
     {
       // Ray hit a light, terminate immediately
@@ -79,15 +86,27 @@ void main() {
       break;
     }
 
-    rayDir = payload.wi;
-    rayOrigin = payload.p + 0.01 * rayDir;;
+    if (payload.p.w == 0.0) {
+      break;
+    }
 
-    throughput *= payload.throughput; // TODO: Actually use the pdf...
-    // In this case the lambertian term and the cos in the 
-    // pdf cancel out. 
+    rayDir = payload.wi;
+    rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;;
+
+    throughput *= payload.throughput;
   }
 
-  vec3 blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+  vec3 blendedColor = vec3(0.0);
+
+  vec3 prevColor = texture(prevImg, prevScrUv).rgb;
+  if (pushConstants.frameNumber == 0 || 
+      prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 
+      prevScrUv.y < 0.0 || prevScrUv.y > 1.0) {
+    blendedColor = color; // TODO: need to reset the frameNumber for just this pixel..
+  } else {
+    blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+  }
+
   if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0)
     blendedColor = vec3(1000.0, 0.0, 0.0);
   

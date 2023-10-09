@@ -14,11 +14,12 @@
 layout(set=GLOBAL_UNIFORMS_SET, binding=GLOBAL_UNIFORMS_BINDING) uniform UniformBufferObject {
   mat4 projection;
   mat4 inverseProjection;
-#ifdef CUBEMAP_MULTIVIEW
+#ifdef CUBEMAP_MULTIVIEW // TODO: Is this still being used? Maybe in point light shadows?
   mat4 views[6];
   mat4 inverseViews[6];
 #else
   mat4 view;
+  mat4 prevView;
   mat4 inverseView;
 #endif
   int lightCount;
