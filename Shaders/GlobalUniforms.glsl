@@ -21,6 +21,7 @@ layout(set=GLOBAL_UNIFORMS_SET, binding=GLOBAL_UNIFORMS_BINDING) uniform Uniform
   mat4 view;
   mat4 prevView;
   mat4 inverseView;
+  mat4 prevInverseView;
 #endif
   int lightCount;
   float time;

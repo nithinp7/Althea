@@ -16,6 +16,11 @@ layout(set=1, binding=0) uniform accelerationStructureEXT acc;
 layout(set=1, binding=1) uniform sampler2D prevImg;
 // Motion vectors
 layout(set=1, binding=2, rgba32f) uniform image2D img;
+// Prev depth buffer
+layout(set=1, binding=3) uniform sampler2D prevDepthBuffer;
+// Current depth buffer
+layout(set=1, binding=4, r32f) uniform image2D depthBuffer;
+
 
 layout(push_constant) uniform PathTracePushConstants {
   uint frameNumber; // frames since camera moved
@@ -52,6 +57,8 @@ void main() {
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
 
   vec2 prevScrUv = vec2(-1.0);
+  float expectedPrevDepth = -1.0;
+  float depth = -1.0;
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
@@ -77,6 +84,9 @@ void main() {
       // Compute prev screen-pos
       vec4 prevScrUvH = globals.projection * globals.prevView * payload.p;
       prevScrUv = prevScrUvH.xy / prevScrUvH.w * 0.5 + vec2(0.5);
+
+      depth = length(globals.inverseView[3].xyz - payload.p.xyz / payload.p.w);
+      expectedPrevDepth = length(globals.prevInverseView[3].xyz - payload.p.xyz / payload.p.w);
     }
 
     if (payload.Lo.x > 0.0 || payload.Lo.y > 0.0 || payload.Lo.z > 0.0)
@@ -96,22 +106,37 @@ void main() {
     throughput *= payload.throughput;
   }
 
-  vec3 blendedColor = vec3(0.0);
+  vec4 blendedColor = vec4(0.0);
 
-  vec3 prevColor = texture(prevImg, prevScrUv).rgb;
+  vec4 prevColor = texture(prevImg, prevScrUv);
+  float prevDepth = texture(prevDepthBuffer, prevScrUv).r;
+
+  prevColor.a = min(prevColor.a, 1000.0);
+  float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
+  if (length(globals.prevInverseView[3].xyz - globals.inverseView[3].xyz) > 0.01) {
+    if (log(depthDiscrepancy + 1.0) > 1.0) {
+      prevColor.a = 0.0;
+    } else {
+      prevColor.a = min(prevColor.a, 5.0);
+    }
+  }
+
   if (pushConstants.frameNumber == 0 || 
       prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 
       prevScrUv.y < 0.0 || prevScrUv.y > 1.0) {
-    blendedColor = color; // TODO: need to reset the frameNumber for just this pixel..
+    blendedColor = vec4(color, 1.0);
   } else {
-    blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+    // blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+    blendedColor = vec4(color + prevColor.rgb * prevColor.a, 1.0 + prevColor.a);
+    blendedColor.rgb = blendedColor.rgb / blendedColor.a;
   }
 
   if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0)
-    blendedColor = vec3(1000.0, 0.0, 0.0);
+    blendedColor = vec4(1000.0, 0.0, 0.0, 1.0);
   
   if (isnan(color.x) || isnan(color.y) || isnan(color.z))
-    blendedColor = vec3(0.0, 1000.0, 0.0);
+    blendedColor = vec4(0.0, 1000.0, 0.0, 1.0);
     
-  imageStore(img, pixelPos, vec4(blendedColor, 1.0));
+  imageStore(img, pixelPos, blendedColor);
+  imageStore(depthBuffer, pixelPos, vec4(depth, 0.0, 0.0, 1.0));
 }
