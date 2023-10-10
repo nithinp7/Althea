@@ -59,6 +59,7 @@ void main() {
   vec2 prevScrUv = vec2(-1.0);
   float expectedPrevDepth = -1.0;
   float depth = -1.0;
+  float firstBounceRoughness = -1.0;
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
@@ -87,6 +88,8 @@ void main() {
 
       depth = length(globals.inverseView[3].xyz - payload.p.xyz / payload.p.w);
       expectedPrevDepth = length(globals.prevInverseView[3].xyz - payload.p.xyz / payload.p.w);
+
+      firstBounceRoughness = payload.roughness;
     }
 
     if (payload.Lo.x > 0.0 || payload.Lo.y > 0.0 || payload.Lo.z > 0.0)
@@ -111,13 +114,21 @@ void main() {
   vec4 prevColor = texture(prevImg, prevScrUv);
   float prevDepth = texture(prevDepthBuffer, prevScrUv).r;
 
-  prevColor.a = min(prevColor.a, 1000.0);
+  prevColor.a = min(prevColor.a, 5000.0);
   float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
-  if (length(globals.prevInverseView[3].xyz - globals.inverseView[3].xyz) > 0.01) {
-    if (log(depthDiscrepancy + 1.0) > 1.0) {
+  mat4 viewDiff = globals.view - globals.prevView;
+  if (length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01) {
+    if (log(depthDiscrepancy + 1.0) > 0.5) {
+    //if (depthDiscrepancy > 0.1) {
       prevColor.a = 0.0;
     } else {
-      prevColor.a = min(prevColor.a, 5.0);
+      // If the first bounce is mostly diffuse we can keep more of the history than
+      // the specular case. Fortunately, specular surfaces take fewer rays to converge
+      // anyways.
+      // TODO: Also consider modulating by log factor, and also by camera velocity
+      // float trimmedHistory = mix(2.0, 5000.0, firstBounceRoughness);
+      float trimmedHistory = mix(2.0, 300.0, 2.0 * firstBounceRoughness / (1.0 * firstBounceRoughness + 1.0));
+      prevColor.a = min(prevColor.a, trimmedHistory);
     }
   }
 

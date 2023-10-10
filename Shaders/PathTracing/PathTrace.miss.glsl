@@ -26,4 +26,5 @@ void main() {
     payload.wi = vec3(0.0);
     payload.throughput = vec3(1.0);
     payload.Lo = 5.0 * sampleEnvMap(-payload.wo);
+    payload.roughness = 1.0;
 }

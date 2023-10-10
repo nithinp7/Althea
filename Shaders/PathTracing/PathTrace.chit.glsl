@@ -151,7 +151,7 @@ void main() {
     
     payload.p = vec4(worldPos, 1.0);
     payload.Lo = vec3(0.0); // TODO: Check emissiveness first
-
+    payload.roughness = metallicRoughness.y;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)
     if (f != vec3(0.0))

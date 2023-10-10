@@ -9,4 +9,5 @@ struct PathTracePayload {
   vec3 wi; // ray continuation direction
   vec3 throughput; // BRDF
   vec3 Lo; // outgoing light
+  float roughness; // surface roughness at p
 };
