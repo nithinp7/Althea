@@ -53,6 +53,8 @@ layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } 
 
 #include <PBR/PBRMaterial.glsl>
 
+#include "DirectLightSample.glsl"
+
 #define baseColorTexture textureHeap[5*gl_InstanceCustomIndexEXT+0]
 #define normalMapTexture textureHeap[5*gl_InstanceCustomIndexEXT+1]
 #define metallicRoughnessTexture textureHeap[5*gl_InstanceCustomIndexEXT+2]
@@ -125,10 +127,7 @@ void main() {
     // }
 
     vec3 rayDir = -payload.wo;
-    //vec3 reflectedDirection = reflect(rayDir, globalNormal);
-    // TODO: Recursive ray...
-    //vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughness.y), 1.0); 
-    
+
    // vec3 irradianceColor = sampleIrrMap(globalNormal);
     // TODO: Might have to handle this logic in AnyHit shader?
     // if (GBuffer_Albedo.a < primInfo.alphaCutoff) {
@@ -150,7 +149,6 @@ void main() {
           pdf);
     
     payload.p = vec4(worldPos, 1.0);
-    payload.Lo = vec3(0.0); // TODO: Check emissiveness first
     payload.roughness = metallicRoughness.y;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)
@@ -160,4 +158,15 @@ void main() {
     } else {
       payload.throughput = vec3(0.0);
     }
+
+    // Direct illumination from point lights
+    payload.Lo = vec3(0.0); // TODO: Check emissiveness first
+    payload.Lo += 
+        illuminationFromPointLights(
+          worldPos + payload.wi * 0.01,
+          globalNormal,
+          rayDir,
+          baseColor.rgb,
+          metallicRoughness.x,
+          metallicRoughness.y);
 }

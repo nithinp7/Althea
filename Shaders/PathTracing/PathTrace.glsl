@@ -3,6 +3,9 @@
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
 
+// #include "ImportanceSampling.glsl"
+// #include "DirectLightSample.glsl"
+
 #include "PathTracePayload.glsl"
 layout(location = 0) rayPayloadEXT PathTracePayload payload;
 
@@ -63,7 +66,7 @@ void main() {
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
-  for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < 5; ++i)
   {
     payload.o = rayOrigin;
     payload.wo = -rayDir;
@@ -92,19 +95,16 @@ void main() {
       firstBounceRoughness = payload.roughness;
     }
 
-    if (payload.Lo.x > 0.0 || payload.Lo.y > 0.0 || payload.Lo.z > 0.0)
+    color += throughput * payload.Lo;
+
+    if (payload.throughput == vec3(0.0) || payload.p.w == 0.0)
     {
-      // Ray hit a light, terminate immediately
-      color = throughput * payload.Lo;
       break;
     }
 
-    if (payload.p.w == 0.0) {
-      break;
-    }
-
+    // Set the next GI ray params
     rayDir = payload.wi;
-    rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;;
+    rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;
 
     throughput *= payload.throughput;
   }
@@ -126,7 +126,7 @@ void main() {
       // the specular case. Fortunately, specular surfaces take fewer rays to converge
       // anyways.
       // TODO: Also consider modulating by log factor, and also by camera velocity
-      // float trimmedHistory = mix(2.0, 5000.0, firstBounceRoughness);
+      // float trimmedHistory = mix(2.0, 500.0, firstBounceRoughness);
       float trimmedHistory = mix(2.0, 300.0, 2.0 * firstBounceRoughness / (1.0 * firstBounceRoughness + 1.0));
       prevColor.a = min(prevColor.a, trimmedHistory);
     }
