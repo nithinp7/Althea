@@ -114,7 +114,7 @@ void main() {
   vec4 prevColor = texture(prevImg, prevScrUv);
   float prevDepth = texture(prevDepthBuffer, prevScrUv).r;
 
-  prevColor.a = min(prevColor.a, 5000.0);
+  prevColor.a = min(prevColor.a, 50000.0);
   float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
   mat4 viewDiff = globals.view - globals.prevView;
   if (length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01) {
@@ -131,6 +131,8 @@ void main() {
       prevColor.a = min(prevColor.a, trimmedHistory);
     }
   }
+
+  // prevColor.a = 0.0; // TODO: REmove
 
   if (pushConstants.frameNumber == 0 || 
       prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 

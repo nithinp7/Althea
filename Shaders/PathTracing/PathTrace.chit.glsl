@@ -160,13 +160,15 @@ void main() {
     }
 
     // Direct illumination from point lights
-    payload.Lo = vec3(0.0); // TODO: Check emissiveness first
-    payload.Lo += 
+    // payload.Lo = vec3(0.0); 
+    // TODO: Check emissiveness first
+    payload.Lo = 
         illuminationFromPointLights(
           worldPos + payload.wi * 0.01,
           globalNormal,
           rayDir,
           baseColor.rgb,
           metallicRoughness.x,
-          metallicRoughness.y);
+          metallicRoughness.y,
+          pdf * 0.0);
 }
