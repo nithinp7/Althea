@@ -9,10 +9,12 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : enable
 
+#include <Misc/Sampling.glsl>
 #include "PathTracePayload.glsl"
 
 layout(location = 0) rayPayloadInEXT PathTracePayload payload;
 hitAttributeEXT vec2 attribs;
+layout(location = 1) rayPayloadEXT PathTracePayload shadowRayPayload;
 
 layout(set=0, binding=0) uniform sampler2D environmentMap; 
 layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
@@ -50,6 +52,8 @@ struct Vertex {
 #extension GL_EXT_scalar_block_layout : enable
 layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
 layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
+
+layout(set=1, binding=0) uniform accelerationStructureEXT acc;
 
 #include <PBR/PBRMaterial.glsl>
 
@@ -94,7 +98,6 @@ void main() {
     INTERPOLATE(uvs[2]);
     INTERPOLATE(uvs[3]);
 
-    // TODO: Model matrix heap needed to reconstruct world position?? Is it somewhere accessible from accel str
     vec3 worldPos = gl_ObjectToWorldEXT * vec4(v.position, 1.0);
     vec4 baseColor = 
         texture(baseColorTexture, v.uvs[primInfo.baseTextureCoordinateIndex]) * primInfo.baseColorFactor;
@@ -138,7 +141,7 @@ void main() {
     float pdf;
     vec3 f = 
         sampleMicrofacetBrdf(
-          payload.xi,
+          randVec2(payload.seed),
           worldPos,
           rayDir,
           globalNormal,
@@ -159,10 +162,33 @@ void main() {
       payload.throughput = vec3(0.0);
     }
 
+    payload.Lo = vec3(0.0);
     // Direct illumination from point lights
     // payload.Lo = vec3(0.0); 
     // TODO: Check emissiveness first
-    payload.Lo = 
+    // Shadow ray to sample env map
+    {
+      vec3 shadowRayDir = LocalToWorld(globalNormal) * sampleHemisphereCosine(payload.seed);
+      traceRayEXT(
+        acc, 
+        gl_RayFlagsOpaqueEXT, 
+        0xff, 
+        1, // sbtOffset
+        0, // sbtStride, 
+        0, // missIndex
+        worldPos + shadowRayDir * 0.01, 
+        0.0,
+        shadowRayDir,
+        1000.0, 
+        1 /* payload */);
+
+        if (shadowRayPayload.p.w == 0.0) {
+          payload.Lo = 10.0 * sampleEnvMap(shadowRayDir) / PI;
+        }
+    }
+  #if 1
+    //payload.Lo = vec3(0.0);
+  #else
         illuminationFromPointLights(
           worldPos + payload.wi * 0.01,
           globalNormal,
@@ -171,4 +197,5 @@ void main() {
           metallicRoughness.x,
           metallicRoughness.y,
           pdf * 0.0);
+  #endif
 }

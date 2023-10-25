@@ -1,0 +1,8 @@
+#ifndef _CONSTANTS_
+#define _CONSTANTS_
+
+#define PI 3.14159265359
+#define INV_PI 0.3183098861837697
+#define TWO_PI 6.28318530717958648
+
+#endif // _CONSTANTS_

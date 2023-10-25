@@ -1,12 +1,19 @@
+#ifndef _SAMPLING_
+#define _SAMPLING_
+
+#include <Misc/Constants.glsl>
 
 // Random number generator and sample warping
 // from ShaderToy https://www.shadertoy.com/view/4tXyWN
-uvec2 seed;
-float rng() {
-    seed += uvec2(1);
-    uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
-    uint  n = 1103515245U * ( (q.x) ^ (q.y >> 3U) );
-    return float(n) * (1.0 / float(0xffffffffU));
+float rng(inout uvec2 seed) {
+  seed += uvec2(1);
+  uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
+  uint  n = 1103515245U * ( (q.x) ^ (q.y >> 3U) );
+  return float(n) * (1.0 / float(0xffffffffU));
+}
+
+vec2 randVec2(inout uvec2 seed) {
+  return vec2(rng(seed), rng(seed));
 }
 
 // Useful functions for transforming directions
@@ -53,11 +60,12 @@ vec3 squareToHemisphereCosine(vec2 xi) {
         sqrt(clamp(1.0 - length(diskSample), 0.0, 1.0)));
 }
 
-vec3 sampleHemisphereCosine() {
-  return squareToHemisphereCosine(vec2(rng(), rng()));
+vec3 sampleHemisphereCosine(inout uvec2 seed) {
+  return squareToHemisphereCosine(randVec2(seed));
 }
 
 float squareToHemisphereCosinePDF(vec3 sampleDir) {
     return sampleDir.z * INV_PI;
 }
 
+#endif // _SAMPLING_

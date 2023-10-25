@@ -2,7 +2,7 @@ struct PathTracePayload {
   // RAY INPUT
   vec3 o; // ray origin
   vec3 wo; // outgoing light dir (opposite ray dir)
-  vec2 xi;
+  uvec2 seed;
 
   // RAY OUTPUT
   vec4 p; // position of hit
