@@ -87,8 +87,9 @@ public:
    * @brief Execute an indexed draw call.
    *
    * @param indexCount The number of indices in the indexed draw.
+   * @param instanceCount The number of instances to draw.
    */
-  void drawIndexed(uint32_t indexCount) const;
+  void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1) const;
 
   /**
    * @brief Binds the given vertex and index buffers and executes an indexed
@@ -114,8 +115,9 @@ public:
    *
    * @param vertexCount The number of vertices to execute in the
    * draw call.
+   * @param instanceCount The number of instances to draw.
    */
-  void draw(uint32_t vertexCount) const;
+  void draw(uint32_t vertexCount, uint32_t instanceCount = 1) const;
 
   /**
    * @brief Binds the given vertex buffer and executes a non-indexed draw call.

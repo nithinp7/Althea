@@ -18,7 +18,7 @@ template <typename TElement> class ALTHEA_API StructuredBuffer {
 public:
   StructuredBuffer() = default;
 
-  StructuredBuffer(const Application& app, uint32_t count) {
+  StructuredBuffer(const Application& app, uint32_t count, VkBufferUsageFlags additionalFlags = 0) {
     this->_structureArray.resize(count);
 
     // TODO: This assumes that the uniform buffer will be _often_ rewritten
@@ -31,7 +31,7 @@ public:
     this->_allocation = BufferUtilities::createBuffer(
         app,
         sizeof(TElement) * count,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalFlags,
         allocInfo);
   }
 
