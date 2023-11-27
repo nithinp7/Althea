@@ -18,8 +18,9 @@ public:
    * @brief Set the compute shader for this compute pipeline.
    *
    * @param path The project-relative path to the glsl compute shader.
+   * @param defines Defines to inject before compilation
    */
-  void setComputeShader(const std::string& path);
+  void setComputeShader(const std::string& path, const ShaderDefines& defines = {});
 
   /**
    * @brief The builder for creating a pipeline layout for this graphics

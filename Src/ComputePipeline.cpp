@@ -5,8 +5,10 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
-void ComputePipelineBuilder::setComputeShader(const std::string& path) {
-  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader);
+void ComputePipelineBuilder::setComputeShader(
+    const std::string& path,
+    const ShaderDefines& defines) {
+  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader, defines);
 }
 
 ComputePipeline::ComputePipeline(
@@ -94,9 +96,7 @@ void ComputePipeline::recreatePipeline(Application& app) {
   // pipeline...
   this->_outdated = true;
 
-  ComputePipeline newPipeline(
-      app,
-      std::move(this->_builder));
+  ComputePipeline newPipeline(app, std::move(this->_builder));
 
   // Since they will now have invalid values.
   this->_builder = {};

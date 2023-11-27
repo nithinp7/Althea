@@ -48,6 +48,16 @@ public:
     this->_allocation.unmapMemory();
   }
 
+  void download(std::vector<TElement>& out) const {
+    out.resize(this->_structureArray.size());
+    void *pData = this->_allocation.mapMemory();
+    memcpy(
+        out.data(),
+        pData,
+        out.size() * sizeof(TElement));
+    this->_allocation.unmapMemory();
+  }
+
   const TElement& getElement(uint32_t i) const {
     return this->_structureArray[i];
   }
