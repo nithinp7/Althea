@@ -16,8 +16,8 @@ void ShapeUtilities::createSphere(
     Application& app,
     VkCommandBuffer commandBuffer,
     VertexBuffer<glm::vec3>& vertexBuffer,
-    IndexBuffer& indexBuffer) {
-  constexpr uint32_t resolution = 50;
+    IndexBuffer& indexBuffer,
+    uint32_t resolution) {
   constexpr float maxPitch = 0.499f * glm::pi<float>();
 
   auto sphereUvIndexToVertIndex = [resolution](uint32_t i, uint32_t j) {
