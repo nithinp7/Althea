@@ -72,6 +72,13 @@ public:
 };
 } // namespace
 
+static bool s_shouldGenerateDebugInfo = false;
+
+/*static*/
+void Shader::setShouldGenerateDebugInfo(bool genDebugInfo) {
+  s_shouldGenerateDebugInfo = genDebugInfo;
+}
+
 Shader::Shader(const Application& app, const ShaderBuilder& builder) {
   if (builder.hasErrors()) {
     // Compilation errors should be caught during the builder stage.
@@ -132,6 +139,9 @@ bool ShaderBuilder::recompile() {
   // dummy changes need to be made in the main shader file
   options.SetIncluder(
       std::make_unique<AltheaShaderIncluder>(this->_folderPath));
+
+  if (s_shouldGenerateDebugInfo)
+    options.SetGenerateDebugInfo();
 
   // Add shader defines
   for (auto& it : this->_defines) {
