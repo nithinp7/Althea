@@ -97,6 +97,8 @@ public:
 
   const BufferAllocation& getAllocation() const { return this->_allocation; }
 
+  size_t getSize() const { return getVertexCount() * sizeof(TVertex); }
+  
 private:
   std::vector<TVertex> _vertices;
   BufferAllocation _allocation;

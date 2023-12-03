@@ -36,6 +36,8 @@ public:
 
   const BufferAllocation& getAllocation() const { return this->_allocation; }
 
+  size_t getSize() const { return getIndexCount() * sizeof(uint32_t); }
+  
 private:
   std::vector<uint32_t> _indices;
   BufferAllocation _allocation;
