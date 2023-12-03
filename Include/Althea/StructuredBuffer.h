@@ -18,20 +18,22 @@ template <typename TElement> class ALTHEA_API StructuredBuffer {
 public:
   StructuredBuffer() = default;
 
-  StructuredBuffer(const Application& app, uint32_t count, VkBufferUsageFlags additionalFlags = 0) {
+  StructuredBuffer(
+      const Application& app,
+      uint32_t count,
+      VkBufferUsageFlags additionalFlags = 0) {
     this->_structureArray.resize(count);
 
     // TODO: This assumes that the uniform buffer will be _often_ rewritten
     // and perhaps in a random pattern. We should prefer a different type of
     // memory if the uniform buffer will mostly be persistent.
     VmaAllocationCreateInfo allocInfo{};
-    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
     this->_allocation = BufferUtilities::createBuffer(
         app,
         sizeof(TElement) * count,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalFlags,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | additionalFlags,
         allocInfo);
   }
 
@@ -39,23 +41,34 @@ public:
     this->_structureArray[i] = element;
   }
 
-  void upload() const {
-    void* pData = this->_allocation.mapMemory();
-    memcpy(
-        pData,
-        this->_structureArray.data(),
-        this->_structureArray.size() * sizeof(TElement));
-    this->_allocation.unmapMemory();
+  void upload(const Application& app, VkCommandBuffer commandBuffer) const {
+    size_t size = this->_structureArray.size() * sizeof(TElement);
+    BufferAllocation staging = BufferUtilities::createStagingBuffer(
+        app,
+        gsl::span<const std::byte>(
+            reinterpret_cast<const std::byte*>(this->_structureArray.data()),
+            size));
+
+    BufferUtilities::copyBuffer(
+        commandBuffer,
+        staging.getBuffer(),
+        0,
+        this->_allocation.getBuffer(),
+        0,
+        size);
   }
 
   void download(std::vector<TElement>& out) const {
-    out.resize(this->_structureArray.size());
-    void *pData = this->_allocation.mapMemory();
-    memcpy(
-        out.data(),
-        pData,
-        out.size() * sizeof(TElement));
-    this->_allocation.unmapMemory();
+    throw std::runtime_error("NOT IMPLEMENTED");
+
+    // No longer mem-mapped, need to copy to staging buffer and read out...
+    // out.resize(this->_structureArray.size());
+    // void *pData = this->_allocation.mapMemory();
+    // memcpy(
+    //     out.data(),
+    //     pData,
+    //     out.size() * sizeof(TElement));
+    // this->_allocation.unmapMemory();
   }
 
   const TElement& getElement(uint32_t i) const {
