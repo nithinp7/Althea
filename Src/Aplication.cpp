@@ -478,18 +478,14 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 
-  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
-
-  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+  VkPhysicalDeviceVulkan12Features vulkan12Features{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 
   deviceFeatures.pNext = &multiviewFeatures;
   multiviewFeatures.pNext = &inlineBlockFeatures;
   inlineBlockFeatures.pNext = &accelFeature;
   accelFeature.pNext = &rtPipelineFeature;
-  rtPipelineFeature.pNext = &bufferDevAddrFeature;
-  bufferDevAddrFeature.pNext = &scalarBlockLayoutFeatures;
+  rtPipelineFeature.pNext = &vulkan12Features;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -505,8 +501,9 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          // accelFeature.accelerationStructureHostCommands &&
          //  accelFeature.accelerationStructureIndirectBuild && ??
          rtPipelineFeature.rayTracingPipeline &&
-         bufferDevAddrFeature.bufferDeviceAddress &&
-         scalarBlockLayoutFeatures.scalarBlockLayout;
+         vulkan12Features.bufferDeviceAddress &&
+         vulkan12Features.scalarBlockLayout && 
+         vulkan12Features.runtimeDescriptorArray;
   //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
   //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
@@ -589,16 +586,13 @@ void Application::createLogicalDevice() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
   rtPipelineFeature.rayTracingPipeline = true;
   rtPipelineFeature.pNext = &accelFeature;
-
-  VkPhysicalDeviceBufferDeviceAddressFeatures bufferDevAddrFeature{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
-  bufferDevAddrFeature.bufferDeviceAddress = true;
-  bufferDevAddrFeature.pNext = &rtPipelineFeature;
-
-  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
-  scalarBlockLayoutFeatures.scalarBlockLayout = true;
-  scalarBlockLayoutFeatures.pNext = &bufferDevAddrFeature;
+  
+  VkPhysicalDeviceVulkan12Features vulkan12Features{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+  vulkan12Features.runtimeDescriptorArray = true;
+  vulkan12Features.scalarBlockLayout = true;
+  vulkan12Features.bufferDeviceAddress = true;
+  vulkan12Features.pNext = &rtPipelineFeature;
 
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -612,7 +606,7 @@ void Application::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.pNext = &scalarBlockLayoutFeatures;
+  createInfo.pNext = &vulkan12Features;
 
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
