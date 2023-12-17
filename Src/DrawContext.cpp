@@ -79,13 +79,13 @@ void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {
       VK_INDEX_TYPE_UINT32);
 }
 
-void DrawContext::drawIndexed(uint32_t indexCount) const {
+void DrawContext::drawIndexed(uint32_t indexCount, uint32_t instanceCount) const {
   // TODO: Expose more flexible draw commands, index offset, vertex offset,
   // instance count, etc.
-  vkCmdDrawIndexed(this->_commandBuffer, indexCount, 1, 0, 0, 0);
+  vkCmdDrawIndexed(this->_commandBuffer, indexCount, instanceCount, 0, 0, 0);
 }
 
-void DrawContext::draw(uint32_t vertexCount) const {
-  vkCmdDraw(this->_commandBuffer, vertexCount, 1, 0, 0);
+void DrawContext::draw(uint32_t vertexCount, uint32_t instanceCount) const {
+  vkCmdDraw(this->_commandBuffer, vertexCount, instanceCount, 0, 0);
 }
 } // namespace AltheaEngine

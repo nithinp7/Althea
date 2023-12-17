@@ -18,8 +18,9 @@ public:
    * @brief Set the compute shader for this compute pipeline.
    *
    * @param path The project-relative path to the glsl compute shader.
+   * @param defines Defines to inject before compilation
    */
-  void setComputeShader(const std::string& path);
+  void setComputeShader(const std::string& path, const ShaderDefines& defines = {});
 
   /**
    * @brief The builder for creating a pipeline layout for this graphics
@@ -44,6 +45,45 @@ public:
 
   VkPipelineLayout getLayout() const { return this->_pipelineLayout; }
 
+  /**
+   * @brief Reload and attempt to recompile any stale shaders that is
+   * out-of-date with the corresponding shader file on disk. Note that the
+   * recompile is not guaranteed to have succeeded, check
+   * hasShaderRecompileErrors() before recreating the pipeline.
+   *
+   *
+   * @return Whether any stale shaders were detected and reloaded /
+   * recompiled.
+   */
+  bool recompileStaleShaders();
+
+  /**
+   * @brief Whether any reloaded shaders have errors during recompilation. Note
+   * that it is NOT safe to recreate the pipeline if there are any shader
+   * recompile errors remaining.
+   *
+   * @return Whether there were any errors when recompiling reloaded shaders.
+   */
+  bool hasShaderRecompileErrors() const;
+
+  /**
+   * @brief Get compilation error messages that were created while reloading
+   * and recompiling stale shaders.
+   *
+   * @return The shader compilation errors.
+   */
+  std::string getShaderRecompileErrors() const;
+
+  /**
+   * @brief Create a new pipeline with all the same paramaters as the current
+   * one, but uses the newly recompiled shaders if they exist. Note this
+   * function is NOT safe to call if any of the recompiled shaders have
+   * compilation errors - check that hasShaderRecompileErrors() is false first.
+   *
+   * @return The new pipeline based on the current one, but with updated and
+   * recompiled shaders if they exist.
+   */
+  void recreatePipeline(Application& app);
 private:
   struct ComputePipelineDeleter {
     void operator()(VkDevice device, VkPipeline pipeline);
@@ -55,5 +95,9 @@ private:
   Shader _shader;
 
   ComputePipelineBuilder _builder;
+
+  // Once the pipeline is recreated, this one will be marked outdated to
+  // prevent further pipeline recreations based on this one.
+  bool _outdated = false;
 };
 } // namespace AltheaEngine

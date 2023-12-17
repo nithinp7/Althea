@@ -5,8 +5,10 @@
 #include <stdexcept>
 
 namespace AltheaEngine {
-void ComputePipelineBuilder::setComputeShader(const std::string& path) {
-  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader);
+void ComputePipelineBuilder::setComputeShader(
+    const std::string& path,
+    const ShaderDefines& defines) {
+  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader, defines);
 }
 
 ComputePipeline::ComputePipeline(
@@ -51,5 +53,59 @@ void ComputePipeline::ComputePipelineDeleter::operator()(
     VkDevice device,
     VkPipeline computePipeline) {
   vkDestroyPipeline(device, computePipeline, nullptr);
+}
+
+bool ComputePipeline::recompileStaleShaders() {
+  if (this->_outdated) {
+    return false;
+  }
+
+  bool stale = false;
+  if (this->_builder._shaderBuilder.reloadIfStale()) {
+    stale = true;
+    this->_builder._shaderBuilder.recompile();
+  }
+
+  return stale;
+}
+
+bool ComputePipeline::hasShaderRecompileErrors() const {
+  if (this->_outdated) {
+    // This is not necessarily a shader recompile error...
+    // but we don't want to recreate the pipeline if it has already
+    // been recreated from.
+    return true;
+  }
+
+  return this->_builder._shaderBuilder.hasErrors();
+}
+
+std::string ComputePipeline::getShaderRecompileErrors() const {
+  if (!this->_outdated && this->_builder._shaderBuilder.hasErrors()) {
+    return this->_builder._shaderBuilder.getErrors() + "\n";
+  }
+
+  return "";
+}
+
+void ComputePipeline::recreatePipeline(Application& app) {
+  // Mark this pipeline as outdated so we don't recreate another pipeline
+  // from it.
+  // TODO: This may be a silly constraint, the only reason for it is that we
+  // are moving away the context and builder objects when recreating the
+  // pipeline...
+  this->_outdated = true;
+
+  ComputePipeline newPipeline(app, std::move(this->_builder));
+
+  // Since they will now have invalid values.
+  this->_builder = {};
+
+  ComputePipeline* pOldPipeline = new ComputePipeline(std::move(*this));
+  app.addDeletiontask(std::move(DeletionTask{
+      [pOldPipeline]() { delete pOldPipeline; },
+      app.getCurrentFrameRingBufferIndex()}));
+
+  *this = std::move(newPipeline);
 }
 } // namespace AltheaEngine

@@ -48,11 +48,13 @@ private:
 class ActiveRenderPass;
 class ALTHEA_API RenderPass {
 public:
+  // TODO: Make a RenderPassOptions struct
   RenderPass(
       const Application& app,
       const VkExtent2D& extent,
       std::vector<Attachment>&& attachments,
-      std::vector<SubpassBuilder>&& subpasses);
+      std::vector<SubpassBuilder>&& subpasses,
+      bool syncExternalBeforePass = true);
   ~RenderPass();
 
   ActiveRenderPass begin(

@@ -25,6 +25,8 @@ public:
 
   operator VkShaderModule() const { return this->_shaderModule; }
 
+  static void setShouldGenerateDebugInfo(bool genDebugInfo);
+
 private:
   struct ShaderDeleter {
     void operator()(VkDevice device, VkShaderModule shaderModule);

@@ -29,8 +29,15 @@ public:
 
   ResourcesAssignment& bindTextureHeap(TextureHeap& textureHeap);
 
-  ResourcesAssignment& bindBufferHeap(BufferHeap& bufferHeap);
+  template <typename TBufferHeap>
+  ResourcesAssignment& bindBufferHeap(TBufferHeap& bufferHeap) {
+    for (DescriptorAssignment& assignment : this->_assignments) {
+      assignment.bindBufferHeap(bufferHeap);
+    }
 
+    return *this;
+  }
+  
   ResourcesAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
 

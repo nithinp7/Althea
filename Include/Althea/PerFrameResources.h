@@ -29,7 +29,8 @@ public:
   ResourcesAssignment assign();
 
 private:
-  std::unique_ptr<DescriptorSetAllocator> _pDescriptorSetAllocator;
+  // TODO: Does this still need to be in a unique_ptr
+  std::unique_ptr<DescriptorSetAllocator> _pDescriptorSetAllocator; 
 
   // One descriptor set for each frame-in-flight
   std::vector<DescriptorSet> _descriptorSets;

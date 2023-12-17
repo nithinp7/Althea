@@ -25,7 +25,8 @@ RenderPass::RenderPass(
     const Application& app,
     const VkExtent2D& extent,
     std::vector<Attachment>&& attachments,
-    std::vector<SubpassBuilder>&& subpassBuilders)
+    std::vector<SubpassBuilder>&& subpassBuilders,
+    bool syncExternalBeforePass)
     : _attachments(std::move(attachments)),
       _device(app.getDevice()),
       _extent(extent) {
@@ -62,14 +63,13 @@ RenderPass::RenderPass(
     // previous frame buffers.
     // TODO: Currently this assumes that an attachment requiring a load implies
     // that it was previously also written to as an attachment. It could have
-    // been written to in other ways, e.g., compute shader. 
-    
-    vkAttachment.initialLayout = 
-        attachment.load ? 
-        (attachment.flags & ATTACHMENT_FLAG_DEPTH)
-            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-        : VK_IMAGE_LAYOUT_UNDEFINED;
+    // been written to in other ways, e.g., compute shader.
+
+    vkAttachment.initialLayout =
+        attachment.load ? (attachment.flags & ATTACHMENT_FLAG_DEPTH)
+                              ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                              : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                        : VK_IMAGE_LAYOUT_UNDEFINED;
 
     // If this attachment will be presented, the final layout should reflect
     // that. Otherwise, the attachment may be used in subsequent render passes
@@ -170,9 +170,16 @@ RenderPass::RenderPass(
   renderPassInfo.pAttachments = vkAttachments.data();
   renderPassInfo.subpassCount = static_cast<uint32_t>(vkSubpasses.size());
   renderPassInfo.pSubpasses = vkSubpasses.data();
-  renderPassInfo.dependencyCount =
-      static_cast<uint32_t>(subpassDependencies.size());
-  renderPassInfo.pDependencies = subpassDependencies.data();
+  // kinda hacky
+  if (syncExternalBeforePass) {
+    renderPassInfo.dependencyCount =
+        static_cast<uint32_t>(subpassDependencies.size());
+    renderPassInfo.pDependencies = subpassDependencies.data();
+  } else {
+    renderPassInfo.dependencyCount =
+        static_cast<uint32_t>(subpassDependencies.size() - 1);
+    renderPassInfo.pDependencies = &subpassDependencies[1];
+  }
 
   // Use the multi-view extension to render cubemaps
   std::vector<uint32_t> viewMasks;

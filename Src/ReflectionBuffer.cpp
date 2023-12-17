@@ -107,8 +107,7 @@ ReflectionBuffer::ReflectionBuffer(
   }
 }
 
-void ReflectionBuffer::transitionToAttachment(
-    VkCommandBuffer commandBuffer) {
+void ReflectionBuffer::transitionToAttachment(VkCommandBuffer commandBuffer) {
   // Only the first mip needs to be transitioned to be a color attachment.
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -227,7 +226,8 @@ void ReflectionBuffer::convolveReflectionBuffer(
   readBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   readBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
   uint32_t previousMipWidth = imageDetails.width;
   uint32_t previousMipHeight = imageDetails.height;

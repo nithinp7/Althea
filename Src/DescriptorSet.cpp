@@ -253,35 +253,6 @@ DescriptorAssignment& DescriptorAssignment::bindTextureHeap(TextureHeap& heap) {
   return *this;
 }
 
-DescriptorAssignment& DescriptorAssignment::bindBufferHeap(BufferHeap& heap) {
-  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
-    throw std::runtime_error(
-        "Exceeded expected number of bindings in descriptor set.");
-  }
-
-  if (this->_bindings[this->_currentIndex].descriptorType !=
-      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
-    throw std::runtime_error("Unexpected binding in descriptor set.");
-  }
-
-  const std::vector<VkDescriptorBufferInfo>& bufferInfos = heap.getBufferInfos();
-
-  VkWriteDescriptorSet& descriptorWrite =
-      this->_descriptorWrites[this->_currentIndex];
-  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrite.dstSet = this->_descriptorSet;
-  descriptorWrite.dstBinding = this->_currentIndex;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  descriptorWrite.descriptorCount = static_cast<uint32_t>(bufferInfos.size());
-  descriptorWrite.pBufferInfo = bufferInfos.data();
-  descriptorWrite.pImageInfo = nullptr;
-  descriptorWrite.pTexelBufferView = nullptr;
-
-  ++this->_currentIndex;
-  return *this;
-}
-
 DescriptorAssignment& DescriptorAssignment::bindStorageImage(
     VkImageView imageView,
     VkSampler sampler) {
