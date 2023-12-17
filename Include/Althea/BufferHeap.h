@@ -74,7 +74,7 @@ public:
     return this->_buffers;
   }
 
-  void upload(const Application& app, VkCommandBuffer commandBuffer) {
+  void upload(Application& app, VkCommandBuffer commandBuffer) {
     for (auto& buffer : this->_buffers)
       buffer.upload(app, commandBuffer);
   }

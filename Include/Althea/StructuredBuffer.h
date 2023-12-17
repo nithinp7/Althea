@@ -33,7 +33,8 @@ public:
     this->_allocation = BufferUtilities::createBuffer(
         app,
         sizeof(TElement) * count,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | additionalFlags,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+            additionalFlags,
         allocInfo);
   }
 
@@ -41,21 +42,27 @@ public:
     this->_structureArray[i] = element;
   }
 
-  void upload(const Application& app, VkCommandBuffer commandBuffer) const {
-    size_t size = this->_structureArray.size() * sizeof(TElement);
-    BufferAllocation staging = BufferUtilities::createStagingBuffer(
-        app,
-        gsl::span<const std::byte>(
+  void upload(Application& app, VkCommandBuffer commandBuffer) const {
+    size_t size = this->getSize();
+    gsl::span<const std::byte> view(
             reinterpret_cast<const std::byte*>(this->_structureArray.data()),
-            size));
+            size);
+
+    BufferAllocation* pStagingAllocation = new BufferAllocation(
+        BufferUtilities::createStagingBuffer(app, view));
 
     BufferUtilities::copyBuffer(
         commandBuffer,
-        staging.getBuffer(),
+        pStagingAllocation->getBuffer(),
         0,
         this->_allocation.getBuffer(),
         0,
         size);
+
+    // Delete staging buffer allocation once the transfer is complete
+    app.addDeletiontask(
+        {[pStagingAllocation]() { delete pStagingAllocation; },
+         app.getCurrentFrameRingBufferIndex()});
   }
 
   void download(std::vector<TElement>& out) const {
