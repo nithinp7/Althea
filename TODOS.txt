@@ -12,8 +12,6 @@ visible
 -Either handle errors and bulk de-allocate...
 -OR come up with idiomatic way to avoid unclear allocation state.
 
--addTextureBinding should not have default shaderStage argument
--Generalize attachments / framebuffers
 -Add script to format entire repo at once
 
 Build-related:

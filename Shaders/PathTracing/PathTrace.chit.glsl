@@ -183,7 +183,7 @@ void main() {
         1 /* payload */);
 
         if (shadowRayPayload.p.w == 0.0) {
-          payload.Lo = 10.0 * sampleEnvMap(shadowRayDir) / PI;
+          payload.Lo = sampleEnvMap(shadowRayDir) / PI;
         }
     }
   #if 1
