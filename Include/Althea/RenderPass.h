@@ -54,8 +54,7 @@ public:
       const VkExtent2D& extent,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses,
-      bool syncExternalBeforePass = true,
-      bool syncExternalAfterPass = true);
+      bool syncExternalBeforePass = true);
   ~RenderPass();
 
   ActiveRenderPass begin(
