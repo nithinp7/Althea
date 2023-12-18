@@ -64,7 +64,7 @@ layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
 void main() {
-  payload.p = vec4(0.0, 0.0, 0.0, 1.0);
+  payload.p = vec4(1.0, 0.0, 0.0, 1.0);
     // vec3 bc = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
     // uint idx0 = indexBufferHeap[gl_InstanceCustomIndexEXT].indices[3*gl_PrimitiveID+0];

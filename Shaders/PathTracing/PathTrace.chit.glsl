@@ -150,6 +150,10 @@ void main() {
           metallicRoughness.y,
           payload.wi,
           pdf);
+
+    // TODO: Just for validation
+    // if (f != vec3(0.0))
+    //   f = evaluateBrdf(rayDir, payload.wi, globalNormal, baseColor.rgb, metallicRoughness.x, metallicRoughness.y);
     
     payload.p = vec4(worldPos, 1.0);
     payload.roughness = metallicRoughness.y;
@@ -167,8 +171,11 @@ void main() {
     // payload.Lo = vec3(0.0); 
     // TODO: Check emissiveness first
     // Shadow ray to sample env map
+#if 0
     {
+      // payload.seed.x++;
       vec3 shadowRayDir = LocalToWorld(globalNormal) * sampleHemisphereCosine(payload.seed);
+      // ;
       traceRayEXT(
         acc, 
         gl_RayFlagsOpaqueEXT, 
@@ -182,10 +189,29 @@ void main() {
         1000.0, 
         1 /* payload */);
 
-        if (shadowRayPayload.p.w == 0.0) {
-          payload.Lo = sampleEnvMap(shadowRayDir) / PI;
+        // if (shadowRayPayload.p.x == 1.0)
+        // {
+        //   payload.Lo = shadowRayPayload.p.xyz;
+        // }
+        if (shadowRayPayload.p.w != 1.0) 
+        {
+          vec3 Li = sampleEnvMap(shadowRayDir);
+          // vec3 Li = sampleIrrMap(shadowRayDir);
+          vec3 f = 
+              evaluateBrdf(
+                rayDir, 
+                shadowRayDir, 
+                globalNormal, 
+                baseColor.rgb, 
+                metallicRoughness.x, 
+                metallicRoughness.y);
+          payload.Lo = f * Li / PI;
+          // payload.throughput = vec3(1.0/0.0);// ???
+          // payload.Lo = payload.throughput * f * Li / PI;
         }
     }
+  #endif 
+  
   #if 1
     //payload.Lo = vec3(0.0);
   #else
