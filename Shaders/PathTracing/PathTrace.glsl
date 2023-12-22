@@ -1,34 +1,16 @@
 
 // Ray generation shader
 #version 460 core
+
 #extension GL_EXT_ray_tracing : enable
 
 // #include "ImportanceSampling.glsl"
 // #include "DirectLightSample.glsl"
+#include <GlobalIllumination/GIResources.glsl>
 
 #include <Misc/Sampling.glsl>
 #include "PathTracePayload.glsl"
 layout(location = 0) rayPayloadEXT PathTracePayload payload;
-
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
-
-layout(set=1, binding=0) uniform accelerationStructureEXT acc;
-
-// Output image
-layout(set=1, binding=1) uniform sampler2D prevImg;
-// Motion vectors
-layout(set=1, binding=2, rgba32f) uniform image2D img;
-// Prev depth buffer
-layout(set=1, binding=3) uniform sampler2D prevDepthBuffer;
-// Current depth buffer
-layout(set=1, binding=4, r32f) uniform image2D depthBuffer;
-
-
-layout(push_constant) uniform PathTracePushConstants {
-  uint frameNumber; // frames since camera moved
-} pushConstants;
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
   const vec2 jitteredPixel = vec2(launchID.xy) + randVec2(payload.seed);
@@ -54,6 +36,8 @@ void main() {
   float expectedPrevDepth = -1.0;
   float depth = -1.0;
   float firstBounceRoughness = -1.0;
+  vec3 firstBouncePos = vec3(0.0);
+  vec3 dbgCol = normalize(rayDir) * 0.5 + vec3(0.5);
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
@@ -83,6 +67,7 @@ void main() {
       expectedPrevDepth = length(globals.prevInverseView[3].xyz - payload.p.xyz / payload.p.w);
 
       firstBounceRoughness = payload.roughness;
+      firstBouncePos = payload.p.xyz / payload.p.w;
     }
 
     color += throughput * payload.Lo;
@@ -91,6 +76,10 @@ void main() {
     {
       break;
     }
+
+  #if 1
+
+  #endif
 
     // Set the next GI ray params
     rayDir = payload.wi;
@@ -111,6 +100,8 @@ void main() {
     if (log(depthDiscrepancy + 1.0) > 0.5) {
     //if (depthDiscrepancy > 0.1) {
       prevColor.a = 0.0;
+      // writeSpatialHash(firstBouncePos, color.rgb);
+      // writeSpatialHash(firstBouncePos, dbgCol);
     } else {
       // If the first bounce is mostly diffuse we can keep more of the history than
       // the specular case. Fortunately, specular surfaces take fewer rays to converge
@@ -119,6 +110,7 @@ void main() {
       // float trimmedHistory = mix(2.0, 500.0, firstBounceRoughness);
       float trimmedHistory = mix(2.0, 300.0, 2.0 * firstBounceRoughness / (1.0 * firstBounceRoughness + 1.0));
       prevColor.a = min(prevColor.a, trimmedHistory);
+      // color += readSpatialHash(firstBouncePos);
     }
   }
 

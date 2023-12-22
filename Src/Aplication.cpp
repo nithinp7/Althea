@@ -461,6 +461,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   }
 
   VkPhysicalDeviceProperties deviceProperties;
+
   VkPhysicalDeviceFeatures2 deviceFeatures{};
   deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
@@ -478,6 +479,9 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 
+  VkPhysicalDeviceRayQueryFeaturesKHR rayQueriesFeature{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+
   VkPhysicalDeviceVulkan12Features vulkan12Features{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 
@@ -485,7 +489,8 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
   multiviewFeatures.pNext = &inlineBlockFeatures;
   inlineBlockFeatures.pNext = &accelFeature;
   accelFeature.pNext = &rtPipelineFeature;
-  rtPipelineFeature.pNext = &vulkan12Features;
+  rtPipelineFeature.pNext = &rayQueriesFeature;
+  rayQueriesFeature.pNext = &vulkan12Features;
 
   vkGetPhysicalDeviceProperties(device, &deviceProperties);
   vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
@@ -501,6 +506,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          // accelFeature.accelerationStructureHostCommands &&
          //  accelFeature.accelerationStructureIndirectBuild && ??
          rtPipelineFeature.rayTracingPipeline &&
+         rayQueriesFeature.rayQuery && 
          vulkan12Features.bufferDeviceAddress &&
          vulkan12Features.scalarBlockLayout && 
          vulkan12Features.runtimeDescriptorArray;
@@ -579,20 +585,25 @@ void Application::createLogicalDevice() {
 
   VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
-  accelFeature.accelerationStructure = true;
+  accelFeature.accelerationStructure = VK_TRUE;
   accelFeature.pNext = &multiviewFeatures;
 
   VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
-  rtPipelineFeature.rayTracingPipeline = true;
+  rtPipelineFeature.rayTracingPipeline = VK_TRUE;
   rtPipelineFeature.pNext = &accelFeature;
+
+  VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeature{
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+  rayQueryFeature.rayQuery = VK_TRUE;
+  rayQueryFeature.pNext = &rtPipelineFeature;
   
   VkPhysicalDeviceVulkan12Features vulkan12Features{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-  vulkan12Features.runtimeDescriptorArray = true;
-  vulkan12Features.scalarBlockLayout = true;
-  vulkan12Features.bufferDeviceAddress = true;
-  vulkan12Features.pNext = &rtPipelineFeature;
+  vulkan12Features.runtimeDescriptorArray = VK_TRUE;
+  vulkan12Features.scalarBlockLayout = VK_TRUE;
+  vulkan12Features.bufferDeviceAddress = VK_TRUE;
+  vulkan12Features.pNext = &rayQueryFeature;
 
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

@@ -5,9 +5,8 @@
 #version 460 core
 
 #extension GL_EXT_ray_tracing : enable
-// TODO: enable this ext in vulkan
-#extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_buffer_reference2 : enable
+
+#include <GlobalIllumination/GIResources.glsl>
 
 #include <Misc/Sampling.glsl>
 #include "PathTracePayload.glsl"
@@ -16,56 +15,9 @@ layout(location = 0) rayPayloadInEXT PathTracePayload payload;
 hitAttributeEXT vec2 attribs;
 layout(location = 1) rayPayloadEXT PathTracePayload shadowRayPayload;
 
-layout(set=0, binding=0) uniform sampler2D environmentMap; 
-layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
-layout(set=0, binding=2) uniform sampler2D irradianceMap;
-layout(set=0, binding=3) uniform sampler2D brdfLut;
-
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
-
-#define POINT_LIGHTS_SET 0
-#define POINT_LIGHTS_BINDING 5
-#include <PointLights.glsl>
-
-layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
-
-#ifndef TEXTURE_HEAP_COUNT
-#define TEXTURE_HEAP_COUNT 1
-#endif
-
-layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
-
-#define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 8
-#include <PrimitiveConstants.glsl>
-
-struct Vertex {
-  vec3 position;
-  vec3 tangent;
-  vec3 bitangent;
-  vec3 normal;
-  vec2 uvs[4];
-};
-
-#extension GL_EXT_scalar_block_layout : enable
-layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
-layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
-
-layout(set=1, binding=0) uniform accelerationStructureEXT acc;
-
 #include <PBR/PBRMaterial.glsl>
 
 #include "DirectLightSample.glsl"
-
-#define baseColorTexture textureHeap[5*gl_InstanceCustomIndexEXT+0]
-#define normalMapTexture textureHeap[5*gl_InstanceCustomIndexEXT+1]
-#define metallicRoughnessTexture textureHeap[5*gl_InstanceCustomIndexEXT+2]
-#define occlusionTexture textureHeap[5*gl_InstanceCustomIndexEXT+3]
-#define emissiveTexture textureHeap[5*gl_InstanceCustomIndexEXT+4]
-
-#define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
 vec3 sampleEnvMap(vec3 dir) {
   float yaw = atan(dir.z, dir.x);

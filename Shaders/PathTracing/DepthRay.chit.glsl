@@ -29,11 +29,7 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 
 layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
 
-#ifndef TEXTURE_HEAP_COUNT
-#define TEXTURE_HEAP_COUNT 1
-#endif
-
-layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
+layout(set=0, binding=7) uniform sampler2D textureHeap[];
 
 #define PRIMITIVE_CONSTANTS_SET 0
 #define PRIMITIVE_CONSTANTS_BINDING 8
@@ -48,8 +44,8 @@ struct Vertex {
 };
 
 #extension GL_EXT_scalar_block_layout : enable
-layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[VERTEX_BUFFER_HEAP_COUNT];
-layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[INDEX_BUFFER_HEAP_COUNT];
+layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
+layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
 
 #include <PBR/PBRMaterial.glsl>
 

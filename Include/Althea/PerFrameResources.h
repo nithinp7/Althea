@@ -19,7 +19,21 @@ public:
   PerFrameResources(
       const Application& app,
       const DescriptorSetLayoutBuilder& layoutBuilder);
+    
+  PerFrameResources(PerFrameResources&& other) {
+    this->_descriptorSets.clear();
+    this->_pDescriptorSetAllocator = std::move(other._pDescriptorSetAllocator);
+    this->_descriptorSets = std::move(other._descriptorSets);
+  }
 
+  PerFrameResources& operator=(PerFrameResources&& other) {
+    this->_descriptorSets.clear();
+    this->_pDescriptorSetAllocator = std::move(other._pDescriptorSetAllocator);
+    this->_descriptorSets = std::move(other._descriptorSets);
+
+    return *this;
+  }
+  
   VkDescriptorSetLayout getLayout() const {
     return this->_pDescriptorSetAllocator->getLayout();
   }
