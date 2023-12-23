@@ -42,8 +42,16 @@ struct Vertex {
 layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
 layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
 
+struct ProbeSlot {
+  vec4 irradiance;
+  int gridX;
+  int gridY;
+  int gridZ;
+  int dbg;
+};
+
 struct Probe {
-  vec4 samples[8];
+  ProbeSlot slots[4];
 };
 
 layout(set=1, binding=0) uniform accelerationStructureEXT acc;

@@ -13,11 +13,25 @@ layout(local_size_x = 32) in;
 #define TARGET_WIDTH 128
 
 void main() {
-  uint idx = uint(gl_GlobalInvocationID.x);
+  uint probeIdx = uint(gl_GlobalInvocationID.x);
+  if (probeIdx >= probeCount) {
+    return;
+  }
+
+  uint probeBufferIdx = probeIdx / probesPerBuffer;
+  uint probeLocalIdx = probeIdx % probesPerBuffer;
+
+  Probe probe = probeHeap[probeBufferIdx].probes[probeLocalIdx];
+
+  for (int i = 0; i < 4; ++i)
+  {
+    
+  }
+
   ivec2 pixelPos = ivec2(idx / TARGET_WIDTH, idx % TARGET_WIDTH);
-  // if (pixelPos.x >= TARGET_WIDTH) {
-  //   return;
-  // }
+  if (pixelPos.x >= TARGET_WIDTH) {
+    return;
+  }
 
   vec2 uv = (vec2(pixelPos) + vec2(0.5)) / float(TARGET_WIDTH);
   vec2 thetaPhi = uv;
