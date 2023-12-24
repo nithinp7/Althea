@@ -7,6 +7,7 @@
 #include "GraphicsPipeline.h"
 #include "Library.h"
 #include "PerFrameResources.h"
+#include "UniqueVkHandle.h"
 
 #include <gsl/span>
 #include <vulkan/vulkan.h>
@@ -48,14 +49,14 @@ private:
 class ActiveRenderPass;
 class ALTHEA_API RenderPass {
 public:
-  // TODO: Make a RenderPassOptions struct
+  RenderPass() = default;
+  
   RenderPass(
       const Application& app,
       const VkExtent2D& extent,
       std::vector<Attachment>&& attachments,
       std::vector<SubpassBuilder>&& subpasses,
       bool syncExternalBeforePass = true);
-  ~RenderPass();
 
   ActiveRenderPass begin(
       const Application& app,
@@ -73,10 +74,16 @@ public:
 private:
   friend class ActiveRenderPass;
 
+  struct RenderPassDeleter {
+    void operator()(VkDevice device, VkRenderPass renderPass) {
+      vkDestroyRenderPass(device, renderPass, nullptr);
+    }
+  };
+
   std::vector<Attachment> _attachments;
   std::vector<Subpass> _subpasses;
 
-  VkRenderPass _renderPass;
+  UniqueVkHandle<VkRenderPass, RenderPassDeleter> _renderPass;
 
   VkDevice _device;
   // TODO: Seems weird baking the extent into the render pass...

@@ -2,7 +2,7 @@
 #version 450
 
 layout(location=0) in vec3 direction;
-// layout(location=1) in vec2 screenUV;
+layout(location=1) in vec2 screenUV;
 
 layout(location=0) out vec4 GBuffer_Position;
 layout(location=1) out vec4 GBuffer_Normal;
