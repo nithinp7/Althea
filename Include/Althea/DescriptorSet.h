@@ -312,12 +312,18 @@ private:
 
 class ALTHEA_API DescriptorSetAllocator {
 public:
+  DescriptorSetAllocator() = default;
+
   DescriptorSetAllocator(
       const Application& app,
       const DescriptorSetLayoutBuilder& layoutBuilder,
       uint32_t setsPerPool = 1000);
 
-  DescriptorSet allocate();
+  DescriptorSet allocate() {
+    return DescriptorSet(this->_device, allocateVkDescriptorSet(), *this);
+  }
+  
+  VkDescriptorSet allocateVkDescriptorSet();
   void free(VkDescriptorSet descriptorSet);
 
   VkDescriptorSetLayout getLayout() const { return this->_layout; }

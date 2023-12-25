@@ -376,6 +376,7 @@ DescriptorSetAllocator::DescriptorSetAllocator(
   descriptorSetLayoutInfo.bindingCount =
       static_cast<uint32_t>(layoutBuilder._bindings.size());
   descriptorSetLayoutInfo.pBindings = layoutBuilder._bindings.data();
+  descriptorSetLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
   VkDescriptorSetLayout layout;
   if (vkCreateDescriptorSetLayout(
@@ -410,7 +411,7 @@ void DescriptorSetAllocator::DescriptorPoolDeleter::operator()(
   vkDestroyDescriptorPool(device, pool, nullptr);
 }
 
-DescriptorSet DescriptorSetAllocator::allocate() {
+VkDescriptorSet DescriptorSetAllocator::allocateVkDescriptorSet() {
   if (this->_freeSets.empty()) {
     // No free sets available, create a new descriptor set pool.
     VkDescriptorPoolCreateInfo poolInfo{};
@@ -463,7 +464,7 @@ DescriptorSet DescriptorSetAllocator::allocate() {
   VkDescriptorSet allocatedSet = this->_freeSets.back();
   this->_freeSets.pop_back();
 
-  return DescriptorSet(this->_device, allocatedSet, *this);
+  return allocatedSet;
 }
 
 void DescriptorSetAllocator::free(VkDescriptorSet set) {
