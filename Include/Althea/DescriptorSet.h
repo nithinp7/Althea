@@ -122,6 +122,7 @@ private:
 
 class ALTHEA_API DescriptorSet {
 public:
+  DescriptorSet() = default;
   DescriptorSet(DescriptorSet&& rhs) noexcept;
   DescriptorSet& operator=(DescriptorSet&& rhs) noexcept;
 
@@ -144,7 +145,9 @@ private:
   VkDevice _device;
   VkDescriptorSet _descriptorSet;
 
-  DescriptorSetAllocator& _allocator;
+  // TODO: this is ridiculous and not safe, the descriptor set does
+  // not work great as a RAII type, it's not worth forcing it this way
+  DescriptorSetAllocator* _allocator;
 };
 
 class ALTHEA_API DescriptorAssignment {

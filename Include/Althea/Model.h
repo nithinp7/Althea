@@ -6,6 +6,7 @@
 #include "Library.h"
 #include "Primitive.h"
 #include "SingleTimeCommandBuffer.h"
+#include "GlobalHeap.h"
 
 #include <CesiumGltf/Model.h>
 #include <glm/glm.hpp>
@@ -32,6 +33,8 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       const std::string& path,
       DescriptorSetAllocator* pMaterialAllocator = nullptr);
+
+  void registerToHeap(GlobalHeap& heap);
 
   void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;

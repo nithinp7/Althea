@@ -5,14 +5,16 @@
 #include "DynamicBuffer.h"
 #include "FrameBuffer.h"
 #include "FrameContext.h"
+#include "GlobalHeap.h"
 #include "IndexBuffer.h"
 #include "Library.h"
+#include "Model.h"
 #include "PerFrameResources.h"
 #include "RenderPass.h"
 #include "RenderTarget.h"
 #include "SingleTimeCommandBuffer.h"
 #include "VertexBuffer.h"
-#include "Model.h"
+#include "StructuredBuffer.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -36,18 +38,12 @@ class ALTHEA_API PointLightCollection {
 public:
   PointLightCollection() = default;
   PointLightCollection(
-      const Application& app,
+      Application& app,
       SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap,
       size_t lightCount,
       bool createShadowMap,
-      VkDescriptorSetLayout globalSetLayout,
-      // TODO: This info should be held in some sort of global store so it doesn't need to get passed
-      // around everywhere
-      // TODO: This hack is just for backward compat with non-bindless, remove such use cases eventually
-      bool bindless = false,
-      uint32_t primConstBufferBinding = 0, 
-      uint32_t textureHeapBinding = 0,
-      uint32_t textureHeapCount = 0);
+      BufferHandle primConstants);
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
 
@@ -108,17 +104,21 @@ public:
     return this->_shadowMap.getDepthSampler();
   }
 
-  RenderPass& getShadowMapPass() {
-    return *this->_pShadowPass;
-  }
+  RenderPass& getShadowMapPass() { return this->_shadowPass; }
 
 private:
-  bool _usingBindless;
-
   bool _dirty;
   bool _useShadowMaps;
   std::vector<PointLight> _lights;
   DynamicBuffer _buffer;
+
+  struct PointLightConstants {
+    glm::mat4 projection;
+    glm::mat4 inverseProjection;
+    glm::mat4 views[6];
+    glm::mat4 inverseViews[6];
+  };
+  StructuredBuffer<PointLightConstants> _pointLightConstants;
 
   // Sphere VB for visualizing the point lights
   struct Sphere {
@@ -132,15 +132,7 @@ private:
 
   // Resources needed for shadow mapping, if it is enabled
   RenderTargetCollection _shadowMap;
-  struct ShadowMapUniforms {
-    glm::mat4 projection;
-    glm::mat4 inverseProjection;
-    glm::mat4 views[6];
-    glm::mat4 inverseViews[6];
-  };
-  std::vector<PerFrameResources> _shadowResources;
-  std::vector<TransientUniforms<ShadowMapUniforms>> _shadowUniforms;
-  std::unique_ptr<RenderPass> _pShadowPass;
+  RenderPass _shadowPass;
   std::vector<FrameBuffer> _shadowFrameBuffers;
 
   std::vector<std::byte> _scratchBytes;

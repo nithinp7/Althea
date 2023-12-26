@@ -1,17 +1,25 @@
 
-#ifndef POINT_LIGHTS_SET
-#define POINT_LIGHTS_SET 0
-#endif
+#ifndef _POINTLIGHTS_
+#define _POINTLIGHTS_
 
-#ifndef POINT_LIGHTS_BINDING
-#define POINT_LIGHTS_BINDING 0
-#endif
+#include <Bindless/GlobalHeap.glsl>
 
 struct PointLight {
   vec3 position;
   vec3 emission;
 };
 
-layout(std430, set=POINT_LIGHTS_SET, binding=POINT_LIGHTS_BINDING) readonly buffer POINT_LIGHTS {
+BUFFER_R(pointLights, PointLights{
   PointLight pointLightArr[];
-};
+});
+
+UNIFORM_BUFFER(pointLightUniforms, PointLightUniforms{
+  mat4 projection;
+  mat4 inverseProjection;
+  mat4 views[6];
+  mat4 inverseViews[6];
+  uint pointLightsBufferHandle;
+  uint padding[3];
+});
+
+#endif // _POINTLIGHTS_

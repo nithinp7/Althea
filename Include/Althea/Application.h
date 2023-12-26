@@ -68,8 +68,6 @@ private:
   const uint32_t WIDTH = 1080;
   const uint32_t HEIGHT = 960;
 
-  const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-
   bool syncFramerate = true;
 
   double lastFrameTime = 0.0f;
@@ -227,8 +225,6 @@ public:
   const ConfigParser& getConfigParser() const { return configParser; }
 
   InputManager& getInputManager() { return *pInputManager; }
-
-  uint32_t getMaxFramesInFlight() const { return MAX_FRAMES_IN_FLIGHT; }
 
   void addDeletiontask(DeletionTask&& task) {
     deletionTasks.addDeletionTask(std::move(task));

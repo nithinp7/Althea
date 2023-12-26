@@ -16,6 +16,7 @@
 namespace AltheaEngine {
 class ALTHEA_API ResourcesAssignment {
 public:
+  ResourcesAssignment(DescriptorSet (&descriptorSets)[MAX_FRAMES_IN_FLIGHT]);
   ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets);
 
   ResourcesAssignment&
@@ -37,7 +38,7 @@ public:
 
     return *this;
   }
-  
+
   ResourcesAssignment&
   bindStorageImage(VkImageView imageView, VkSampler sampler);
 

@@ -119,11 +119,11 @@ DescriptorSet::DescriptorSet(
     VkDevice device,
     VkDescriptorSet descriptorSet,
     DescriptorSetAllocator& allocator)
-    : _device(device), _descriptorSet(descriptorSet), _allocator(allocator) {}
+    : _device(device), _descriptorSet(descriptorSet), _allocator(&allocator) {}
 
 DescriptorSet::~DescriptorSet() {
-  if (this->_descriptorSet != VK_NULL_HANDLE) {
-    this->_allocator.free(this->_descriptorSet);
+  if (this->_descriptorSet != VK_NULL_HANDLE && this->_allocator) {
+    this->_allocator->free(this->_descriptorSet);
   }
 }
 
@@ -131,7 +131,7 @@ DescriptorAssignment DescriptorSet::assign() {
   return DescriptorAssignment(
       this->_device,
       this->_descriptorSet,
-      this->_allocator.getBindings());
+      this->_allocator->getBindings());
 }
 
 DescriptorAssignment::DescriptorAssignment(

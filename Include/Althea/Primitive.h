@@ -5,6 +5,7 @@
 #include "Library.h"
 #include "Material.h"
 #include "SingleTimeCommandBuffer.h"
+#include "GlobalHeap.h"
 #include "Texture.h"
 #include "VertexBuffer.h"
 
@@ -62,8 +63,13 @@ struct ALTHEA_API PrimitiveConstants {
 
   float alphaCutoff = 0.5f;
 
-  float padding1;
-  float padding2;
+  uint32_t baseTextureHandle;
+  uint32_t normalTextureHandle;
+  uint32_t metallicRoughnessTextureHandle;
+  uint32_t occlusionTextureHandle;
+  uint32_t emissiveTextureHandle;
+
+  uint32_t padding;
 };
 
 struct ALTHEA_API TextureSlots {
@@ -84,6 +90,8 @@ public:
 
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
+
+  void registerToHeap(GlobalHeap& heap);
 
   const PrimitiveConstants& getConstants() const {
     return this->_constants;

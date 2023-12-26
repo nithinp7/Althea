@@ -17,14 +17,10 @@ layout(location=1) out vec4 GBuffer_Normal;
 layout(location=2) out vec4 GBuffer_Albedo;
 layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
-#ifndef TEXTURE_HEAP_COUNT
-#define TEXTURE_HEAP_COUNT 1
-#endif
-
-layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
+layout(set=0, binding=6) uniform sampler2D textureHeap[];
 
 #define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 8
+#define PRIMITIVE_CONSTANTS_BINDING 7
 #include "PrimitiveConstants.glsl"
 
 layout(push_constant) uniform PushConstants {

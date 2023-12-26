@@ -10,21 +10,25 @@
 
 namespace AltheaEngine {
 
+namespace {
+struct ShadowMapPushConstants {
+  glm::mat4 model; // TODO: This should come from some sort of model buffer...
+  uint32_t primitiveIdx;
+  uint32_t constantsHandle;
+  uint32_t pointLightsHandle;
+};
+} // namespace
+
 // TODO: Refactor out into generalized storage buffer class...
 
 PointLightCollection::PointLightCollection(
-    const Application& app,
+    Application& app,
     SingleTimeCommandBuffer& commandBuffer,
+    GlobalHeap& heap,
     size_t lightCount,
     bool createShadowMap,
-    VkDescriptorSetLayout globalSetLayout,
-    bool bindless,
-    uint32_t primConstBufferBinding,
-    uint32_t textureHeapBinding,
-    uint32_t textureHeapCount)
-    : 
-      _usingBindless(bindless),
-      _dirty(true),
+    BufferHandle primConstants)
+    : _dirty(true),
       _useShadowMaps(createShadowMap),
       _lights(),
       _buffer(
@@ -34,6 +38,8 @@ PointLightCollection::PointLightCollection(
           app.getPhysicalDeviceProperties()
               .limits.minStorageBufferOffsetAlignment),
       _sphere(app, commandBuffer) {
+
+  this->_buffer.registerToHeap(heap);
   this->_lights.resize(lightCount);
 
   if (createShadowMap) {
@@ -51,11 +57,60 @@ PointLightCollection::PointLightCollection(
     DescriptorSetLayoutBuilder shadowLayoutBuilder{};
     shadowLayoutBuilder.addUniformBufferBinding(VK_SHADER_STAGE_VERTEX_BIT);
 
-    for (size_t i = 0; i < lightCount; ++i) {
-      this->_shadowResources.emplace_back(app, shadowLayoutBuilder);
-      this->_shadowUniforms.emplace_back(app);
-      this->_shadowResources.back().assign().bindTransientUniforms(
-          this->_shadowUniforms.back());
+    this->_pointLightConstants = StructuredBuffer<PointLightConstants>(app, 1);
+    this->_pointLightConstants.registerToHeap(heap);
+
+    {
+      // TODO: Configure near / far plane, does it matter??
+      Camera sceneCaptureCamera(90.0f, 1.0f, 0.01f, 1000.0f);
+
+      PointLightConstants pointLightConstants{};
+      pointLightConstants.projection = sceneCaptureCamera.getProjection();
+      pointLightConstants.inverseProjection =
+          glm::inverse(pointLightConstants.projection);
+
+      // Cameras will be set at the origin and face along the 6 axes
+      // Later we can use these matrices along with the light positions
+      // to correctly draw the shadow maps.
+      // TODO: Might not be super sensible to store these views in a buffer and
+      // fetch them during the shadow mapping pass - might be better to generate
+      // these transforms dynamically in the shader.
+
+      // front back up down right left
+      // X+ X- Y+ Y- Z+ Z-
+      sceneCaptureCamera.setPosition(glm::vec3(0.0f));
+      sceneCaptureCamera.setRotation(90.0f, 0.0f);
+      pointLightConstants.views[0] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[0] =
+          glm::inverse(pointLightConstants.views[0]);
+
+      sceneCaptureCamera.setRotation(-90.0f, 0.0f);
+      pointLightConstants.views[1] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[1] =
+          glm::inverse(pointLightConstants.views[1]);
+
+      sceneCaptureCamera.setRotation(180.0f, 90.0f);
+      pointLightConstants.views[2] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[2] =
+          glm::inverse(pointLightConstants.views[2]);
+
+      sceneCaptureCamera.setRotation(180.0f, -90.0f);
+      pointLightConstants.views[3] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[3] =
+          glm::inverse(pointLightConstants.views[3]);
+
+      sceneCaptureCamera.setRotation(180.0f, 0.0f);
+      pointLightConstants.views[4] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[4] =
+          glm::inverse(pointLightConstants.views[4]);
+
+      sceneCaptureCamera.setRotation(0.0f, 0.0f);
+      pointLightConstants.views[5] = sceneCaptureCamera.computeView();
+      pointLightConstants.inverseViews[5] =
+          glm::inverse(pointLightConstants.views[5]);
+
+      this->_pointLightConstants.setElement(pointLightConstants, 0);
+      this->_pointLightConstants.upload(app, commandBuffer);
     }
 
     // Setup shadow mapping render pass
@@ -71,27 +126,23 @@ PointLightCollection::PointLightCollection(
       Primitive::buildPipeline(subpassBuilder.pipelineBuilder);
 
       ShaderDefines defs{};
-      if (bindless)
-      {
-        defs.emplace("POINT_LIGHTS_BINDLESS", "");
-        defs.emplace("PRIMITIVE_CONSTANTS_BINDING", std::to_string(primConstBufferBinding));
-        defs.emplace("TEXTURE_HEAP_BINDING", std::to_string(textureHeapBinding));
-        defs.emplace("TEXTURE_HEAP_COUNT", std::to_string(textureHeapCount));
-      }
+      defs.emplace("BINDLESS_SET", "0");
 
       subpassBuilder
           .pipelineBuilder
           // Vertex shader
-          .addVertexShader(GEngineDirectory + "/Shaders/ShadowMap.vert", defs)
-          .addFragmentShader(GEngineDirectory + "/Shaders/ShadowMap.frag", defs)
-          // TODO: Still need fragment shader for opacity masking?
+          .addVertexShader(
+              GEngineDirectory + "/Shaders/ShadowMapBindless.vert",
+              defs)
+          .addFragmentShader(
+              GEngineDirectory + "/Shaders/ShadowMapBindless.frag",
+              defs)
 
           // Pipeline resource layouts
           .layoutBuilder
-          // Shadow pass resources
-          .addDescriptorSet(this->_shadowResources[0].getLayout())
           // Global resource heaps
-          .addDescriptorSet(globalSetLayout);
+          .addDescriptorSet(heap.getDescriptorSetLayout())
+          .addPushConstants<ShadowMapPushConstants>(VK_SHADER_STAGE_ALL);
     }
 
     VkClearValue depthClear;
@@ -105,7 +156,7 @@ PointLightCollection::PointLightCollection(
         false,
         true}};
 
-    this->_pShadowPass = std::make_unique<RenderPass>(
+    this->_shadowPass = RenderPass(
         app,
         extent,
         std::move(attachments),
@@ -115,7 +166,7 @@ PointLightCollection::PointLightCollection(
     for (size_t i = 0; i < lightCount; ++i) {
       this->_shadowFrameBuffers[i] = FrameBuffer(
           app,
-          *this->_pShadowPass,
+          this->_shadowPass,
           extent,
           {this->getShadowMapTargetView(i)});
     }
@@ -129,55 +180,7 @@ void PointLightCollection::setLight(uint32_t lightId, const PointLight& light) {
 }
 
 void PointLightCollection::updateResource(const FrameContext& frame) {
-  // if (!this->_dirty) {
-  //   return;
-  // }
-
-  if (this->_useShadowMaps) {
-    for (size_t i = 0; i < this->_lights.size(); ++i) {
-      const PointLight& light = this->_lights[i];
-
-      // TODO: Configure near / far plane, does it matter??
-      Camera sceneCaptureCamera(90.0f, 1.0f, 0.01f, 1000.0f);
-
-      ShadowMapUniforms shadowMapInfo{};
-      shadowMapInfo.projection = sceneCaptureCamera.getProjection();
-      shadowMapInfo.inverseProjection = glm::inverse(shadowMapInfo.projection);
-
-      glm::mat4 view = sceneCaptureCamera.computeView();
-      glm::mat4 invView = glm::inverse(view);
-
-      // front back up down right left
-      // X+ X- Y+ Y- Z+ Z-
-      sceneCaptureCamera.setPosition(light.position);
-      sceneCaptureCamera.setRotation(90.0f, 0.0f);
-      shadowMapInfo.views[0] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[0] = glm::inverse(shadowMapInfo.views[0]);
-
-      sceneCaptureCamera.setRotation(-90.0f, 0.0f);
-      shadowMapInfo.views[1] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[1] = glm::inverse(shadowMapInfo.views[1]);
-
-      sceneCaptureCamera.setRotation(180.0f, 90.0f);
-      shadowMapInfo.views[2] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[2] = glm::inverse(shadowMapInfo.views[2]);
-
-      sceneCaptureCamera.setRotation(180.0f, -90.0f);
-      shadowMapInfo.views[3] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[3] = glm::inverse(shadowMapInfo.views[3]);
-
-      sceneCaptureCamera.setRotation(180.0f, 0.0f);
-      shadowMapInfo.views[4] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[4] = glm::inverse(shadowMapInfo.views[4]);
-
-      sceneCaptureCamera.setRotation(0.0f, 0.0f);
-      shadowMapInfo.views[5] = sceneCaptureCamera.computeView();
-      shadowMapInfo.inverseViews[5] = glm::inverse(shadowMapInfo.views[5]);
-
-      this->_shadowUniforms[i].updateUniforms(shadowMapInfo, frame);
-    }
-  }
-
+  // Update light positions
   this->_scratchBytes.resize(this->_buffer.getSize());
   std::memcpy(
       this->_scratchBytes.data(),
@@ -196,6 +199,9 @@ void PointLightCollection::setupPointLightMeshSubpass(
   subpassBuilder.colorAttachments.push_back(colorAttachment);
   subpassBuilder.depthAttachment = depthAttachment;
 
+  ShaderDefines defs{};
+  defs.emplace("BINDLESS_SET", "0");
+
   subpassBuilder
       .pipelineBuilder
       // TODO: This is a hack to workaround incorrect winding of sphere
@@ -204,9 +210,9 @@ void PointLightCollection::setupPointLightMeshSubpass(
       .addVertexAttribute(VertexAttributeType::VEC3, 0)
 
       // Vertex shader
-      .addVertexShader(GEngineDirectory + "/Shaders/LightMesh.vert")
+      .addVertexShader(GEngineDirectory + "/Shaders/LightMesh.vert", defs)
       // Fragment shader
-      .addFragmentShader(GEngineDirectory + "/Shaders/LightMesh.frag")
+      .addFragmentShader(GEngineDirectory + "/Shaders/LightMesh.frag", defs)
 
       // Pipeline resource layouts
       .layoutBuilder
@@ -227,20 +233,18 @@ void PointLightCollection::drawShadowMaps(
   for (uint32_t i = 0; i < this->_lights.size(); ++i) {
     const PointLight& light = this->_lights[i];
 
-    ActiveRenderPass pass = this->_pShadowPass->begin(
+    ActiveRenderPass pass = this->_shadowPass.begin(
         app,
         commandBuffer,
         frame,
         this->_shadowFrameBuffers[i]);
 
-    VkDescriptorSet sets[2] = {
-        this->_shadowResources[i].getCurrentDescriptorSet(frame),
-        globalSet };
-    
-    pass.setGlobalDescriptorSets(gsl::span(sets, this->_usingBindless ? 2 : 1));
+    pass.setGlobalDescriptorSets(gsl::span(&globalSet, 1));
 
     // Draw models
     for (const Model& model : models) {
+      // ShadowMapPushConstants constants{};
+      // constants.primitiveIdx = 
       pass.draw(model);
     }
   }

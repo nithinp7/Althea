@@ -7,14 +7,12 @@ namespace AltheaEngine {
 PerFrameResources::PerFrameResources(
     const Application& app,
     const DescriptorSetLayoutBuilder& layoutBuilder)
-    : _pDescriptorSetAllocator(std::make_unique<DescriptorSetAllocator>(
+    : _descriptorSetAllocator(
           app,
           layoutBuilder,
-          app.getMaxFramesInFlight())) {
-  this->_descriptorSets.reserve(app.getMaxFramesInFlight());
-  for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-    this->_descriptorSets.emplace_back(
-        this->_pDescriptorSetAllocator->allocate());
+          MAX_FRAMES_IN_FLIGHT) {
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    this->_descriptorSets[i] = this->_descriptorSetAllocator.allocate();
   }
 }
 
