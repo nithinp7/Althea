@@ -7,7 +7,7 @@ layout(location=0) out vec4 outColor;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
+#include <Global/GlobalUniforms.glsl>
 
 layout(set=1, binding=0) uniform sampler2D tex; 
 layout(set=1, binding=1) uniform sampler2D dbg;

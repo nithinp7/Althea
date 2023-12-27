@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BufferUtilities.h"
+#include "ConstantBuffer.h"
 #include "DrawContext.h"
 #include "DynamicBuffer.h"
 #include "FrameBuffer.h"
@@ -13,8 +14,8 @@
 #include "RenderPass.h"
 #include "RenderTarget.h"
 #include "SingleTimeCommandBuffer.h"
-#include "VertexBuffer.h"
 #include "StructuredBuffer.h"
+#include "VertexBuffer.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -106,6 +107,10 @@ public:
 
   RenderPass& getShadowMapPass() { return this->_shadowPass; }
 
+  BufferHandle getConstantsHandle() const {
+    return this->_pointLightConstants.getHandle();
+  }
+
 private:
   bool _dirty;
   bool _useShadowMaps;
@@ -118,7 +123,7 @@ private:
     glm::mat4 views[6];
     glm::mat4 inverseViews[6];
   };
-  StructuredBuffer<PointLightConstants> _pointLightConstants;
+  ConstantBuffer<PointLightConstants> _pointLightConstants;
 
   // Sphere VB for visualizing the point lights
   struct Sphere {

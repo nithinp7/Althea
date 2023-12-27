@@ -1,6 +1,7 @@
 #include "ReflectionBuffer.h"
 
 #include "Application.h"
+#include "GlobalHeap.h"
 
 #include <cstdint>
 
@@ -316,5 +317,13 @@ void ReflectionBuffer::convolveReflectionBuffer(
 
 void ReflectionBuffer::bindTexture(ResourcesAssignment& assignment) const {
   assignment.bindTexture(this->_reflectionBuffer);
+}
+
+void ReflectionBuffer::registerToHeap(GlobalHeap& heap) {
+  this->_reflectionBufferHandle = heap.registerTexture();
+  heap.updateTexture(
+      this->_reflectionBufferHandle,
+      this->_reflectionBuffer.view,
+      this->_reflectionBuffer.sampler);
 }
 } // namespace AltheaEngine

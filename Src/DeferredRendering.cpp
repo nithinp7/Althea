@@ -1,6 +1,7 @@
 #include "DeferredRendering.h"
 
 #include "Application.h"
+#include "GlobalHeap.h"
 #include "Image.h"
 #include "ImageView.h"
 #include "Sampler.h"
@@ -171,5 +172,29 @@ void GBufferResources::transitionToTextures(VkCommandBuffer commandBuffer) {
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT,
       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+}
+
+void GBufferResources::registerToHeap(GlobalHeap& heap) {
+  this->_positionHandle = heap.registerTexture();
+  this->_normalHandle = heap.registerTexture();
+  this->_albedoHandle = heap.registerTexture();
+  this->_metallicRoughnessOcclusionHandle = heap.registerTexture();
+
+  heap.updateTexture(
+      this->_positionHandle,
+      this->_position.view,
+      this->_position.sampler);
+  heap.updateTexture(
+      this->_normalHandle,
+      this->_normal.view,
+      this->_normal.sampler);
+  heap.updateTexture(
+      this->_albedoHandle,
+      this->_albedo.view,
+      this->_albedo.sampler);
+  heap.updateTexture(
+      this->_metallicRoughnessOcclusionHandle,
+      this->_metallicRoughnessOcclusion.view,
+      this->_metallicRoughnessOcclusion.sampler);
 }
 } // namespace AltheaEngine

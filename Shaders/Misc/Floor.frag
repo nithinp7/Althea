@@ -11,7 +11,7 @@ layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
+#include <Global/GlobalUniforms.glsl>
 
 void main() {
   // vec2 ndc = 2.0 * screenUV - vec2(1.0);

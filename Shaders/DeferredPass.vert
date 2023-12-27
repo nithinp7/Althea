@@ -5,7 +5,7 @@ layout(location=1) out vec2 uv;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
+#include <Global/GlobalUniforms.glsl>
 
 void main() {
   vec2 screenPos = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);

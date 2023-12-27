@@ -57,9 +57,6 @@ PointLightCollection::PointLightCollection(
     DescriptorSetLayoutBuilder shadowLayoutBuilder{};
     shadowLayoutBuilder.addUniformBufferBinding(VK_SHADER_STAGE_VERTEX_BIT);
 
-    this->_pointLightConstants = StructuredBuffer<PointLightConstants>(app, 1);
-    this->_pointLightConstants.registerToHeap(heap);
-
     {
       // TODO: Configure near / far plane, does it matter??
       Camera sceneCaptureCamera(90.0f, 1.0f, 0.01f, 1000.0f);
@@ -109,8 +106,11 @@ PointLightCollection::PointLightCollection(
       pointLightConstants.inverseViews[5] =
           glm::inverse(pointLightConstants.views[5]);
 
-      this->_pointLightConstants.setElement(pointLightConstants, 0);
-      this->_pointLightConstants.upload(app, commandBuffer);
+      this->_pointLightConstants = ConstantBuffer<PointLightConstants>(
+          app,
+          commandBuffer,
+          pointLightConstants);
+      this->_pointLightConstants.registerToHeap(heap);
     }
 
     // Setup shadow mapping render pass
@@ -244,7 +244,7 @@ void PointLightCollection::drawShadowMaps(
     // Draw models
     for (const Model& model : models) {
       // ShadowMapPushConstants constants{};
-      // constants.primitiveIdx = 
+      // constants.primitiveIdx =
       pass.draw(model);
     }
   }

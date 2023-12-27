@@ -14,6 +14,7 @@
 #include "RenderPass.h"
 #include "ResourcesAssignment.h"
 #include "Sampler.h"
+#include "BindlessHandle.h"
 
 #include <vulkan/vulkan.h>
 
@@ -21,6 +22,7 @@
 
 namespace AltheaEngine {
 class Application;
+class GlobalHeap;
 
 class ReflectionBuffer {
 public:
@@ -46,6 +48,12 @@ public:
     return this->_mipSampler;
   }
 
+  void registerToHeap(GlobalHeap& heap);
+
+  ImageHandle getHandle() const {
+    return this->_reflectionBufferHandle;
+  }
+
 private:
   std::unique_ptr<ComputePipeline> _pConvolutionPass;
   std::unique_ptr<DescriptorSetAllocator> _pConvolutionMaterialAllocator;
@@ -54,6 +62,7 @@ private:
   // Entire reflection buffer resource
   // The view contains all the mips together
   ImageResource _reflectionBuffer;
+  ImageHandle _reflectionBufferHandle;
 
   // Individual mip views of the reflection buffer mips
   std::vector<ImageView> _mipViews;

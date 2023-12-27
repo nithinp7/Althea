@@ -1,7 +1,6 @@
 #pragma once
 
 #include "DeferredRendering.h"
-#include "DescriptorSet.h"
 #include "FrameBuffer.h"
 #include "FrameContext.h"
 #include "GraphicsPipeline.h"
@@ -29,8 +28,7 @@ public:
   ScreenSpaceReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      VkDescriptorSetLayout globalSetLayout,
-      const GBufferResources& gBuffer);
+      VkDescriptorSetLayout globalSetLayout);
   void captureReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,
@@ -42,13 +40,19 @@ public:
       const FrameContext& context);
 
   void bindTexture(ResourcesAssignment& assignment) const;
+  
+  const ReflectionBuffer& getReflectionBuffer() const {
+    return this->_reflectionBuffer;
+  }
+
+  ReflectionBuffer& getReflectionBuffer() {
+    return this->_reflectionBuffer;
+  }
 
 private:
   ReflectionBuffer _reflectionBuffer;
   
-  std::unique_ptr<RenderPass> _pReflectionPass;
-  std::unique_ptr<DescriptorSetAllocator> _pGBufferMaterialAllocator;
-  std::unique_ptr<Material> _pGBufferMaterial;
+  RenderPass _reflectionPass;
   FrameBuffer _reflectionFrameBuffer;
 };
 } // namespace AltheaEngine

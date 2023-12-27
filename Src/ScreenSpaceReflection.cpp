@@ -9,22 +9,8 @@ namespace AltheaEngine {
 ScreenSpaceReflection::ScreenSpaceReflection(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    // TODO: standardize global descriptor set
-    VkDescriptorSetLayout globalSetLayout,
-    const GBufferResources& gBuffer)
+    VkDescriptorSetLayout globalSetLayout)
     : _reflectionBuffer(app, commandBuffer) {
-
-  // Setup material needed for reflection pass
-  {
-    DescriptorSetLayoutBuilder layoutBuilder{};
-    GBufferResources::buildMaterial(layoutBuilder);
-    this->_pGBufferMaterialAllocator =
-        std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, 1);
-    this->_pGBufferMaterial =
-        std::make_unique<Material>(app, *this->_pGBufferMaterialAllocator);
-    gBuffer.bindTextures(this->_pGBufferMaterial->assign());
-  }
-
   // Setup reflection pass
   {
     std::vector<SubpassBuilder> subpassBuilders;
@@ -41,8 +27,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
 
           .setCullMode(VK_CULL_MODE_NONE) // ??
 
-          .layoutBuilder.addDescriptorSet(globalSetLayout)
-          .addDescriptorSet(this->_pGBufferMaterialAllocator->getLayout());
+          .layoutBuilder.addDescriptorSet(globalSetLayout);
     }
 
     VkClearValue colorClear;
@@ -55,7 +40,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
          false}};
 
     const VkExtent2D& extent = app.getSwapChainExtent();
-    this->_pReflectionPass = std::make_unique<RenderPass>(
+    this->_reflectionPass = RenderPass(
         app,
         extent,
         std::move(attachments),
@@ -64,7 +49,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
     std::vector<VkImageView> attachmentViews = {
         this->_reflectionBuffer.getReflectionBufferTargetView()};
     this->_reflectionFrameBuffer =
-        FrameBuffer(app, *this->_pReflectionPass, extent, attachmentViews);
+        FrameBuffer(app, this->_reflectionPass, extent, attachmentViews);
   }
 }
 
@@ -75,13 +60,13 @@ void ScreenSpaceReflection::captureReflection(
     const FrameContext& context) {
   this->_reflectionBuffer.transitionToAttachment(commandBuffer);
 
-  ActiveRenderPass pass = this->_pReflectionPass->begin(
+  ActiveRenderPass pass = this->_reflectionPass.begin(
       app,
       commandBuffer,
       context,
       this->_reflectionFrameBuffer);
   pass.setGlobalDescriptorSets(gsl::span(&globalSet, 1));
-  pass.getDrawContext().bindDescriptorSets(*this->_pGBufferMaterial);
+  pass.getDrawContext().bindDescriptorSets();
   pass.getDrawContext().draw(3);
 }
 
