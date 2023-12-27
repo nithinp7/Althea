@@ -1,3 +1,5 @@
+#ifndef _PRIMITIVECONSTANTS_
+#define _PRIMITIVECONSTANTS_
 
 struct PrimitiveConstants {
   vec4 baseColorFactor;
@@ -16,10 +18,17 @@ struct PrimitiveConstants {
 
   float alphaCutoff;
 
-  float padding1;
-  float padding2;
+  uint baseTextureHandle;
+  uint normalTextureHandle;
+  uint metallicRoughnessTextureHandle;
+  uint occlusionTextureHandle;
+  uint emissiveTextureHandle;
+
+  uint padding;
 };
 
-layout(std430, set=PRIMITIVE_CONSTANTS_SET, binding=PRIMITIVE_CONSTANTS_BINDING) readonly buffer PRIMITIVE_CONSTANTS {
-  PrimitiveConstants primitiveConstants[];
-};
+BUFFER_R(primitiveConstants, PrimitiveConstantsResource{
+  PrimitiveConstants primitiveConstantsArr[];
+});
+
+#endif // _PRIMITIVECONSTANTS_

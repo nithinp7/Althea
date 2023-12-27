@@ -50,7 +50,7 @@ public:
     this->_uniformBuffers[frame.frameRingBufferIndex].updateUniforms(uniforms);
   }
 
-  const std::vector<UniformBuffer<TUniforms>>& getUniformBuffers() const {
+  const UniformBuffer<TUniforms> (&getUniformBuffers() const)[MAX_FRAMES_IN_FLIGHT] {
     return this->_uniformBuffers;
   }
 

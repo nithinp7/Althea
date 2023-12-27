@@ -3,31 +3,33 @@ layout(location=1) in vec2 baseColorUV;
 
 layout(depth_any) out float gl_FragDepth;
 
-#define PRIMITIVE_CONSTANTS_SET 1
-// PRIMITIVE_CONSTANTS_BINDING must be defined during compilation
+#include "Global/GlobalResources.glsl"
 #include "PrimitiveConstants.glsl"
 
-#define constants primitiveConstants[pushConstants.primId]
-
-// TEXTURE_HEAP_BINDING and TEXTURE_HEAP_COUNT must be defined during compilation
-layout(set=1, binding=TEXTURE_HEAP_BINDING) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
-
-#define baseColorTexture textureHeap[5*pushConstants.primId+0]
+SAMPLER2D(textureHeap);
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
+  uint primIdx;
+  uint lightIdx;
+  uint globalResourcesHandle;
+  uint pointLightBufferHandle;
+  uint pointLightConstantsHandle;
 } pushConstants;
 
 // TODO: 
 void main() {
+  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
+  PrimitiveConstants primConstants = RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer);
+  
   // TODO: PARAMATERIZE NEAR / FAR
   float zNear = 0.01;
   float zFar = 1000.0;
 
   // Read opacity mask (alpha channel of base color)
   float alpha = 
-      (texture(baseColorTexture, baseColorUV) * constants.baseColorFactor).a;
+      (primConstants.baseColorFactor * 
+       TEXTURE_SAMPLE(textureHeap, primConstants.baseTextureHandle, baseColorUV)).a
   if (alpha < constants.alphaCutoff) {
     discard;
   }

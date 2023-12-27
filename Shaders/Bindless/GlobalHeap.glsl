@@ -37,5 +37,6 @@
       uniform struct BODY NAME[])
 
 #define RESOURCE(NAME,IDX)(NAME[IDX])
+#define TEXTURE_SAMPLE(NAME,IDX,UV)(texture(RESOURCE(NAME,IDX),UV))
 
 #endif // _GLOBALHEAP_

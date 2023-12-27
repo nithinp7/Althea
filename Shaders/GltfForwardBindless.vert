@@ -18,24 +18,23 @@ layout(location=8) out vec3 worldPosition;
 layout(location=9) out vec3 direction;
 
 #include "Bindless/GlobalHeap.glsl"
-#include "GlobalUniforms.glsl"
-
-#define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 7
-#include "PrimitiveConstants.glsl"
+#include "Globals/GlobalUniforms.glsl"
+#include "Globals/GlobalResources.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
+  uint primId;
+  uint globalResourcesHandle;
+  uint globalUniformsHandle;
 } pushConstants;
 
-#define constants primitiveConstants[pushConstants.primId]
-
 void main() {
-  // Get global uniforms
-  // TODO: TEMP
-  uint globalsHandle = 0;
-  GlobalUniforms globals = RESOURCE(globalUniforms, globalsHandle);
+  GlobalUniforms globals = RESOURCE(globalUniforms, pushConstants.globalUniformsHandle);
+  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
+
+  PrimitiveConstants constants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[primId];
 
   vec4 worldPos4 = pushConstants.model * vec4(position, 1.0);
   worldPosition = worldPos4.xyz;

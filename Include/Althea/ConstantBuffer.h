@@ -30,7 +30,7 @@ public:
 
     VkBuffer staging = commandBuffer.createStagingBuffer(
         app,
-        gsl::span(&this->_constants, sizeof(TConstants)));
+        gsl::span((const std::byte*)&this->_constants, sizeof(TConstants)));
 
     this->_allocation = BufferUtilities::createBuffer(
         app,

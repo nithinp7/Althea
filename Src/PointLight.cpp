@@ -14,8 +14,10 @@ namespace {
 struct ShadowMapPushConstants {
   glm::mat4 model; // TODO: This should come from some sort of model buffer...
   uint32_t primitiveIdx;
-  uint32_t constantsHandle;
+  uint32_t lightIdx;
+  uint32_t globalResourcesHandle;
   uint32_t pointLightsHandle;
+  uint32_t constantsHandle;
 };
 } // namespace
 

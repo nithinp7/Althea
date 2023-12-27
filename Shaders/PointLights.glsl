@@ -13,13 +13,11 @@ BUFFER_R(pointLights, PointLights{
   PointLight pointLightArr[];
 });
 
-UNIFORM_BUFFER(pointLightUniforms, PointLightUniforms{
+BUFFER_R(pointLightConstants, PointLightConstants{
   mat4 projection;
   mat4 inverseProjection;
   mat4 views[6];
   mat4 inverseViews[6];
-  uint pointLightsBufferHandle;
-  uint padding[3];
 });
 
 #endif // _POINTLIGHTS_

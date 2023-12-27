@@ -20,7 +20,6 @@ struct IBLHandles {
 BUFFER_R(globalResources, GlobalResources{
   GBufferHandles gBuffer;
   IBLHandles ibl;
-  uint lightConstantsBuffer;
   uint primitiveConstantsBuffer;
 });
 

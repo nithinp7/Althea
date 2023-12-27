@@ -1,4 +1,4 @@
-#include "GlobalResources.glsl"
+#include "GlobalResources.h"
 
 #include "Application.h"
 #include "GlobalHeap.h"
@@ -9,18 +9,21 @@ GlobalResources::GlobalResources(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     GlobalHeap& heap,
-    BufferHandle primitiveConstantBuffer,
-    BufferHandle lightConstantBuffer)
-    : _ibl(app, commandBuffer, "NeoclassicalInterior"), // TODO: paramaterize
-      _gBuffer(app) {
+    BufferHandle primitiveConstantBuffer) {
 
+  this->_gBuffer = GBufferResources(app);
   this->_gBuffer.registerToHeap(heap);
+
+  // Paramaterize this
+  this->_ibl = ImageBasedLighting::createResources(
+      app,
+      commandBuffer,
+      "NeoclassicalInterior");
   this->_ibl.registerToHeap(heap);
 
   GlobalResourcesConstants constants{};
-  constants.gBuffer = this->_gBuffer.getHandes();
-  constants.ibl = this->_ibl.getHandes();
-  constants.lightBuffer = lightConstantBuffer.index;
+  constants.gBuffer = this->_gBuffer.getHandles();
+  constants.ibl = this->_ibl.getHandles();
   constants.primitiveBuffer = primitiveConstantBuffer.index;
 }
 } // namespace AltheaEngine

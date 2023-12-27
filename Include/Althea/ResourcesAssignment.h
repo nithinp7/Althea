@@ -62,12 +62,8 @@ public:
   template <typename TUniforms>
   ResourcesAssignment&
   bindTransientUniforms(const TransientUniforms<TUniforms>& buffer) {
-    const std::vector<UniformBuffer<TUniforms>>& uniformBuffers =
-        buffer.getUniformBuffers();
-    assert(uniformBuffers.size() == this->_assignments.size());
-
     for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
-      this->_assignments[i].bindUniformBufferDescriptor(uniformBuffers[i]);
+      this->_assignments[i].bindUniformBufferDescriptor(buffer.getUniformBuffers()[i]);
     }
 
     return *this;

@@ -648,10 +648,11 @@ void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  if (this->_material)
-    context.bindDescriptorSets(this->_material);
-  else
-    context.bindDescriptorSets();
+  // TODO: This no longer works for non-bindless
+  // if (this->_material)
+  //   context.bindDescriptorSets(this->_material);
+  // else
+  context.bindDescriptorSets();
   context.updatePushConstants(
       PrimitivePushConstants{
           this->_modelTransform * this->_relativeTransform,

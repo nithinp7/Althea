@@ -12,24 +12,36 @@ layout(location=1) out vec2 baseColorUV;
 
 #include <PointLights.glsl>
 
-#define PRIMITIVE_CONSTANTS_SET 1
-// PRIMITIVE_CONSTANTS_BINDING must be defined during compilation
+#include "Global/GlobalResources.glsl"
 #include "PrimitiveConstants.glsl"
-
-#define constants primitiveConstants[pushConstants.primId]
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
-  int pointLightsUniformsHandle;
+  uint primIdx;
+  uint lightIdx;
+  uint globalResourcesHandle;
+  uint pointLightBufferHandle;
+  uint pointLightConstantsHandle;
 } pushConstants;
 
 void main() {
-  PointLightUniforms globals = RESOURCE(pointLightUniforms, pointLightsUniformsHandle);
+  PointLightConstants lightConstants = 
+      RESOURCE(pointLightConstants, pushConstants.pointLightConstantsHandle);
+  PointLight light = 
+      RESOURCE(pointLights, pushConstants.pointLightBufferHandle).pointLightArr[lightIdx];
+
+  // TODO: Maybe don't need this level of indirection...
+  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
+  PrimitiveConstants primConstants = RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer);
   
-  vec4 csPos = globals.views[gl_ViewIndex] * pushConstants.model * vec4(position, 1.0);
+  // Note the view matrix here is centered at the origin here for re-usability, we just subtract
+  // the light position from the vertex position to compensate
+  vec4 csPos = 
+      lightConstants.views[gl_ViewIndex] * 
+      pushConstants.model * 
+      vec4(position - light.position, 1.0);
   gl_Position = globals.projection * csPos;
   
   worldPosCS = csPos.xyz / csPos.w;
-  baseColorUV = uvs[constants.baseTextureCoordinateIndex];
+  baseColorUV = uvs[primConstants.baseTextureCoordinateIndex];
 }

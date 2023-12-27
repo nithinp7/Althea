@@ -29,6 +29,7 @@ public:
       const Application& app,
       VkCommandBuffer commandBuffer,
       VkDescriptorSetLayout globalSetLayout);
+  
   void captureReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,

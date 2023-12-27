@@ -20,7 +20,6 @@ public:
   Material(const Material& rhs) = delete;
   Material& operator=(const Material& rhs) = delete;
 
-  operator bool() const;
   VkDescriptorSet getCurrentDescriptorSet(const FrameContext& frame) const;
 
   ResourcesAssignment assign();
