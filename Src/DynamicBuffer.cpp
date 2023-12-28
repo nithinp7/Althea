@@ -9,6 +9,8 @@ DynamicBuffer::DynamicBuffer(DynamicBuffer&& rhs)
       _allocation(std::move(rhs._allocation)),
       _pMappedMemory(rhs._pMappedMemory) {
   rhs._pMappedMemory = nullptr;
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    this->_indices[i] = rhs._indices[i];
 }
 
 void DynamicBuffer::registerToHeap(GlobalHeap& heap) {
@@ -31,6 +33,8 @@ DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
   this->_bufferSize = rhs._bufferSize;
   this->_allocation = std::move(rhs._allocation);
   this->_pMappedMemory = rhs._pMappedMemory;
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    this->_indices[i] = rhs._indices[i];
 
   rhs._pMappedMemory = nullptr;
 

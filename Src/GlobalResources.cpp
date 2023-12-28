@@ -25,5 +25,9 @@ GlobalResources::GlobalResources(
   constants.gBuffer = this->_gBuffer.getHandles();
   constants.ibl = this->_ibl.getHandles();
   constants.primitiveBuffer = primitiveConstantBuffer.index;
+
+  this->_constants =
+      ConstantBuffer<GlobalResourcesConstants>(app, commandBuffer, constants);
+  this->_constants.registerToHeap(heap);
 }
 } // namespace AltheaEngine
