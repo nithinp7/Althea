@@ -1,5 +1,5 @@
 
-#version 450
+#version 460 core
 
 layout(location=0) in vec3 position;
 layout(location=1) in mat3 tbn;
@@ -18,8 +18,9 @@ layout(location=8) out vec3 worldPosition;
 layout(location=9) out vec3 direction;
 
 #include "Bindless/GlobalHeap.glsl"
-#include "Globals/GlobalUniforms.glsl"
-#include "Globals/GlobalResources.glsl"
+#include "Global/GlobalUniforms.glsl"
+#include "Global/GlobalResources.glsl"
+#include "PrimitiveConstants.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
@@ -28,13 +29,13 @@ layout(push_constant) uniform PushConstants {
   uint globalUniformsHandle;
 } pushConstants;
 
-void main() {
-  GlobalUniforms globals = RESOURCE(globalUniforms, pushConstants.globalUniformsHandle);
-  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
+void main() {
   PrimitiveConstants constants = 
       RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
-        .primitiveConstantsArr[primId];
+        .primitiveConstantsArr[pushConstants.primId];
 
   vec4 worldPos4 = pushConstants.model * vec4(position, 1.0);
   worldPosition = worldPos4.xyz;

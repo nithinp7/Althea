@@ -1,3 +1,5 @@
+#version 460 core
+
 #extension GL_EXT_multiview : enable
 
 layout(location=0) in vec3 position;
@@ -24,15 +26,18 @@ layout(push_constant) uniform PushConstants {
   uint pointLightConstantsHandle;
 } pushConstants;
 
+#define resources RESOURCE(globalResources,pushConstants.globalResourcesHandle)
+#define lightConstants RESOURCE(pointLightConstants,pushConstants.pointLightConstantsHandle)
+
 void main() {
-  PointLightConstants lightConstants = 
-      RESOURCE(pointLightConstants, pushConstants.pointLightConstantsHandle);
   PointLight light = 
-      RESOURCE(pointLights, pushConstants.pointLightBufferHandle).pointLightArr[lightIdx];
+      RESOURCE(pointLights, pushConstants.pointLightBufferHandle)
+        .pointLightArr[pushConstants.lightIdx];
 
   // TODO: Maybe don't need this level of indirection...
-  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
-  PrimitiveConstants primConstants = RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer);
+  PrimitiveConstants primConstants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[pushConstants.primIdx];
   
   // Note the view matrix here is centered at the origin here for re-usability, we just subtract
   // the light position from the vertex position to compensate
@@ -40,7 +45,7 @@ void main() {
       lightConstants.views[gl_ViewIndex] * 
       pushConstants.model * 
       vec4(position - light.position, 1.0);
-  gl_Position = globals.projection * csPos;
+  gl_Position = lightConstants.projection * csPos;
   
   worldPosCS = csPos.xyz / csPos.w;
   baseColorUV = uvs[primConstants.baseTextureCoordinateIndex];

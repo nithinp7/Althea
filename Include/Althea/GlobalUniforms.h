@@ -38,12 +38,12 @@ public:
     return this->_buffers[frame.frameRingBufferIndex];
   }
 
-  BufferHandle getCurrentBindlessHandle(const FrameContext& frame) const {
+  UniformHandle getCurrentBindlessHandle(const FrameContext& frame) const {
     return this->_indices[frame.frameRingBufferIndex];
   }
 
 private:
   UniformBuffer<GlobalUniforms> _buffers[MAX_FRAMES_IN_FLIGHT];
-  BufferHandle _indices[MAX_FRAMES_IN_FLIGHT];
+  UniformHandle _indices[MAX_FRAMES_IN_FLIGHT];
 };
 } // namespace AltheaEngine

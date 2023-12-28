@@ -14,6 +14,7 @@
 #include "ComputePipeline.h"
 #include "PerFrameResources.h"
 #include "ReflectionBuffer.h"
+#include "BindlessHandle.h"
 
 #include <vulkan/vulkan.h>
 
@@ -34,7 +35,9 @@ public:
       const Application& app,
       VkCommandBuffer commandBuffer,
       VkDescriptorSet globalSet,
-      const FrameContext& context);
+      const FrameContext& context,
+      UniformHandle globalUniforms,
+      BufferHandle globalResources);
   void convolveReflectionBuffer(
       const Application& app,
       VkCommandBuffer commandBuffer,

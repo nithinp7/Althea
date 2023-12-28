@@ -4,14 +4,16 @@
 
 #include <stdexcept>
 
-#define BUFFER_HEAP_BINDING 0
-#define TEXTURE_HEAP_BINDING 1
+#define STORAGE_BUFFER_HEAP_BINDING 0
+#define UNIFORM_HEAP_BINDING 1
+#define TEXTURE_HEAP_BINDING 2
 
 namespace AltheaEngine {
 GlobalHeap::GlobalHeap(const Application& app)
 : _device(app.getDevice()) {
   DescriptorSetLayoutBuilder layoutBuilder{};
   layoutBuilder.addBufferHeapBinding(BUFFER_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
+  layoutBuilder.addUniformHeapBinding(UNIFORM_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addTextureHeapBinding(TEXTURE_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
 
   this->_setAllocator = DescriptorSetAllocator(app, layoutBuilder, 1);
@@ -35,7 +37,7 @@ void GlobalHeap::updateStorageBuffer(
 
   VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
   write.dstSet = this->_set;
-  write.dstBinding = BUFFER_HEAP_BINDING;
+  write.dstBinding = STORAGE_BUFFER_HEAP_BINDING;
   write.dstArrayElement = handle.index;
   write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   write.descriptorCount = 1;
@@ -47,7 +49,7 @@ void GlobalHeap::updateStorageBuffer(
 }
 
 void GlobalHeap::updateUniformBuffer(
-    BufferHandle handle,
+    UniformHandle handle,
     VkBuffer buffer,
     size_t offset,
     size_t size) {
@@ -63,7 +65,7 @@ void GlobalHeap::updateUniformBuffer(
 
   VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
   write.dstSet = this->_set;
-  write.dstBinding = BUFFER_HEAP_BINDING;
+  write.dstBinding = UNIFORM_HEAP_BINDING;
   write.dstArrayElement = handle.index;
   write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   write.descriptorCount = 1;

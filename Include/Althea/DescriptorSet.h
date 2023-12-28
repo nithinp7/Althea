@@ -78,6 +78,9 @@ public:
   DescriptorSetLayoutBuilder&
   addBufferHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
 
+  DescriptorSetLayoutBuilder&
+  addUniformHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
+
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
    *

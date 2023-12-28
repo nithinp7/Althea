@@ -58,8 +58,9 @@ public:
       VkCommandBuffer commandBuffer,
       const FrameContext& frame,
       const std::vector<Model>& models,
-      VkDescriptorSet globalSet = VK_NULL_HANDLE);
-  void draw(const DrawContext& context) const;
+      VkDescriptorSet globalSet,
+      BufferHandle globalResources);
+  void draw(const DrawContext& context, UniformHandle globalUniforms) const;
 
   size_t getByteSize() const { return this->_buffer.getSize(); }
 

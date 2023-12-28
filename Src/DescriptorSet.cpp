@@ -89,6 +89,20 @@ DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addBufferHeapBinding(
   return *this;
 }
 
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addUniformHeapBinding(
+    uint32_t bufferCount,
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = bufferCount;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
 DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addUniformBufferBinding(
     VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
@@ -112,6 +126,17 @@ DescriptorSet::DescriptorSet(DescriptorSet&& rhs) noexcept
 }
 
 DescriptorSet& DescriptorSet::operator=(DescriptorSet&& rhs) noexcept {
+  if (this->_descriptorSet != VK_NULL_HANDLE && this->_allocator) {
+    this->_allocator->free(this->_descriptorSet);
+  }
+
+  this->_device = rhs._device;
+  this->_descriptorSet = rhs._descriptorSet;
+  this->_allocator = rhs._allocator;
+
+  rhs._descriptorSet = VK_NULL_HANDLE;
+  rhs._allocator = nullptr;
+
   return *this;
 }
 
@@ -419,6 +444,7 @@ VkDescriptorSet DescriptorSetAllocator::allocateVkDescriptorSet() {
     poolInfo.poolSizeCount = static_cast<uint32_t>(this->_poolSizes.size());
     poolInfo.pPoolSizes = this->_poolSizes.data();
     poolInfo.maxSets = this->_setsPerPool;
+    poolInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
     VkDescriptorPoolInlineUniformBlockCreateInfo
         inlineDescriptorPoolCreateInfo{};

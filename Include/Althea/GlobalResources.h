@@ -39,6 +39,10 @@ public:
     return this->_constants;
   }
 
+  BufferHandle getHandle() const {
+    return this->_constants.getHandle();
+  }
+
 private:
   IBLResources _ibl;
   GBufferResources _gBuffer;

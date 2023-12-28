@@ -1,5 +1,5 @@
 
-#version 450
+#version 460 core
 
 #define PI 3.14159265359
 
@@ -8,26 +8,28 @@ layout(location=1) in vec2 uv;
 
 layout(location=0) out vec4 reflectedColor;
 
-layout(set=0, binding=0) uniform sampler2D environmentMap; 
-layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
-layout(set=0, binding=2) uniform sampler2D irradianceMap;
-layout(set=0, binding=3) uniform sampler2D brdfLut;
-
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
 #include <Global/GlobalUniforms.glsl>
-
-#define POINT_LIGHTS_SET 0
-#define POINT_LIGHTS_BINDING 5
+#include <Global/GlobalResources.glsl>
 #include <PointLights.glsl>
 
-layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
+SAMPLER2D(textureHeap);
 
-// GBuffer textures
-layout(set=1, binding=0) uniform sampler2D gBufferPosition;
-layout(set=1, binding=1) uniform sampler2D gBufferNormal;
-layout(set=1, binding=2) uniform sampler2D gBufferAlbedo;
-layout(set=1, binding=3) uniform sampler2D gBufferMetallicRoughnessOcclusion;
+layout(push_constant) uniform PushConstants {
+  uint globalUniformsHandle;
+  uint globalResourcesHandle;
+} pushConstants;
+
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
+#define environmentMap RESOURCE(textureHeap, resources.ibl.environmentMapHandle)
+#define prefilteredMap RESOURCE(textureHeap, resources.ibl.prefilteredMapHandle)
+#define irradianceMap RESOURCE(textureHeap, resources.ibl.irradianceMapHandle)
+#define brdfLut RESOURCE(textureHeap, resources.ibl.brdfLutHandle)
+
+#define gBufferPosition RESOURCE(textureHeap, resources.gBuffer.positionHandle)
+#define gBufferNormal RESOURCE(textureHeap, resources.gBuffer.normalHandle)
+#define gBufferAlbedo RESOURCE(textureHeap, resources.gBuffer.albedoHandle)
+#define gBufferMetallicRoughnessOcclusion RESOURCE(textureHeap, resources.ibl.environmentMapHandle)
 
 #include <PBR/PBRMaterial.glsl>
 

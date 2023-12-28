@@ -1,3 +1,5 @@
+#version 460 core
+
 layout(location=0) in vec3 worldPosCS;
 layout(location=1) in vec2 baseColorUV;
 
@@ -17,10 +19,12 @@ layout(push_constant) uniform PushConstants {
   uint pointLightConstantsHandle;
 } pushConstants;
 
-// TODO: 
+#define resources RESOURCE(globalResources,pushConstants.globalResourcesHandle)
+
 void main() {
-  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
-  PrimitiveConstants primConstants = RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer);
+  PrimitiveConstants primConstants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[pushConstants.primIdx];
   
   // TODO: PARAMATERIZE NEAR / FAR
   float zNear = 0.01;
@@ -29,8 +33,8 @@ void main() {
   // Read opacity mask (alpha channel of base color)
   float alpha = 
       (primConstants.baseColorFactor * 
-       TEXTURE_SAMPLE(textureHeap, primConstants.baseTextureHandle, baseColorUV)).a
-  if (alpha < constants.alphaCutoff) {
+       TEXTURE_SAMPLE(textureHeap, primConstants.baseTextureHandle, baseColorUV)).a;
+  if (alpha < primConstants.alphaCutoff) {
     discard;
   }
 

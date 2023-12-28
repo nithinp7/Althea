@@ -9,7 +9,7 @@ struct PointLight {
   vec3 emission;
 };
 
-BUFFER_R(pointLights, PointLights{
+BUFFER_R(pointLights, POINT_LIGHTS{
   PointLight pointLightArr[];
 });
 

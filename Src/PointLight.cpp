@@ -19,6 +19,11 @@ struct ShadowMapPushConstants {
   uint32_t pointLightsHandle;
   uint32_t constantsHandle;
 };
+
+struct LightMeshPushConstants {
+  uint32_t globalUniformsHandle;
+  uint32_t lightBufferHandle;
+};
 } // namespace
 
 // TODO: Refactor out into generalized storage buffer class...
@@ -219,7 +224,8 @@ void PointLightCollection::setupPointLightMeshSubpass(
       // Pipeline resource layouts
       .layoutBuilder
       // Global resources (view, projection, environment ma)
-      .addDescriptorSet(globalDescriptorSetLayout);
+      .addDescriptorSet(globalDescriptorSetLayout)
+      .addPushConstants<LightMeshPushConstants>(VK_SHADER_STAGE_ALL);
 }
 
 void PointLightCollection::drawShadowMaps(
@@ -227,13 +233,20 @@ void PointLightCollection::drawShadowMaps(
     VkCommandBuffer commandBuffer,
     const FrameContext& frame,
     const std::vector<Model>& models,
-    VkDescriptorSet globalSet) {
+    VkDescriptorSet globalSet,
+    BufferHandle globalResources) {
 
   // Shadow passes
   this->_shadowMap.transitionToAttachment(commandBuffer);
 
+  ShadowMapPushConstants constants{};
+  constants.globalResourcesHandle = globalResources.index;
+  constants.pointLightsHandle =
+      this->_buffer.getCurrentBufferHandle(frame.frameRingBufferIndex).index;
+
   for (uint32_t i = 0; i < this->_lights.size(); ++i) {
     const PointLight& light = this->_lights[i];
+    constants.lightIdx = i;
 
     ActiveRenderPass pass = this->_shadowPass.begin(
         app,
@@ -242,22 +255,39 @@ void PointLightCollection::drawShadowMaps(
         this->_shadowFrameBuffers[i]);
 
     pass.setGlobalDescriptorSets(gsl::span(&globalSet, 1));
+    pass.getDrawContext().bindDescriptorSets();
 
     // Draw models
     for (const Model& model : models) {
-      // ShadowMapPushConstants constants{};
-      // constants.primitiveIdx =
-      pass.draw(model);
+      for (const Primitive& primitive : model.getPrimitives()) {
+        constants.model = primitive.computeWorldTransform();
+        constants.primitiveIdx =
+            static_cast<uint32_t>(primitive.getPrimitiveIndex());
+
+        pass.getDrawContext().setFrontFaceDynamic(primitive.getFrontFace());
+        pass.getDrawContext().updatePushConstants(constants, 0);
+        pass.getDrawContext().drawIndexed(
+            primitive.getVertexBuffer(),
+            primitive.getIndexBuffer());
+      }
     }
   }
 
   this->_shadowMap.transitionToTexture(commandBuffer);
 }
 
-void PointLightCollection::draw(const DrawContext& context) const {
+void PointLightCollection::draw(const DrawContext& context, UniformHandle globalUniforms) const {
   context.bindDescriptorSets();
   context.bindVertexBuffer(this->_sphere.vertexBuffer);
   context.bindIndexBuffer(this->_sphere.indexBuffer);
+
+  LightMeshPushConstants push{};
+  push.globalUniformsHandle = globalUniforms.index;
+  push.lightBufferHandle =
+      this->_buffer
+          .getCurrentBufferHandle(context.getFrame().frameRingBufferIndex)
+          .index;
+  context.updatePushConstants(push, 0);
   vkCmdDrawIndexed(
       context.getCommandBuffer(),
       this->_sphere.indexBuffer.getIndexCount(),

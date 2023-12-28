@@ -7,7 +7,12 @@ vec3 sampleEnvMap(vec3 reflectedDirection, float roughness) {
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
   // return textureLod(environmentMap, uv, 4.0 * roughness).rgb;
-  return textureLod(prefilteredMap, uv, 4.0 * roughness).rgb;
+  return 
+      TEXTURE_LOD_SAMPLE(
+        textureHeap, 
+        resources.ibl.prefilteredMapHandle, 
+        uv, 
+        4.0 * roughness).rgb;
 }
 
 vec3 sampleIrrMap(vec3 normal) {
@@ -15,7 +20,13 @@ vec3 sampleIrrMap(vec3 normal) {
   float pitch = -atan(normal.y, length(normal.xz));
   vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
 
-  return texture(irradianceMap, uv).rgb;
+  // return texture(irradianceMap, uv).rgb;
+  return 
+      TEXTURE_LOD_SAMPLE(
+        textureHeap,
+        resources.ibl.irradianceMapHandle, 
+        uv,
+        0.0).rgb;
 }
 
 float vary(float period, float rangeMin, float rangeMax) {
@@ -107,7 +118,12 @@ vec3 pbrMaterial(
     // absorbed.
     vec3 diffuseColor = (1.0 - F) * mix(baseColor, vec3(0.0), metallic);
   
-    vec2 envBRDF = texture(brdfLut, vec2(NdotV, roughness)).rg;
+    vec2 envBRDF = 
+        TEXTURE_LOD_SAMPLE(
+          textureHeap, 
+          resources.ibl.brdfLutHandle, 
+          vec2(NdotV, roughness),
+          0.0).rg;
     vec3 ambientSpecular = reflectedColor * (F * envBRDF.x + envBRDF.y);
 
     color += (irradianceColor * diffuseColor + ambientSpecular) * ambientOcclusion;

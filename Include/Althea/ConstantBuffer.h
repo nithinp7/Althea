@@ -49,7 +49,7 @@ public:
 
   void registerToHeap(GlobalHeap& heap) {
     this->_handle = heap.registerBuffer();
-    heap.updateUniformBuffer(
+    heap.updateStorageBuffer(
         this->_handle,
         this->_allocation.getBuffer(),
         0,

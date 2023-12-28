@@ -3,6 +3,8 @@
 
 #include <Bindless/GlobalHeap.glsl>
 
+#extension GL_EXT_scalar_block_layout : enable
+
 UNIFORM_BUFFER(globalUniforms, GlobalUniforms{
   mat4 projection;
   mat4 inverseProjection;

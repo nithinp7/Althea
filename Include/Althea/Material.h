@@ -25,6 +25,6 @@ public:
   ResourcesAssignment assign();
 
 private:
-  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT];
+  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT]{};
 };
 } // namespace AltheaEngine

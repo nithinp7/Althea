@@ -1,5 +1,5 @@
 
-#version 450
+#version 460 core
 
 #define PI 3.14159265359
 
@@ -31,13 +31,13 @@ layout(push_constant) uniform PushConstants {
 
 SAMPLER2D(textureHeap);
 
-void main() {
-  GlobalUniforms globals = RESOURCE(globalUniforms, pushConstants.globalUniformsHandle);
-  GlobalResources resources = RESOURCE(globalResources, pushConstants.globalResourcesHandle);
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
+void main() {
   PrimitiveConstants constants = 
       RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
-        .primitiveConstantsArr[primId];
+        .primitiveConstantsArr[pushConstants.primId];
 
   GBuffer_Albedo = 
       TEXTURE_SAMPLE(textureHeap, constants.baseTextureHandle, baseColorUV) 

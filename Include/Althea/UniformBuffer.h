@@ -28,7 +28,7 @@ public:
   }
 
   void registerToHeap(GlobalHeap& heap) {
-    this->_handle = heap.registerBuffer();
+    this->_handle = heap.registerUniforms();
     heap.updateUniformBuffer(
         this->_handle,
         this->_allocation.getBuffer(),
@@ -70,7 +70,7 @@ private:
 
   TUniforms _uniforms;
   BufferAllocation _allocation;
-  BufferHandle _handle;
+  UniformHandle _handle;
 };
 
 } // namespace AltheaEngine

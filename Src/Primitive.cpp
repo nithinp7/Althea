@@ -111,7 +111,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.enableDynamicFrontFace();
 
   // Add push constants for updating model transform
-  builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
+  // builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
 }
 
 /*static*/
