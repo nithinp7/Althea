@@ -19,7 +19,7 @@ layout(push_constant) uniform PushConstants {
   uint pointLightConstantsHandle;
 } pushConstants;
 
-#define resources RESOURCE(globalResources,pushConstants.globalResourcesHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
 void main() {
   PrimitiveConstants primConstants = 

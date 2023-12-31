@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 
+#include <cstdint>
 #include <vector>
 
 namespace AltheaEngine {
@@ -19,6 +20,7 @@ struct GlobalUniforms {
   glm::mat4 inverseView;
   glm::mat4 prevInverseView;
   int lightCount;
+  uint32_t lightBufferHandle;
   float time;
   float exposure;
 };

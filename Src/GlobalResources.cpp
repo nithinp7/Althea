@@ -9,6 +9,7 @@ GlobalResources::GlobalResources(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     GlobalHeap& heap,
+    ImageHandle shadowMapArrayHandle,
     BufferHandle primitiveConstantBuffer) {
 
   this->_gBuffer = GBufferResources(app);
@@ -24,6 +25,7 @@ GlobalResources::GlobalResources(
   GlobalResourcesConstants constants{};
   constants.gBuffer = this->_gBuffer.getHandles();
   constants.ibl = this->_ibl.getHandles();
+  constants.shadowMapArray = shadowMapArrayHandle.index;
   constants.primitiveBuffer = primitiveConstantBuffer.index;
 
   this->_constants =

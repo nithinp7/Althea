@@ -41,10 +41,9 @@ void main() {
   
   // Note the view matrix here is centered at the origin here for re-usability, we just subtract
   // the light position from the vertex position to compensate
-  vec4 csPos = 
-      lightConstants.views[gl_ViewIndex] * 
-      pushConstants.model * 
-      vec4(position - light.position, 1.0);
+  vec4 worldPos = pushConstants.model * vec4(position, 1.0);
+  vec4 csPos = lightConstants.views[gl_ViewIndex] * (worldPos - vec4(light.position, 0.0));
+
   gl_Position = lightConstants.projection * csPos;
   
   worldPosCS = csPos.xyz / csPos.w;

@@ -13,6 +13,7 @@ UNIFORM_BUFFER(globalUniforms, GlobalUniforms{
   mat4 inverseView;
   mat4 prevInverseView;
   int lightCount;
+  uint lightBufferHandle;
   float time;
   float exposure;
 });

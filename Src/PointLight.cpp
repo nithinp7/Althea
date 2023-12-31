@@ -61,8 +61,12 @@ PointLightCollection::PointLightCollection(
         RenderTargetFlags::SceneCaptureCube |
             RenderTargetFlags::EnableDepthTarget);
 
-    DescriptorSetLayoutBuilder shadowLayoutBuilder{};
-    shadowLayoutBuilder.addUniformBufferBinding(VK_SHADER_STAGE_VERTEX_BIT);
+    // Register shadow map into bindless heap
+    this->_shadowMapHandle = heap.registerTexture();
+    heap.updateTexture(
+        this->_shadowMapHandle,
+        this->_shadowMap.getDepthTextureArrayView(),
+        this->_shadowMap.getDepthSampler());
 
     {
       // TODO: Configure near / far plane, does it matter??
@@ -243,6 +247,7 @@ void PointLightCollection::drawShadowMaps(
   constants.globalResourcesHandle = globalResources.index;
   constants.pointLightsHandle =
       this->_buffer.getCurrentBufferHandle(frame.frameRingBufferIndex).index;
+  constants.constantsHandle = this->_pointLightConstants.getHandle().index;
 
   for (uint32_t i = 0; i < this->_lights.size(); ++i) {
     const PointLight& light = this->_lights[i];
@@ -276,7 +281,9 @@ void PointLightCollection::drawShadowMaps(
   this->_shadowMap.transitionToTexture(commandBuffer);
 }
 
-void PointLightCollection::draw(const DrawContext& context, UniformHandle globalUniforms) const {
+void PointLightCollection::draw(
+    const DrawContext& context,
+    UniformHandle globalUniforms) const {
   context.bindDescriptorSets();
   context.bindVertexBuffer(this->_sphere.vertexBuffer);
   context.bindIndexBuffer(this->_sphere.indexBuffer);

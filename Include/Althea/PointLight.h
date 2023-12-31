@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BindlessHandle.h"
 #include "BufferUtilities.h"
 #include "ConstantBuffer.h"
 #include "DrawContext.h"
@@ -68,6 +69,10 @@ public:
     return this->_buffer.getAllocation();
   }
 
+  BufferHandle getCurrentLightBufferHandle(const FrameContext& frame) const {
+    return this->_buffer.getCurrentBufferHandle(frame.frameRingBufferIndex);
+  }
+
   const PointLight& getLight(uint32_t lightIndex) const {
     return this->_lights[lightIndex];
   }
@@ -106,6 +111,8 @@ public:
     return this->_shadowMap.getDepthSampler();
   }
 
+  ImageHandle getShadowMapHandle() const { return this->_shadowMapHandle; }
+
   RenderPass& getShadowMapPass() { return this->_shadowPass; }
 
   BufferHandle getConstantsHandle() const {
@@ -138,6 +145,7 @@ private:
 
   // Resources needed for shadow mapping, if it is enabled
   RenderTargetCollection _shadowMap;
+  ImageHandle _shadowMapHandle;
   RenderPass _shadowPass;
   std::vector<FrameBuffer> _shadowFrameBuffers;
 

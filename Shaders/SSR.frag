@@ -31,6 +31,10 @@ layout(push_constant) uniform PushConstants {
 #define gBufferAlbedo RESOURCE(textureHeap, resources.gBuffer.albedoHandle)
 #define gBufferMetallicRoughnessOcclusion RESOURCE(textureHeap, resources.gBuffer.metallicRoughnessOcclusionHandle)
 
+SAMPLERCUBEARRAY(cubemapHeap);
+#define shadowMapArray RESOURCE(cubemapHeap, resources.shadowMapArray)
+#define pointLightArr RESOURCE(pointLights, globals.lightBufferHandle).pointLightArr
+
 #include <PBR/PBRMaterial.glsl>
 
 vec3 sampleEnvMap(vec3 dir) {

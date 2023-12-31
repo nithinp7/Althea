@@ -1,8 +1,8 @@
 #include "DescriptorSet.h"
 
 #include "Application.h"
-#include "TextureHeap.h"
 #include "BufferHeap.h"
+#include "TextureHeap.h"
 
 #include <cassert>
 #include <stdexcept>
@@ -395,13 +395,28 @@ DescriptorSetAllocator::DescriptorSetAllocator(
       _hasInlineUniformBlock(layoutBuilder._hasInlineUniformBlock),
       _bindings(layoutBuilder._bindings) {
 
+  // This is stupid
+  std::vector<VkDescriptorBindingFlags> bindingFlags{};
+  bindingFlags.resize(layoutBuilder._bindings.size());
+  for (auto& flag : bindingFlags) {
+    flag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+  }
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
+  bindingFlagsInfo.bindingCount = layoutBuilder._bindings.size();
+  bindingFlagsInfo.pBindingFlags = bindingFlags.data();
+  bindingFlagsInfo.pNext = nullptr;
+
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
   descriptorSetLayoutInfo.sType =
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   descriptorSetLayoutInfo.bindingCount =
       static_cast<uint32_t>(layoutBuilder._bindings.size());
   descriptorSetLayoutInfo.pBindings = layoutBuilder._bindings.data();
-  descriptorSetLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+  descriptorSetLayoutInfo.flags =
+      VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+  descriptorSetLayoutInfo.pNext = &bindingFlagsInfo;
 
   VkDescriptorSetLayout layout;
   if (vkCreateDescriptorSetLayout(
@@ -444,7 +459,7 @@ VkDescriptorSet DescriptorSetAllocator::allocateVkDescriptorSet() {
     poolInfo.poolSizeCount = static_cast<uint32_t>(this->_poolSizes.size());
     poolInfo.pPoolSizes = this->_poolSizes.data();
     poolInfo.maxSets = this->_setsPerPool;
-    poolInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
     VkDescriptorPoolInlineUniformBlockCreateInfo
         inlineDescriptorPoolCreateInfo{};

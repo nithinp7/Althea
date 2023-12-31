@@ -15,6 +15,10 @@
     layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \
       uniform sampler2D NAME[]
 
+#define SAMPLERCUBEARRAY(NAME) \
+    layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \
+      uniform samplerCubeArray NAME[]
+
 #define IMAGE2D_RW(NAME,FORMAT) \
     layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING, FORMAT) \
       image2D NAME[]

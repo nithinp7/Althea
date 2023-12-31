@@ -18,6 +18,7 @@ class GlobalHeap;
 struct ALTHEA_API GlobalResourcesConstants {
   GBufferHandles gBuffer;
   IBLHandles ibl;
+  uint32_t shadowMapArray;
   uint32_t primitiveBuffer;
 };
 
@@ -28,6 +29,7 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       GlobalHeap& heap,
+      ImageHandle shadowMapArrayHandle,
       BufferHandle primitiveConstantBuffer);
 
   const IBLResources& getIBL() const { return this->_ibl; }
