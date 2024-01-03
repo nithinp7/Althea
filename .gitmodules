@@ -22,3 +22,6 @@
 [submodule "Extern/hash-library"]
 	path = Extern/hash-library
 	url = https://github.com/stbrumme/hash-library
+[submodule "Extern/imgui"]
+	path = Extern/imgui
+	url = git@github.com:ocornut/imgui.git
