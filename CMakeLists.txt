@@ -26,7 +26,6 @@ function(glob_files out_var_name regexes)
 endfunction()
 
 glob_files(SRC_FILES_LIST Src/*.cpp)
-glob_files(HEADER_FILES_LIST Include/Althea/*.h)
 
 add_library(Althea ${SRC_FILES_LIST})
 include_directories(Include/Althea)
@@ -51,6 +50,14 @@ set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURC
 add_library(hash_library Extern/hash-library/sha256.cpp)
 set_target_properties(hash_library PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/hash-library/sha256.h")
 
+glob_files(IMGUI_SRC_FILES_LIST Extern/imgui/*.cpp Extern/imgui/backends/imgui_impl_vulkan.cpp)
+add_library(imgui ${IMGUI_SRC_FILES_LIST})
+target_include_directories(imgui 
+    PUBLIC 
+      ${Vulkan_INCLUDE_DIRS}
+      Extern/imgui
+      Extern/imgui/backend)
+
 target_include_directories (Althea
     PUBLIC
       Include
@@ -61,7 +68,8 @@ target_include_directories (Althea
       Extern/MikkTSpace
       Extern/VulkanMemoryAllocator/include
       Extern/shaderc/libshaderc/include/shaderc
-      Extern/hash-library)
+      Extern/hash-library
+      Extern/imgui)
 
 target_compile_definitions(
     Althea
@@ -84,6 +92,7 @@ target_link_libraries (Althea PUBLIC MikkTSpace)
 target_link_libraries (Althea PUBLIC VulkanMemoryAllocator)
 target_link_libraries (Althea PUBLIC shaderc)
 target_link_libraries (Althea PUBLIC hash_library)
+target_link_libraries (Althea PUBLIC imgui)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
