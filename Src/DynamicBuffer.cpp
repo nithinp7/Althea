@@ -9,6 +9,20 @@ DynamicBuffer::DynamicBuffer(DynamicBuffer&& rhs)
       _allocation(std::move(rhs._allocation)),
       _pMappedMemory(rhs._pMappedMemory) {
   rhs._pMappedMemory = nullptr;
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    this->_indices[i] = rhs._indices[i];
+}
+
+void DynamicBuffer::registerToHeap(GlobalHeap& heap) {
+  // Register bindless indices on the heap for these buffer regions
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    this->_indices[i] = heap.registerBuffer();
+    heap.updateStorageBuffer(
+        this->_indices[i],
+        this->_allocation.getBuffer(),
+        i * this->_bufferSize,
+        this->_bufferSize);
+  }
 }
 
 DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
@@ -19,6 +33,8 @@ DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
   this->_bufferSize = rhs._bufferSize;
   this->_allocation = std::move(rhs._allocation);
   this->_pMappedMemory = rhs._pMappedMemory;
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    this->_indices[i] = rhs._indices[i];
 
   rhs._pMappedMemory = nullptr;
 
@@ -42,7 +58,7 @@ DynamicBuffer::DynamicBuffer(
 
   this->_allocation = BufferUtilities::createBuffer(
       app,
-      this->_bufferSize * app.getMaxFramesInFlight(),
+      this->_bufferSize * MAX_FRAMES_IN_FLIGHT,
       usage,
       deviceAllocInfo);
 

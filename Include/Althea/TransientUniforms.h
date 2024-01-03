@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FrameContext.h"
+#include "GlobalHeap.h"
 #include "Library.h"
 #include "UniformBuffer.h"
 
@@ -24,24 +25,32 @@ public:
   TransientUniforms() = default;
 
   TransientUniforms(const Application& app) {
-    for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-      this->_uniformBuffers.emplace_back(app);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      this->_uniformBuffers[i] = UniformBuffer<TUniforms>(app);
     }
   }
 
-  TransientUniforms(
-      const Application& app,
-      const TUniforms& uniforms) {
-    for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-      this->_uniformBuffers.emplace_back(app, uniforms);
+  TransientUniforms(const Application& app, const TUniforms& uniforms) {
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      this->_uniformBuffers[i] = UniformBuffer<TUniforms>(app, uniforms);
     }
+  }
+
+  void registerToHeap(GlobalHeap& heap) {
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      this->_uniformBuffers[i].registerToHeap(heap);
+    }
+  }
+
+  BufferHandle getCurrentHandle(const FrameContext& frame) const {
+    return this->_uniformBuffers[frame.frameRingBufferIndex].getHandle();
   }
 
   void updateUniforms(const TUniforms& uniforms, const FrameContext& frame) {
     this->_uniformBuffers[frame.frameRingBufferIndex].updateUniforms(uniforms);
   }
 
-  const std::vector<UniformBuffer<TUniforms>>& getUniformBuffers() const {
+  const UniformBuffer<TUniforms> (&getUniformBuffers() const)[MAX_FRAMES_IN_FLIGHT] {
     return this->_uniformBuffers;
   }
 
@@ -53,7 +62,7 @@ public:
   size_t getSize() const { return sizeof(TUniforms); }
 
 private:
-  std::vector<UniformBuffer<TUniforms>> _uniformBuffers;
+  UniformBuffer<TUniforms> _uniformBuffers[MAX_FRAMES_IN_FLIGHT]{};
 };
 
 } // namespace AltheaEngine

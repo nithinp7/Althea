@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BindlessHandle.h"
 #include "ComputePipeline.h"
 #include "DeferredRendering.h"
 #include "DescriptorSet.h"
@@ -21,11 +22,47 @@
 
 namespace AltheaEngine {
 class Application;
+class GlobalHeap;
 
 class ReflectionBuffer {
 public:
   ReflectionBuffer() = default;
   ReflectionBuffer(const Application& app, VkCommandBuffer commandBuffer);
+
+  ReflectionBuffer(ReflectionBuffer&& other) {
+    this->_pConvolutionPass = std::move(other._pConvolutionPass);
+    this->_convolutionMaterials = std::move(other._convolutionMaterials);
+    this->_pConvolutionMaterialAllocator =
+        std::move(other._pConvolutionMaterialAllocator);
+
+    this->_reflectionBuffer = std::move(other._reflectionBuffer);
+    this->_reflectionBufferHandle = other._reflectionBufferHandle;
+
+    this->_mipViews = std::move(other._mipViews);
+
+    this->_mipSampler = std::move(other._mipSampler);
+  }
+
+  // TODO: This descriptor set architecture is becoming a pain in the ass
+  ReflectionBuffer& operator=(ReflectionBuffer&& other) {
+    this->_convolutionMaterials.clear();
+    this->_pConvolutionMaterialAllocator.reset();
+
+    this->_pConvolutionPass = std::move(other._pConvolutionPass);
+    this->_convolutionMaterials = std::move(other._convolutionMaterials);
+    this->_pConvolutionMaterialAllocator =
+        std::move(other._pConvolutionMaterialAllocator);
+
+    this->_reflectionBuffer = std::move(other._reflectionBuffer);
+    this->_reflectionBufferHandle = other._reflectionBufferHandle;
+
+    this->_mipViews = std::move(other._mipViews);
+
+    this->_mipSampler = std::move(other._mipSampler);
+
+    return *this;
+  }
+
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToStorageImageWrite(
       VkCommandBuffer commandBuffer,
@@ -46,6 +83,10 @@ public:
     return this->_mipSampler;
   }
 
+  void registerToHeap(GlobalHeap& heap);
+
+  ImageHandle getHandle() const { return this->_reflectionBufferHandle; }
+
 private:
   std::unique_ptr<ComputePipeline> _pConvolutionPass;
   std::unique_ptr<DescriptorSetAllocator> _pConvolutionMaterialAllocator;
@@ -54,6 +95,7 @@ private:
   // Entire reflection buffer resource
   // The view contains all the mips together
   ImageResource _reflectionBuffer;
+  ImageHandle _reflectionBufferHandle;
 
   // Individual mip views of the reflection buffer mips
   std::vector<ImageView> _mipViews;

@@ -1,20 +1,24 @@
-#version 450
+#version 460 core
 
 // Per-vertex attributes
 layout(location=0) in vec3 vertPos;
 
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
-
-#define POINT_LIGHTS_SET 0
-#define POINT_LIGHTS_BINDING 5
+#include <Global/GlobalUniforms.glsl>
 #include <PointLights.glsl>
 
 layout(location=0) out vec3 color;
 
+layout(push_constant) uniform PushConstants {
+  uint globalUniformsHandle;
+  uint lightBufferHandle;
+} pushConstants;
+
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+
 void main() {
-  PointLight light = pointLightArr[gl_InstanceIndex];
+  PointLight light = 
+      RESOURCE(pointLights, pushConstants
+      .lightBufferHandle).pointLightArr[gl_InstanceIndex];
 
   vec3 cameraPos = globals.inverseView[3].xyz;
   float radius = 1.0;

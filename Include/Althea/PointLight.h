@@ -1,18 +1,22 @@
 #pragma once
 
+#include "BindlessHandle.h"
 #include "BufferUtilities.h"
+#include "ConstantBuffer.h"
 #include "DrawContext.h"
 #include "DynamicBuffer.h"
 #include "FrameBuffer.h"
 #include "FrameContext.h"
+#include "GlobalHeap.h"
 #include "IndexBuffer.h"
 #include "Library.h"
+#include "Model.h"
 #include "PerFrameResources.h"
 #include "RenderPass.h"
 #include "RenderTarget.h"
 #include "SingleTimeCommandBuffer.h"
+#include "StructuredBuffer.h"
 #include "VertexBuffer.h"
-#include "Model.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -36,18 +40,12 @@ class ALTHEA_API PointLightCollection {
 public:
   PointLightCollection() = default;
   PointLightCollection(
-      const Application& app,
+      Application& app,
       SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap,
       size_t lightCount,
       bool createShadowMap,
-      VkDescriptorSetLayout globalSetLayout,
-      // TODO: This info should be held in some sort of global store so it doesn't need to get passed
-      // around everywhere
-      // TODO: This hack is just for backward compat with non-bindless, remove such use cases eventually
-      bool bindless = false,
-      uint32_t primConstBufferBinding = 0, 
-      uint32_t textureHeapBinding = 0,
-      uint32_t textureHeapCount = 0);
+      BufferHandle primConstants);
   void setLight(uint32_t lightId, const PointLight& light);
   void updateResource(const FrameContext& frame);
 
@@ -61,13 +59,18 @@ public:
       VkCommandBuffer commandBuffer,
       const FrameContext& frame,
       const std::vector<Model>& models,
-      VkDescriptorSet globalSet = VK_NULL_HANDLE);
-  void draw(const DrawContext& context) const;
+      VkDescriptorSet globalSet,
+      BufferHandle globalResources);
+  void draw(const DrawContext& context, UniformHandle globalUniforms) const;
 
   size_t getByteSize() const { return this->_buffer.getSize(); }
 
   const BufferAllocation& getAllocation() const {
     return this->_buffer.getAllocation();
+  }
+
+  BufferHandle getCurrentLightBufferHandle(const FrameContext& frame) const {
+    return this->_buffer.getCurrentBufferHandle(frame.frameRingBufferIndex);
   }
 
   const PointLight& getLight(uint32_t lightIndex) const {
@@ -108,17 +111,27 @@ public:
     return this->_shadowMap.getDepthSampler();
   }
 
-  RenderPass& getShadowMapPass() {
-    return *this->_pShadowPass;
+  ImageHandle getShadowMapHandle() const { return this->_shadowMapHandle; }
+
+  RenderPass& getShadowMapPass() { return this->_shadowPass; }
+
+  BufferHandle getConstantsHandle() const {
+    return this->_pointLightConstants.getHandle();
   }
 
 private:
-  bool _usingBindless;
-
   bool _dirty;
   bool _useShadowMaps;
   std::vector<PointLight> _lights;
   DynamicBuffer _buffer;
+
+  struct PointLightConstants {
+    glm::mat4 projection;
+    glm::mat4 inverseProjection;
+    glm::mat4 views[6];
+    glm::mat4 inverseViews[6];
+  };
+  ConstantBuffer<PointLightConstants> _pointLightConstants;
 
   // Sphere VB for visualizing the point lights
   struct Sphere {
@@ -132,15 +145,8 @@ private:
 
   // Resources needed for shadow mapping, if it is enabled
   RenderTargetCollection _shadowMap;
-  struct ShadowMapUniforms {
-    glm::mat4 projection;
-    glm::mat4 inverseProjection;
-    glm::mat4 views[6];
-    glm::mat4 inverseViews[6];
-  };
-  std::vector<PerFrameResources> _shadowResources;
-  std::vector<TransientUniforms<ShadowMapUniforms>> _shadowUniforms;
-  std::unique_ptr<RenderPass> _pShadowPass;
+  ImageHandle _shadowMapHandle;
+  RenderPass _shadowPass;
   std::vector<FrameBuffer> _shadowFrameBuffers;
 
   std::vector<std::byte> _scratchBytes;

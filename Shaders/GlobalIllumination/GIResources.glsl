@@ -16,7 +16,7 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 
 #define GLOBAL_UNIFORMS_SET 0
 #define GLOBAL_UNIFORMS_BINDING 4
-#include <GlobalUniforms.glsl>
+#include <Global/GlobalUniforms.glsl>
 
 #define POINT_LIGHTS_SET 0
 #define POINT_LIGHTS_BINDING 5

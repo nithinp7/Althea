@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Library.h"
-
 #include "DescriptorSet.h"
 #include "FrameContext.h"
+#include "Library.h"
 
 #include <vulkan/vulkan.h>
 
@@ -19,23 +18,27 @@ public:
   PerFrameResources(
       const Application& app,
       const DescriptorSetLayoutBuilder& layoutBuilder);
-    
+
   PerFrameResources(PerFrameResources&& other) {
-    this->_descriptorSets.clear();
-    this->_pDescriptorSetAllocator = std::move(other._pDescriptorSetAllocator);
-    this->_descriptorSets = std::move(other._descriptorSets);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+      this->_descriptorSets[i] = {};
+    this->_descriptorSetAllocator = std::move(other._descriptorSetAllocator);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+      this->_descriptorSets[i] = std::move(other._descriptorSets[i]);
   }
 
   PerFrameResources& operator=(PerFrameResources&& other) {
-    this->_descriptorSets.clear();
-    this->_pDescriptorSetAllocator = std::move(other._pDescriptorSetAllocator);
-    this->_descriptorSets = std::move(other._descriptorSets);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+      this->_descriptorSets[i] = {};
+    this->_descriptorSetAllocator = std::move(other._descriptorSetAllocator);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+      this->_descriptorSets[i] = std::move(other._descriptorSets[i]);
 
     return *this;
   }
-  
+
   VkDescriptorSetLayout getLayout() const {
-    return this->_pDescriptorSetAllocator->getLayout();
+    return this->_descriptorSetAllocator.getLayout();
   }
 
   VkDescriptorSet getCurrentDescriptorSet(const FrameContext& frame) const;
@@ -43,10 +46,8 @@ public:
   ResourcesAssignment assign();
 
 private:
-  // TODO: Does this still need to be in a unique_ptr
-  std::unique_ptr<DescriptorSetAllocator> _pDescriptorSetAllocator; 
-
+  DescriptorSetAllocator _descriptorSetAllocator;
   // One descriptor set for each frame-in-flight
-  std::vector<DescriptorSet> _descriptorSets;
+  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT];
 };
 } // namespace AltheaEngine

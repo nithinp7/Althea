@@ -4,6 +4,7 @@
 #include "BufferUtilities.h"
 #include "Library.h"
 #include "SingleTimeCommandBuffer.h"
+#include "BindlessHandle.h"
 
 #include <vulkan/vulkan.h>
 
@@ -11,6 +12,7 @@
 
 namespace AltheaEngine {
 class Application;
+class GlobalHeap;
 
 // TODO: Make CPU-copy of uniform buffer optional?
 
@@ -18,19 +20,21 @@ template <typename TUniforms> class ALTHEA_API UniformBuffer {
 public:
   UniformBuffer() = default;
 
-  UniformBuffer(const Application& app) {
-    this->_createUniformBuffer(app);
-  }
+  UniformBuffer(const Application& app) { this->_createUniformBuffer(app); }
 
-  UniformBuffer(
-      const Application& app,
-      const TUniforms& uniforms) {
+  UniformBuffer(const Application& app, const TUniforms& uniforms) {
     this->_createUniformBuffer(app);
     this->updateUniforms(uniforms);
   }
 
-  // TODO: TUniforms& getUniforms()
-  // TODO: syncBuffer()
+  void registerToHeap(GlobalHeap& heap) {
+    this->_handle = heap.registerUniforms();
+    heap.updateUniformBuffer(
+        this->_handle,
+        this->_allocation.getBuffer(),
+        0,
+        this->getSize());
+  }
 
   void updateUniforms(const TUniforms& uniforms) {
     this->_uniforms = uniforms;
@@ -46,9 +50,10 @@ public:
 
   size_t getSize() const { return sizeof(TUniforms); }
 
+  BufferHandle getHandle() const { return this->_handle; }
+
 private:
-  void
-  _createUniformBuffer(const Application& app) {
+  void _createUniformBuffer(const Application& app) {
     // TODO: This assumes that the uniform buffer will be _often_ rewritten
     // and perhaps in a random pattern. We should prefer a different type of
     // memory if the uniform buffer will mostly be persistent.
@@ -65,6 +70,7 @@ private:
 
   TUniforms _uniforms;
   BufferAllocation _allocation;
+  UniformHandle _handle;
 };
 
 } // namespace AltheaEngine

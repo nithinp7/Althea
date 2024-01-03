@@ -3,8 +3,13 @@
 namespace AltheaEngine {
 
 ResourcesAssignment::ResourcesAssignment(
-    std::vector<DescriptorSet>& descriptorSets) {
-  this->_assignments.reserve(descriptorSets.size());
+    DescriptorSet (&descriptorSets)[MAX_FRAMES_IN_FLIGHT]) {
+  for (DescriptorSet& descriptorSet : descriptorSets) {
+    this->_assignments.emplace_back(descriptorSet.assign());
+  }
+}
+
+ResourcesAssignment::ResourcesAssignment(std::vector<DescriptorSet>& descriptorSets) {
   for (DescriptorSet& descriptorSet : descriptorSets) {
     this->_assignments.emplace_back(descriptorSet.assign());
   }

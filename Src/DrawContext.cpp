@@ -8,15 +8,28 @@ namespace AltheaEngine {
 void DrawContext::bindDescriptorSets(const Material& material) const {
   assert(this->_pCurrentSubpass != nullptr);
 
-  uint32_t descriptorSetCount = this->_globalDescriptorSetCount;
+  uint32_t descriptorSetCount = this->_globalDescriptorSetCount + 1;
 
-  if (material) {
-    // Mutate _descriptorSets so that all the descriptor sets are
-    // contiguous in memory for the binding operation.
-    this->_descriptorSets[this->_globalDescriptorSetCount] =
-        material.getCurrentDescriptorSet(*this->_pFrame);
-    ++descriptorSetCount;
-  }
+  // Mutate _descriptorSets so that all the descriptor sets are
+  // contiguous in memory for the binding operation.
+  this->_descriptorSets[this->_globalDescriptorSetCount] =
+      material.getCurrentDescriptorSet(*this->_pFrame);
+
+  vkCmdBindDescriptorSets(
+      this->_commandBuffer,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      this->_pCurrentSubpass->getPipeline().getLayout(),
+      0,
+      descriptorSetCount,
+      this->_descriptorSets,
+      0,
+      nullptr);
+}
+
+void DrawContext::bindDescriptorSets() const {
+  assert(this->_pCurrentSubpass != nullptr);
+
+  uint32_t descriptorSetCount = this->_globalDescriptorSetCount;
 
   vkCmdBindDescriptorSets(
       this->_commandBuffer,

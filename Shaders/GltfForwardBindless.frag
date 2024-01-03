@@ -1,5 +1,5 @@
 
-#version 450
+#version 460 core
 
 #define PI 3.14159265359
 
@@ -17,51 +17,46 @@ layout(location=1) out vec4 GBuffer_Normal;
 layout(location=2) out vec4 GBuffer_Albedo;
 layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
-#ifndef TEXTURE_HEAP_COUNT
-#define TEXTURE_HEAP_COUNT 1
-#endif
-
-layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
-
-#define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 8
+#include "Bindless/GlobalHeap.glsl"
+#include "Global/GlobalUniforms.glsl"
+#include "Global/GlobalResources.glsl"
 #include "PrimitiveConstants.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
+  uint primId;
+  uint globalResourcesHandle;
+  uint globalUniformsHandle;
 } pushConstants;
 
-#define constants primitiveConstants[pushConstants.primId]
+SAMPLER2D(textureHeap);
 
-// layout(set=1, binding=1) uniform sampler2D baseColorTexture;
-// layout(set=1, binding=2) uniform sampler2D normalMapTexture;
-// layout(set=1, binding=3) uniform sampler2D metallicRoughnessTexture;
-// layout(set=1, binding=4) uniform sampler2D occlusionTexture;
-// layout(set=1, binding=5) uniform sampler2D emissiveTexture;
-
-#define baseColorTexture textureHeap[5*pushConstants.primId+0]
-#define normalMapTexture textureHeap[5*pushConstants.primId+1]
-#define metallicRoughnessTexture textureHeap[5*pushConstants.primId+2]
-#define occlusionTexture textureHeap[5*pushConstants.primId+3]
-#define emissiveTexture textureHeap[5*pushConstants.primId+4]
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
 void main() {
-  GBuffer_Albedo = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
+  PrimitiveConstants constants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[pushConstants.primId];
+
+  GBuffer_Albedo = 
+      TEXTURE_SAMPLE(textureHeap, constants.baseTextureHandle, baseColorUV) 
+      * constants.baseColorFactor;
 
   GBuffer_Position = vec4(worldPos, GBuffer_Albedo.a);
 
-  vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
+  vec3 normalMapSample = 
+      TEXTURE_SAMPLE(textureHeap, constants.normalTextureHandle, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 
       (2.0 * normalMapSample - 1.0) *
       vec3(constants.normalScale, constants.normalScale, 1.0);
   GBuffer_Normal = vec4(normalize(fragTBN * tangentSpaceNormal), GBuffer_Albedo.a);
 
   vec2 metallicRoughness = 
-      texture(metallicRoughnessTexture, metallicRoughnessUV).bg *
+      TEXTURE_SAMPLE(textureHeap, constants.metallicRoughnessTextureHandle, metallicRoughnessUV).bg *
       vec2(constants.metallicFactor, constants.roughnessFactor);
   float ambientOcclusion = 
-      texture(occlusionTexture, occlusionUV).r * constants.occlusionStrength;
+      TEXTURE_SAMPLE(textureHeap, constants.occlusionTextureHandle, occlusionUV).r * constants.occlusionStrength;
 
   GBuffer_MetallicRoughnessOcclusion = vec4(metallicRoughness, ambientOcclusion, GBuffer_Albedo.a);
   

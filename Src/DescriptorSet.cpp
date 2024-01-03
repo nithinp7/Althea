@@ -1,8 +1,8 @@
 #include "DescriptorSet.h"
 
 #include "Application.h"
-#include "TextureHeap.h"
 #include "BufferHeap.h"
+#include "TextureHeap.h"
 
 #include <cassert>
 #include <stdexcept>
@@ -89,6 +89,20 @@ DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addBufferHeapBinding(
   return *this;
 }
 
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addUniformHeapBinding(
+    uint32_t bufferCount,
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = bufferCount;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
 DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addUniformBufferBinding(
     VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
@@ -112,6 +126,17 @@ DescriptorSet::DescriptorSet(DescriptorSet&& rhs) noexcept
 }
 
 DescriptorSet& DescriptorSet::operator=(DescriptorSet&& rhs) noexcept {
+  if (this->_descriptorSet != VK_NULL_HANDLE && this->_allocator) {
+    this->_allocator->free(this->_descriptorSet);
+  }
+
+  this->_device = rhs._device;
+  this->_descriptorSet = rhs._descriptorSet;
+  this->_allocator = rhs._allocator;
+
+  rhs._descriptorSet = VK_NULL_HANDLE;
+  rhs._allocator = nullptr;
+
   return *this;
 }
 
@@ -119,11 +144,11 @@ DescriptorSet::DescriptorSet(
     VkDevice device,
     VkDescriptorSet descriptorSet,
     DescriptorSetAllocator& allocator)
-    : _device(device), _descriptorSet(descriptorSet), _allocator(allocator) {}
+    : _device(device), _descriptorSet(descriptorSet), _allocator(&allocator) {}
 
 DescriptorSet::~DescriptorSet() {
-  if (this->_descriptorSet != VK_NULL_HANDLE) {
-    this->_allocator.free(this->_descriptorSet);
+  if (this->_descriptorSet != VK_NULL_HANDLE && this->_allocator) {
+    this->_allocator->free(this->_descriptorSet);
   }
 }
 
@@ -131,7 +156,7 @@ DescriptorAssignment DescriptorSet::assign() {
   return DescriptorAssignment(
       this->_device,
       this->_descriptorSet,
-      this->_allocator.getBindings());
+      this->_allocator->getBindings());
 }
 
 DescriptorAssignment::DescriptorAssignment(
@@ -370,12 +395,28 @@ DescriptorSetAllocator::DescriptorSetAllocator(
       _hasInlineUniformBlock(layoutBuilder._hasInlineUniformBlock),
       _bindings(layoutBuilder._bindings) {
 
+  // This is stupid
+  std::vector<VkDescriptorBindingFlags> bindingFlags{};
+  bindingFlags.resize(layoutBuilder._bindings.size());
+  for (auto& flag : bindingFlags) {
+    flag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+  }
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
+  bindingFlagsInfo.bindingCount = layoutBuilder._bindings.size();
+  bindingFlagsInfo.pBindingFlags = bindingFlags.data();
+  bindingFlagsInfo.pNext = nullptr;
+
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
   descriptorSetLayoutInfo.sType =
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   descriptorSetLayoutInfo.bindingCount =
       static_cast<uint32_t>(layoutBuilder._bindings.size());
   descriptorSetLayoutInfo.pBindings = layoutBuilder._bindings.data();
+  descriptorSetLayoutInfo.flags =
+      VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+  descriptorSetLayoutInfo.pNext = &bindingFlagsInfo;
 
   VkDescriptorSetLayout layout;
   if (vkCreateDescriptorSetLayout(
@@ -410,7 +451,7 @@ void DescriptorSetAllocator::DescriptorPoolDeleter::operator()(
   vkDestroyDescriptorPool(device, pool, nullptr);
 }
 
-DescriptorSet DescriptorSetAllocator::allocate() {
+VkDescriptorSet DescriptorSetAllocator::allocateVkDescriptorSet() {
   if (this->_freeSets.empty()) {
     // No free sets available, create a new descriptor set pool.
     VkDescriptorPoolCreateInfo poolInfo{};
@@ -418,6 +459,7 @@ DescriptorSet DescriptorSetAllocator::allocate() {
     poolInfo.poolSizeCount = static_cast<uint32_t>(this->_poolSizes.size());
     poolInfo.pPoolSizes = this->_poolSizes.data();
     poolInfo.maxSets = this->_setsPerPool;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
     VkDescriptorPoolInlineUniformBlockCreateInfo
         inlineDescriptorPoolCreateInfo{};
@@ -463,7 +505,7 @@ DescriptorSet DescriptorSetAllocator::allocate() {
   VkDescriptorSet allocatedSet = this->_freeSets.back();
   this->_freeSets.pop_back();
 
-  return DescriptorSet(this->_device, allocatedSet, *this);
+  return allocatedSet;
 }
 
 void DescriptorSetAllocator::free(VkDescriptorSet set) {

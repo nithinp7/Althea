@@ -143,6 +143,8 @@ bool ShaderBuilder::recompile() {
   if (s_shouldGenerateDebugInfo)
     options.SetGenerateDebugInfo();
 
+  // options.SetWarningsAsErrors
+
   // Add shader defines
   for (auto& it : this->_defines) {
     if (it.second == "") {

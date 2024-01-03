@@ -26,7 +26,7 @@ struct PrimitivePushConstants {
   glm::mat4 model{};
   int primitiveId{};
 };
-} // namespace 
+} // namespace
 static std::shared_ptr<Texture> createTexture(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
@@ -82,9 +82,7 @@ void TextureSlots::fillEmptyWithDefaults() {
 }
 
 /*static*/
-void Primitive::resetPrimitiveIndexCount() {
-  currentPrimitiveIndex = 0;
-}
+void Primitive::resetPrimitiveIndexCount() { currentPrimitiveIndex = 0; }
 
 /*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
@@ -113,7 +111,7 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.enableDynamicFrontFace();
 
   // Add push constants for updating model transform
-  builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
+  // builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
 }
 
 /*static*/
@@ -278,7 +276,7 @@ Primitive::Primitive(
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material() {
   this->_primitiveIndex = currentPrimitiveIndex++;
-  
+
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;
@@ -559,8 +557,7 @@ Primitive::Primitive(
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
-  if (pMaterialAllocator)
-  {
+  if (pMaterialAllocator) {
     this->_material = Material(app, *pMaterialAllocator);
     this->_material.assign()
         .bindInlineConstants(this->_constants)
@@ -581,8 +578,9 @@ void Primitive::setModelTransform(const glm::mat4& model) {
 AABB Primitive::computeWorldAABB() const {
   const std::vector<Vertex>& vertices = this->_vertexBuffer.getVertices();
 
-  if (vertices.empty()) 
-    throw std::runtime_error("Attempting to compute world AABB with empty vertices");
+  if (vertices.empty())
+    throw std::runtime_error(
+        "Attempting to compute world AABB with empty vertices");
 
   glm::mat4 worldTransform = this->_modelTransform * this->_relativeTransform;
 
@@ -599,16 +597,66 @@ AABB Primitive::computeWorldAABB() const {
   return aabb;
 }
 
+void Primitive::registerToHeap(GlobalHeap& heap) {
+  {
+    ImageHandle handle = heap.registerTexture();
+    heap.updateTexture(
+        handle,
+        this->_textureSlots.pBaseTexture->getImageView(),
+        this->_textureSlots.pBaseTexture->getSampler());
+    this->_constants.baseTextureHandle = handle.index;
+  }
+  
+  {
+    ImageHandle handle = heap.registerTexture();
+    heap.updateTexture(
+        handle,
+        this->_textureSlots.pNormalMapTexture->getImageView(),
+        this->_textureSlots.pNormalMapTexture->getSampler());
+    this->_constants.normalTextureHandle = handle.index;
+  }
+
+  {
+    ImageHandle handle = heap.registerTexture();
+    heap.updateTexture(
+        handle,
+        this->_textureSlots.pMetallicRoughnessTexture->getImageView(),
+        this->_textureSlots.pMetallicRoughnessTexture->getSampler());
+    this->_constants.metallicRoughnessTextureHandle = handle.index;
+  }
+
+  {
+    ImageHandle handle = heap.registerTexture();
+    heap.updateTexture(
+        handle,
+        this->_textureSlots.pOcclusionTexture->getImageView(),
+        this->_textureSlots.pOcclusionTexture->getSampler());
+    this->_constants.occlusionTextureHandle = handle.index;
+  }
+
+  {
+    ImageHandle handle = heap.registerTexture();
+    heap.updateTexture(
+        handle,
+        this->_textureSlots.pEmissiveTexture->getImageView(),
+        this->_textureSlots.pEmissiveTexture->getSampler());
+    this->_constants.emissiveTextureHandle = handle.index;
+  }
+}
+
 void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                            : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  if (this->_material)
-    context.bindDescriptorSets(this->_material);
-  else 
-    context.bindDescriptorSets();
+  // TODO: This no longer works for non-bindless
+  // if (this->_material)
+  //   context.bindDescriptorSets(this->_material);
+  // else
+  context.bindDescriptorSets();
   context.updatePushConstants(
-      PrimitivePushConstants{ this->_modelTransform * this->_relativeTransform, this->_primitiveIndex },
+      PrimitivePushConstants{
+          this->_modelTransform * this->_relativeTransform,
+          this->_primitiveIndex},
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }

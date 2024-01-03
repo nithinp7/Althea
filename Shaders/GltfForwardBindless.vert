@@ -1,5 +1,5 @@
 
-#version 450
+#version 460 core
 
 layout(location=0) in vec3 position;
 layout(location=1) in mat3 tbn;
@@ -17,32 +17,31 @@ layout(location=5) out mat3 vertTbn;
 layout(location=8) out vec3 worldPosition;
 layout(location=9) out vec3 direction;
 
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include "GlobalUniforms.glsl"
-
-#define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 8
+#include "Bindless/GlobalHeap.glsl"
+#include "Global/GlobalUniforms.glsl"
+#include "Global/GlobalResources.glsl"
 #include "PrimitiveConstants.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
+  uint primId;
+  uint globalResourcesHandle;
+  uint globalUniformsHandle;
 } pushConstants;
 
-#define constants primitiveConstants[pushConstants.primId]
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
 void main() {
+  PrimitiveConstants constants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[pushConstants.primId];
+
   vec4 worldPos4 = pushConstants.model * vec4(position, 1.0);
   worldPosition = worldPos4.xyz;
 
-#ifdef CUBEMAP_MULTIVIEW
-  gl_Position = globals.projection * globals.views[gl_ViewIndex] * worldPos4;
-  vec3 cameraPos = globals.inverseViews[gl_ViewIndex][3].xyz;
-#else
   gl_Position = globals.projection * globals.view * worldPos4;
   vec3 cameraPos = globals.inverseView[3].xyz;
-#endif
 
   direction = worldPos4.xyz - cameraPos;
 

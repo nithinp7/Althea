@@ -509,7 +509,9 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          rayQueriesFeature.rayQuery && 
          vulkan12Features.bufferDeviceAddress &&
          vulkan12Features.scalarBlockLayout && 
-         vulkan12Features.runtimeDescriptorArray;
+         vulkan12Features.runtimeDescriptorArray &&
+         vulkan12Features.descriptorIndexing &&
+         vulkan12Features.descriptorBindingPartiallyBound;
   //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
   //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
@@ -603,6 +605,8 @@ void Application::createLogicalDevice() {
   vulkan12Features.runtimeDescriptorArray = VK_TRUE;
   vulkan12Features.scalarBlockLayout = VK_TRUE;
   vulkan12Features.bufferDeviceAddress = VK_TRUE;
+  vulkan12Features.descriptorIndexing = VK_TRUE;
+  vulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
   vulkan12Features.pNext = &rayQueryFeature;
 
   VkDeviceCreateInfo createInfo{};

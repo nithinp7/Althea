@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DrawContext.h"
+#include "GlobalHeap.h"
 #include "IndexBuffer.h"
 #include "Library.h"
 #include "Material.h"
@@ -62,8 +63,13 @@ struct ALTHEA_API PrimitiveConstants {
 
   float alphaCutoff = 0.5f;
 
-  float padding1;
-  float padding2;
+  uint32_t baseTextureHandle;
+  uint32_t normalTextureHandle;
+  uint32_t metallicRoughnessTextureHandle;
+  uint32_t occlusionTextureHandle;
+  uint32_t emissiveTextureHandle;
+
+  uint32_t padding;
 };
 
 struct ALTHEA_API TextureSlots {
@@ -85,17 +91,15 @@ public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 
-  const PrimitiveConstants& getConstants() const {
-    return this->_constants;
-  }
+  void registerToHeap(GlobalHeap& heap);
+
+  const PrimitiveConstants& getConstants() const { return this->_constants; }
 
   const VertexBuffer<Vertex>& getVertexBuffer() const {
     return this->_vertexBuffer;
   }
 
-  const IndexBuffer& getIndexBuffer() const {
-    return this->_indexBuffer;
-  }
+  const IndexBuffer& getIndexBuffer() const { return this->_indexBuffer; }
 
   const std::vector<Vertex>& getVertices() const {
     return this->_vertexBuffer.getVertices();
@@ -105,15 +109,11 @@ public:
     return this->_indexBuffer.getIndices();
   }
 
-  const TextureSlots& getTextures() const {
-    return this->_textureSlots;
-  }
+  const TextureSlots& getTextures() const { return this->_textureSlots; }
 
   AABB computeWorldAABB() const;
 
-  const AABB& getAABB() const {
-    return this->_aabb;
-  }
+  const AABB& getAABB() const { return this->_aabb; }
 
   glm::mat4 computeWorldTransform() const {
     return this->_modelTransform * this->_relativeTransform;
@@ -123,9 +123,7 @@ public:
     return this->_relativeTransform;
   }
 
-  int getPrimitiveIndex() const {
-    return this->_primitiveIndex;
-  }
+  int getPrimitiveIndex() const { return this->_primitiveIndex; }
 
 private:
   VkDevice _device;
@@ -155,6 +153,10 @@ public:
       DescriptorSetAllocator* pMaterialAllocator = nullptr);
 
   void setModelTransform(const glm::mat4& model);
+  VkFrontFace getFrontFace() const {
+    return this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
+                                : VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  }
   void draw(const DrawContext& context) const;
 };
 } // namespace AltheaEngine

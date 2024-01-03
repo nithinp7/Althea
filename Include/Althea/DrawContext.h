@@ -32,7 +32,9 @@ public:
    *
    * @param material The materal corresponding to the current object.
    */
-  void bindDescriptorSets(const Material& material = Material()) const;
+  void bindDescriptorSets(const Material& material) const;
+
+  void bindDescriptorSets() const;
 
   /**
    * @brief Update a push constant range by index. This range must have been

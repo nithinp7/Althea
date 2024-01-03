@@ -202,13 +202,16 @@ RenderPass::RenderPass(
     renderPassInfo.pNext = &multiViewInfo;
   }
 
+  VkRenderPass renderPass;
   if (vkCreateRenderPass(
           this->_device,
           &renderPassInfo,
           nullptr,
-          &this->_renderPass) != VK_SUCCESS) {
+          &renderPass) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create render pass!");
   }
+
+  this->_renderPass.set(this->_device, renderPass);
 
   // Create pipelines for all subpasses
   this->_subpasses.reserve(subpassBuilders.size());
@@ -221,10 +224,6 @@ RenderPass::RenderPass(
         subpassIndex,
         std::move(subpassBuilders[subpassIndex]));
   }
-}
-
-RenderPass::~RenderPass() {
-  vkDestroyRenderPass(this->_device, this->_renderPass, nullptr);
 }
 
 ActiveRenderPass RenderPass::begin(

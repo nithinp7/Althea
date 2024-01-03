@@ -4,6 +4,7 @@
 #include "BufferUtilities.h"
 #include "Library.h"
 #include "SingleTimeCommandBuffer.h"
+#include "GlobalHeap.h"
 
 #include <gsl/span>
 #include <vulkan/vulkan.h>
@@ -35,15 +36,23 @@ public:
       size_t offsetAlignment = 1);
   ~DynamicBuffer();
 
+  void registerToHeap(GlobalHeap& heap);
+
   void updateData(uint32_t ringBufferIndex, gsl::span<const std::byte> data);
 
   size_t getSize() const { return this->_bufferSize; }
 
   const BufferAllocation& getAllocation() const { return this->_allocation; }
 
+  BufferHandle getCurrentBufferHandle(uint32_t ringBufferIndex) const {
+    return this->_indices[ringBufferIndex];
+  }
+
 private:
   size_t _bufferSize;
   BufferAllocation _allocation;
   std::byte* _pMappedMemory = nullptr;
+
+  BufferHandle _indices[MAX_FRAMES_IN_FLIGHT];
 };
 } // namespace AltheaEngine

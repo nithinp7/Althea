@@ -6,13 +6,10 @@
 
 namespace AltheaEngine {
 Material::Material(const Application& app, DescriptorSetAllocator& allocator) {
-  this->_descriptorSets.reserve(app.getMaxFramesInFlight());
-  for (uint32_t i = 0; i < app.getMaxFramesInFlight(); ++i) {
-    this->_descriptorSets.emplace_back(allocator.allocate());
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    this->_descriptorSets[i] = allocator.allocate();
   }
 }
-
-Material::operator bool() const { return !this->_descriptorSets.empty(); }
 
 VkDescriptorSet
 Material::getCurrentDescriptorSet(const FrameContext& frame) const {

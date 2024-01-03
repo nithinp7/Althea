@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "ComputePipeline.h"
+#include "GlobalHeap.h"
 #include "Image.h"
 #include "ImageView.h"
 #include "Sampler.h"
@@ -22,6 +23,32 @@ void IBLResources::bind(ResourcesAssignment& assignment) {
       .bindTexture(this->prefilteredMap.view, this->prefilteredMap.sampler)
       .bindTexture(this->irradianceMap.view, this->irradianceMap.sampler)
       .bindTexture(this->brdfLut.view, this->brdfLut.sampler);
+}
+
+void IBLResources::registerToHeap(GlobalHeap& heap) {
+  this->environmentMapHandle = heap.registerTexture();
+  heap.updateTexture(
+      this->environmentMapHandle,
+      this->environmentMap.view,
+      this->environmentMap.sampler);
+
+  this->prefilteredMapHandle = heap.registerTexture();
+  heap.updateTexture(
+      this->prefilteredMapHandle,
+      this->prefilteredMap.view,
+      this->prefilteredMap.sampler);
+
+  this->irradianceMapHandle = heap.registerTexture();
+  heap.updateTexture(
+      this->irradianceMapHandle,
+      this->irradianceMap.view,
+      this->irradianceMap.sampler);
+
+  this->brdfLutHandle = heap.registerTexture();
+  heap.updateTexture(
+      this->brdfLutHandle,
+      this->brdfLut.view,
+      this->brdfLut.sampler);
 }
 
 namespace ImageBasedLighting {
@@ -577,7 +604,9 @@ IBLResources createResources(
   return resources;
 }
 
-void buildLayout(DescriptorSetLayoutBuilder& layoutBuilder, VkShaderStageFlags shaderStages) {
+void buildLayout(
+    DescriptorSetLayoutBuilder& layoutBuilder,
+    VkShaderStageFlags shaderStages) {
   layoutBuilder
       // Add slot for environmentMap
       .addTextureBinding(shaderStages)

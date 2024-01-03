@@ -249,6 +249,12 @@ Model::Model(
   }
 }
 
+void Model::registerToHeap(GlobalHeap& heap) {
+  for (Primitive& primitive : this->_primitives) {
+    primitive.registerToHeap(heap);
+  }
+}
+
 void Model::setModelTransform(const glm::mat4& modelTransform) {
   for (Primitive& primitive : this->_primitives) {
     primitive.setModelTransform(modelTransform);

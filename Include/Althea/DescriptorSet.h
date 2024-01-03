@@ -78,6 +78,9 @@ public:
   DescriptorSetLayoutBuilder&
   addBufferHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
 
+  DescriptorSetLayoutBuilder&
+  addUniformHeapBinding(uint32_t bufferCount, VkShaderStageFlags stageFlags);
+
   /**
    * @brief Add a uniform buffer binding to the descriptor set layout.
    *
@@ -122,6 +125,7 @@ private:
 
 class ALTHEA_API DescriptorSet {
 public:
+  DescriptorSet() = default;
   DescriptorSet(DescriptorSet&& rhs) noexcept;
   DescriptorSet& operator=(DescriptorSet&& rhs) noexcept;
 
@@ -144,7 +148,9 @@ private:
   VkDevice _device;
   VkDescriptorSet _descriptorSet;
 
-  DescriptorSetAllocator& _allocator;
+  // TODO: this is ridiculous and not safe, the descriptor set does
+  // not work great as a RAII type, it's not worth forcing it this way
+  DescriptorSetAllocator* _allocator;
 };
 
 class ALTHEA_API DescriptorAssignment {
@@ -312,12 +318,18 @@ private:
 
 class ALTHEA_API DescriptorSetAllocator {
 public:
+  DescriptorSetAllocator() = default;
+
   DescriptorSetAllocator(
       const Application& app,
       const DescriptorSetLayoutBuilder& layoutBuilder,
       uint32_t setsPerPool = 1000);
 
-  DescriptorSet allocate();
+  DescriptorSet allocate() {
+    return DescriptorSet(this->_device, allocateVkDescriptorSet(), *this);
+  }
+  
+  VkDescriptorSet allocateVkDescriptorSet();
   void free(VkDescriptorSet descriptorSet);
 
   VkDescriptorSetLayout getLayout() const { return this->_layout; }

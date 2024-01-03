@@ -1,3 +1,5 @@
+#version 460 core
+
 #extension GL_EXT_multiview : enable
 
 layout(location=0) in vec3 position;
@@ -10,28 +12,40 @@ layout(location=4) in vec2 uvs[4];
 layout(location=0) out vec3 worldPosCS;
 layout(location=1) out vec2 baseColorUV;
 
-layout(set=0, binding=0) uniform UniformBufferObject {
-  mat4 projection;
-  mat4 inverseProjection;
-  mat4 views[6];
-  mat4 inverseViews[6];
-} globals;
+#include <PointLights.glsl>
 
-#define PRIMITIVE_CONSTANTS_SET 1
-// PRIMITIVE_CONSTANTS_BINDING must be defined during compilation
+#include "Global/GlobalResources.glsl"
 #include "PrimitiveConstants.glsl"
-
-#define constants primitiveConstants[pushConstants.primId]
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  int primId;
+  uint primIdx;
+  uint lightIdx;
+  uint globalResourcesHandle;
+  uint pointLightBufferHandle;
+  uint pointLightConstantsHandle;
 } pushConstants;
 
+#define resources RESOURCE(globalResources,pushConstants.globalResourcesHandle)
+#define lightConstants RESOURCE(pointLightConstants,pushConstants.pointLightConstantsHandle)
+
 void main() {
-  vec4 csPos = globals.views[gl_ViewIndex] * pushConstants.model * vec4(position, 1.0);
-  gl_Position = globals.projection * csPos;
+  PointLight light = 
+      RESOURCE(pointLights, pushConstants.pointLightBufferHandle)
+        .pointLightArr[pushConstants.lightIdx];
+
+  // TODO: Maybe don't need this level of indirection...
+  PrimitiveConstants primConstants = 
+      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
+        .primitiveConstantsArr[pushConstants.primIdx];
+  
+  // Note the view matrix here is centered at the origin here for re-usability, we just subtract
+  // the light position from the vertex position to compensate
+  vec4 worldPos = pushConstants.model * vec4(position, 1.0);
+  vec4 csPos = lightConstants.views[gl_ViewIndex] * (worldPos - vec4(light.position, 0.0));
+
+  gl_Position = lightConstants.projection * csPos;
   
   worldPosCS = csPos.xyz / csPos.w;
-  baseColorUV = uvs[constants.baseTextureCoordinateIndex];
+  baseColorUV = uvs[primConstants.baseTextureCoordinateIndex];
 }
