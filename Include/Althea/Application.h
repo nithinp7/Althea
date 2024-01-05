@@ -100,6 +100,8 @@ private:
   VkDevice device;
   VkQueue graphicsQueue;
   VkSurfaceKHR surface;
+  VkSurfaceFormatKHR surfaceFormat;
+  VkPresentModeKHR presentMode;
   VkQueue presentQueue;
 
   VkPhysicalDeviceProperties physicalDeviceProperties{};
@@ -138,12 +140,6 @@ private:
   void cleanup();
 
   // BOILER PLATE IMPLEMENTATIONS
-  struct ALTHEA_API QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() const;
-  };
 
   struct ALTHEA_API SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -154,7 +150,6 @@ private:
   bool checkValidationLayerSupport();
   void createInstance();
   void createSurface();
-  QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const;
   bool checkDeviceExtensionSupport(const VkPhysicalDevice& device) const;
   bool isDeviceSuitable(const VkPhysicalDevice& device) const;
   void pickPhysicalDevice();
@@ -187,6 +182,16 @@ private:
 
 public:
   // Getters
+  VkInstance getInstance() const { return instance; }
+
+  VkSurfaceKHR getSurface() const { return surface; }
+
+  VkSurfaceFormatKHR getSurfaceFormat() const { return surfaceFormat; }
+
+  VkPresentModeKHR getPresentMode() const { return presentMode; }
+
+  GLFWwindow* getWindow() { return window; }
+
   const VkDevice& getDevice() const { return device; }
 
   const VkPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
@@ -206,6 +211,8 @@ public:
 
   const VkExtent2D& getSwapChainExtent() const { return swapChainExtent; }
 
+  VkSwapchainKHR getSwapChain() const { return swapChain; }
+
   const VkFormat& getSwapChainImageFormat() const {
     return swapChainImageFormat;
   }
@@ -217,7 +224,7 @@ public:
   VkFormat getDepthImageFormat() const { return depthImageFormat; }
 
   VkImageView getDepthImageView() const { return depthImageView; }
-  
+
   Image& getDepthImage() { return depthImage; }
 
   bool hasStencilComponent() const;
@@ -231,6 +238,14 @@ public:
   }
 
   VkQueue getGraphicsQueue() const { return this->graphicsQueue; }
+
+  struct ALTHEA_API QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool isComplete() const;
+  };
+  QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const;
 
   uint32_t getCurrentFrameRingBufferIndex() const { return this->currentFrame; }
 };
