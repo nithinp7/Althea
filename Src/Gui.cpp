@@ -57,14 +57,13 @@ void Gui::createRenderState(Application& app) {
     VkAttachmentDescription attachment = {};
     attachment.format = app.getSurfaceFormat().format;
     attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    // attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;//
-    attachment.loadOp =
-        VK_ATTACHMENT_LOAD_OP_CLEAR; // VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; 
+    // attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    // attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     VkAttachmentReference color_attachment = {};
     color_attachment.attachment = 0;
@@ -128,27 +127,12 @@ void Gui::draw(
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  static bool show = true; // ??
+  static bool show = true;
   ImGui::ShowDemoWindow(&show);
 
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
   ImGui::Render();
-  // ImDrawData* draw_data = ImGui::GetDrawData();
-  // const bool is_minimized =
-  //     (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <=
-  //     0.0f);
-  // if (!is_minimized) {
-  //   _window.ClearValue.color.float32[0] = clear_color.x * clear_color.w;
-  //   _window.ClearValue.color.float32[1] = clear_color.y * clear_color.w;
-  //   _window.ClearValue.color.float32[2] = clear_color.z * clear_color.w;
-  //   _window.ClearValue.color.float32[3] = clear_color.w;
-
-  //   // ImGui_ImplVulkan_RenderDrawData(draw_data, commandBuffer);
-  //   _frameRenderHelper(app, commandBuffer);
-
-  //   // FramePresent(wd); // ??
-  // }
 
   ImDrawData* draw_data = ImGui::GetDrawData();
 
