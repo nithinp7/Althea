@@ -13,9 +13,8 @@ VkRenderPass Gui::_renderPass = VK_NULL_HANDLE;
 VkDescriptorPool Gui::_descriptorPool = VK_NULL_HANDLE;
 SwapChainFrameBufferCollection Gui::_frameBufferCollection = {};
 
-// From https://vkguide.dev/docs/extra-chapter/implementing_imgui/
-// TODO: Would be nice to better adapt this into the engine, maybe use
-// bindless instead etc..
+// Based on https://vkguide.dev/docs/extra-chapter/implementing_imgui/
+// and the imgui examples
 
 /*static*/
 void Gui::createRenderState(Application& app) {
