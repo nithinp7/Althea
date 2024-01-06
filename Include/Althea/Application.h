@@ -65,8 +65,8 @@ public:
   void notifyWindowResized();
 
 private:
-  const uint32_t WIDTH = 1080;
-  const uint32_t HEIGHT = 960;
+  const uint32_t WIDTH = 1480;
+  const uint32_t HEIGHT = 1080;
 
   bool syncFramerate = true;
 

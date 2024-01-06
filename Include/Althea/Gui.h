@@ -17,6 +17,9 @@ public:
   static void createRenderState(Application& app);
   static void destroyRenderState(Application& app);
 
+  static void startRecordingImgui();
+  static void finishRecordingImgui();
+  
   static void draw(
       Application& app,
       const FrameContext& frame,

@@ -119,20 +119,23 @@ void Gui::destroyRenderState(Application& app) {
 }
 
 /*static*/
+void Gui::startRecordingImgui() {
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+}
+
+/*static*/
+void Gui::finishRecordingImgui() {
+  ImGui::Render();
+}
+
+/*static*/
 void Gui::draw(
     Application& app,
     const FrameContext& frame,
     VkCommandBuffer commandBuffer) {
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-
-  static bool show = true;
-  ImGui::ShowDemoWindow(&show);
-
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-  ImGui::Render();
 
   ImDrawData* draw_data = ImGui::GetDrawData();
 

@@ -3,7 +3,6 @@
 #include "DefaultTextures.h"
 #include "IGameInstance.h"
 #include "SingleTimeCommandBuffer.h"
-#include "Gui.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,13 +47,11 @@ Application::Application(
 void Application::run() {
   initWindow();
   initVulkan();
-  Gui::createRenderState(*this);
   this->gameInstance->initGame(*this);
   this->gameInstance->createRenderState(*this);
   mainLoop();
   this->gameInstance->destroyRenderState(*this);
   this->gameInstance->shutdownGame(*this);
-  Gui::destroyRenderState(*this);
   cleanup();
 }
 
@@ -855,7 +852,6 @@ void Application::recreateSwapChain() {
   vkDeviceWaitIdle(device);
 
   this->gameInstance->destroyRenderState(*this);
-  Gui::destroyRenderState(*this);
 
   cleanupSwapChain();
   cleanupDepthResource();
@@ -863,7 +859,6 @@ void Application::recreateSwapChain() {
   createSwapChain();
   createDepthResource();
 
-  Gui::createRenderState(*this);
   this->gameInstance->createRenderState(*this);
 }
 
