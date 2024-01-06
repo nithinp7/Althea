@@ -762,9 +762,9 @@ VkExtent2D Application::chooseSwapExtent(
 void Application::createSwapChain() {
   SwapChainSupportDetails swapChainSupport =
       querySwapChainSupport(physicalDevice);
-  VkSurfaceFormatKHR surfaceFormat =
+  surfaceFormat =
       chooseSwapSurfaceFormat(swapChainSupport.formats);
-  VkPresentModeKHR presentMode =
+  presentMode =
       chooseSwapPresentMode(swapChainSupport.presentModes);
   VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
