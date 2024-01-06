@@ -19,10 +19,15 @@ struct GlobalUniforms {
   glm::mat4 prevView;
   glm::mat4 inverseView;
   glm::mat4 prevInverseView;
+
   int lightCount;
   uint32_t lightBufferHandle;
   float time;
   float exposure;
+
+  glm::vec2 mouseUV;
+  uint32_t inputMask;
+  uint32_t padding;
 };
 
 class Application;

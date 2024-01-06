@@ -12,10 +12,15 @@ UNIFORM_BUFFER(globalUniforms, GlobalUniforms{
   mat4 prevView;
   mat4 inverseView;
   mat4 prevInverseView;
+
   int lightCount;
   uint lightBufferHandle;
   float time;
   float exposure;
+
+  vec2 mouseUV;
+  uint inputMask;
+  uint padding;
 });
 
 #endif // _GLOBALUNIFORMS_

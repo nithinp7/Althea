@@ -226,6 +226,12 @@ RenderPass::RenderPass(
   }
 }
 
+void RenderPass::tryRecompile(Application& app) {
+  for (Subpass& subpass : this->_subpasses) {
+    subpass.getPipeline().tryRecompile(app);
+  }
+}
+
 ActiveRenderPass RenderPass::begin(
     const Application& app,
     const VkCommandBuffer& commandBuffer,

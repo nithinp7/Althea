@@ -5,9 +5,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <cstdint>
 #include <functional>
 #include <unordered_map>
-
 
 namespace AltheaEngine {
 struct ALTHEA_API KeyBinding {
@@ -130,19 +130,25 @@ public:
   /**
    * @brief Get whether the mouse cursor is currently hidden.
    */
-  bool getMouseCursorHidden() const {
-    return this->_cursorHidden;
-  }
+  bool getMouseCursorHidden() const { return this->_cursorHidden; }
 
   /**
    * @brief Set whether the mouse cursor should be enabled.
-   * 
+   *
    * This function will hide or show the cursor and notify any mouse position
    * listeners of the new cursor state.
-   * 
+   *
    * @param cursorHidden Whether the cursor should be hidden.
    */
   void setMouseCursorHidden(bool cursorHidden);
+
+  uint32_t getCurrentInputMask() const { return this->_currentInputMask; }
+
+  struct MousePos {
+    double x;
+    double y;
+  };
+  MousePos getCurrentMousePos() const;
 
 private:
   void _processKey(int key, int action, int mods);
@@ -159,6 +165,7 @@ private:
 
   bool _cursorHidden = true;
 
+  uint32_t _currentInputMask = 0;
   uint32_t _currentMouseCallbackId = 0;
 };
 } // namespace AltheaEngine

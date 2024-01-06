@@ -68,6 +68,8 @@ public:
     return this->_renderPass;
   }
 
+  void tryRecompile(Application& app);
+  
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
 

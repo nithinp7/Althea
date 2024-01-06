@@ -1,7 +1,7 @@
 #include "InputManager.h"
 
 #include "Application.h"
-
+#include "InputMask.h"
 
 namespace AltheaEngine {
 namespace {
@@ -20,8 +20,7 @@ screenToNdc(const VkExtent2D& screenDims, double screenX, double screenY) {
 }
 } // namespace
 
-InputManager::InputManager(GLFWwindow* window_) :
-    _pWindow(window_) {
+InputManager::InputManager(GLFWwindow* window_) : _pWindow(window_) {
   glfwSetKeyCallback(
       window_,
       [](GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -51,14 +50,114 @@ InputManager::InputManager(GLFWwindow* window_) :
       {GLFW_KEY_F1, GLFW_PRESS, 0},
       std::bind(
           [](GLFWwindow* window, InputManager* inputManager) {
-            inputManager->setMouseCursorHidden(
-                !inputManager->_cursorHidden);
+            inputManager->setMouseCursorHidden(!inputManager->_cursorHidden);
           },
           window_,
           this));
 }
 
 void InputManager::_processKey(int key, int action, int mods) {
+  uint32_t bit = 0;
+
+  switch (key) {
+  case GLFW_KEY_A:
+    bit = INPUT_BIT_A;
+    break;
+  case GLFW_KEY_B:
+    bit = INPUT_BIT_B;
+    break;
+  case GLFW_KEY_C:
+    bit = INPUT_BIT_C;
+    break;
+  case GLFW_KEY_D:
+    bit = INPUT_BIT_D;
+    break;
+  case GLFW_KEY_E:
+    bit = INPUT_BIT_E;
+    break;
+  case GLFW_KEY_F:
+    bit = INPUT_BIT_F;
+    break;
+  case GLFW_KEY_G:
+    bit = INPUT_BIT_G;
+    break;
+  case GLFW_KEY_H:
+    bit = INPUT_BIT_H;
+    break;
+  case GLFW_KEY_I:
+    bit = INPUT_BIT_I;
+    break;
+  case GLFW_KEY_J:
+    bit = INPUT_BIT_J;
+    break;
+  case GLFW_KEY_K:
+    bit = INPUT_BIT_K;
+    break;
+  case GLFW_KEY_L:
+    bit = INPUT_BIT_L;
+    break;
+  case GLFW_KEY_M:
+    bit = INPUT_BIT_M;
+    break;
+  case GLFW_KEY_N:
+    bit = INPUT_BIT_N;
+    break;
+  case GLFW_KEY_O:
+    bit = INPUT_BIT_O;
+    break;
+  case GLFW_KEY_P:
+    bit = INPUT_BIT_P;
+    break;
+  case GLFW_KEY_Q:
+    bit = INPUT_BIT_Q;
+    break;
+  case GLFW_KEY_R:
+    bit = INPUT_BIT_R;
+    break;
+  case GLFW_KEY_S:
+    bit = INPUT_BIT_S;
+    break;
+  case GLFW_KEY_T:
+    bit = INPUT_BIT_T;
+    break;
+  case GLFW_KEY_U:
+    bit = INPUT_BIT_U;
+    break;
+  case GLFW_KEY_V:
+    bit = INPUT_BIT_V;
+    break;
+  case GLFW_KEY_W:
+    bit = INPUT_BIT_W;
+    break;
+  case GLFW_KEY_X:
+    bit = INPUT_BIT_X;
+    break;
+  case GLFW_KEY_Y:
+    bit = INPUT_BIT_Y;
+    break;
+  case GLFW_KEY_Z:
+    bit = INPUT_BIT_Z;
+    break;
+  case GLFW_KEY_SPACE:
+    bit = INPUT_BIT_SPACE;
+    break;
+  case GLFW_KEY_LEFT_CONTROL:
+    bit = INPUT_BIT_CTRL;
+    break;
+  case GLFW_KEY_LEFT_ALT:
+    bit = INPUT_BIT_ALT;
+    break;
+  case GLFW_KEY_LEFT_SHIFT:
+    bit = INPUT_BIT_SHIFT;
+    break;
+  }
+
+  if (action == GLFW_RELEASE) {
+    this->_currentInputMask &= ~bit;
+  } else {
+    this->_currentInputMask |= bit;
+  }
+
   auto bindingIt = this->_keyBindings.find({key, action, mods});
   if (bindingIt != this->_keyBindings.end()) {
     // Invoke callback for this binding
@@ -67,6 +166,22 @@ void InputManager::_processKey(int key, int action, int mods) {
 }
 
 void InputManager::_processMouseButton(int button, int action, int mods) {
+  uint32_t bit = 0;
+  switch (button) {
+  case GLFW_MOUSE_BUTTON_LEFT:
+    bit = INPUT_BIT_LEFT_MOUSE;
+    break;
+  case GLFW_MOUSE_BUTTON_RIGHT:
+    bit = INPUT_BIT_RIGHT_MOUSE;
+    break;
+  }
+
+  if (action == GLFW_RELEASE) {
+    this->_currentInputMask &= ~bit;
+  } else {
+    this->_currentInputMask |= bit;
+  }
+
   auto bindingIt = this->_mouseButtonBindings.find({button, action, mods});
   if (bindingIt != this->_mouseButtonBindings.end()) {
     // Invoke callback for this binding
@@ -128,8 +243,11 @@ void InputManager::setMouseCursorHidden(bool cursorHidden) {
     glfwSetInputMode(this->_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     this->_cursorHidden = true;
   }
-  
-  glfwSetCursorPos(this->_pWindow, screenDims.width / 2.0, screenDims.height / 2.0);
+
+  glfwSetCursorPos(
+      this->_pWindow,
+      screenDims.width / 2.0,
+      screenDims.height / 2.0);
 
   // Update the mouse position to notify clients of cursor change.
   double xPos;
@@ -138,5 +256,13 @@ void InputManager::setMouseCursorHidden(bool cursorHidden) {
 
   NdcCoord ndc = screenToNdc(screenDims, xPos, yPos);
   this->_updateMousePos(ndc.x, ndc.y);
+}
+
+InputManager::MousePos InputManager::getCurrentMousePos() const {
+  // Update the mouse position to notify clients of cursor change.
+  MousePos mPos;
+  glfwGetCursorPos(_pWindow, &mPos.x, &mPos.y);
+
+  return mPos;
 }
 } // namespace AltheaEngine

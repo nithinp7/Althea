@@ -4,6 +4,7 @@
 #include "DescriptorSet.h"
 
 #include <algorithm>
+#include <iostream>
 
 namespace AltheaEngine {
 
@@ -237,6 +238,16 @@ void GraphicsPipeline::bindPipeline(
       commandBuffer,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       this->_pipeline);
+}
+
+void GraphicsPipeline::tryRecompile(Application& app) {
+  if (recompileStaleShaders()) {
+    if (hasShaderRecompileErrors()) {
+      std::cout << getShaderRecompileErrors() << "\n";
+    } else {
+      recreatePipeline(app);
+    }
+  }
 }
 
 bool GraphicsPipeline::recompileStaleShaders() {

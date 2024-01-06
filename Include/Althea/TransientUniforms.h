@@ -42,7 +42,7 @@ public:
     }
   }
 
-  BufferHandle getCurrentHandle(const FrameContext& frame) const {
+  UniformHandle getCurrentHandle(const FrameContext& frame) const {
     return this->_uniformBuffers[frame.frameRingBufferIndex].getHandle();
   }
 
@@ -50,12 +50,17 @@ public:
     this->_uniformBuffers[frame.frameRingBufferIndex].updateUniforms(uniforms);
   }
 
-  const UniformBuffer<TUniforms> (&getUniformBuffers() const)[MAX_FRAMES_IN_FLIGHT] {
+  const UniformBuffer<TUniforms> (&getUniformBuffers()
+                                      const)[MAX_FRAMES_IN_FLIGHT] {
     return this->_uniformBuffers;
   }
 
   const UniformBuffer<TUniforms>&
   getCurrentUniformBuffer(const FrameContext& frame) const {
+    return this->_uniformBuffers[frame.frameRingBufferIndex];
+  }
+
+  UniformBuffer<TUniforms>& getCurrentUniformBuffer(const FrameContext& frame) {
     return this->_uniformBuffers[frame.frameRingBufferIndex];
   }
 

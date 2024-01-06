@@ -34,13 +34,21 @@ enum class ALTHEA_API PrimitiveType { TRIANGLES, LINES, POINTS };
 
 class ALTHEA_API GraphicsPipelineBuilder {
 public:
-  GraphicsPipelineBuilder& addVertexShader(const std::string& shaderPath, const ShaderDefines& defines = {});
-  GraphicsPipelineBuilder&
-  addTessellationControlShader(const std::string& shaderPath, const ShaderDefines& defines = {});
-  GraphicsPipelineBuilder&
-  addTessellationEvaluationShader(const std::string& shaderPath, const ShaderDefines& defines = {});
-  GraphicsPipelineBuilder& addGeometryShader(const std::string& shaderPath, const ShaderDefines& defines = {});
-  GraphicsPipelineBuilder& addFragmentShader(const std::string& shaderPath, const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addVertexShader(
+      const std::string& shaderPath,
+      const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addTessellationControlShader(
+      const std::string& shaderPath,
+      const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addTessellationEvaluationShader(
+      const std::string& shaderPath,
+      const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addGeometryShader(
+      const std::string& shaderPath,
+      const ShaderDefines& defines = {});
+  GraphicsPipelineBuilder& addFragmentShader(
+      const std::string& shaderPath,
+      const ShaderDefines& defines = {});
 
   /**
    * @brief Add a vertex input binding - can be a vertex buffer or instance
@@ -174,6 +182,8 @@ public:
   bool isDynamicFrontFaceEnabled() const {
     return this->_dynamicFrontFaceEnabled;
   }
+
+  void tryRecompile(Application& app);
 
   /**
    * @brief Reload and attempt to recompile any stale shaders that is

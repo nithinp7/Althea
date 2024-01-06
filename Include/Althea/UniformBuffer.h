@@ -50,7 +50,7 @@ public:
 
   size_t getSize() const { return sizeof(TUniforms); }
 
-  BufferHandle getHandle() const { return this->_handle; }
+  UniformHandle getHandle() const { return this->_handle; }
 
 private:
   void _createUniformBuffer(const Application& app) {

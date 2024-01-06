@@ -45,6 +45,8 @@ public:
 
   VkPipelineLayout getLayout() const { return this->_pipelineLayout; }
 
+  void tryRecompile(Application& app);
+
   /**
    * @brief Reload and attempt to recompile any stale shaders that is
    * out-of-date with the corresponding shader file on disk. Note that the

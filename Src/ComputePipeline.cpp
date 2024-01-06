@@ -2,6 +2,7 @@
 
 #include "Application.h"
 
+#include <iostream>
 #include <stdexcept>
 
 namespace AltheaEngine {
@@ -53,6 +54,16 @@ void ComputePipeline::ComputePipelineDeleter::operator()(
     VkDevice device,
     VkPipeline computePipeline) {
   vkDestroyPipeline(device, computePipeline, nullptr);
+}
+
+void ComputePipeline::tryRecompile(Application& app) {
+  if (recompileStaleShaders()) {
+    if (hasShaderRecompileErrors()) {
+      std::cout << getShaderRecompileErrors() << "\n";
+    } else {
+      recreatePipeline(app);
+    }
+  }
 }
 
 bool ComputePipeline::recompileStaleShaders() {
