@@ -243,7 +243,7 @@ void GraphicsPipeline::bindPipeline(
 void GraphicsPipeline::tryRecompile(Application& app) {
   if (recompileStaleShaders()) {
     if (hasShaderRecompileErrors()) {
-      std::cout << getShaderRecompileErrors() << "\n";
+      std::cout << getShaderRecompileErrors() << "\n" << std::flush;
     } else {
       recreatePipeline(app);
     }

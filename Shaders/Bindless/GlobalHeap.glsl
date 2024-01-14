@@ -10,6 +10,7 @@
 #endif
 
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_scalar_block_layout : enable
 
 #define SAMPLER2D(NAME) \
     layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \

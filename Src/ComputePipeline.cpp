@@ -59,7 +59,7 @@ void ComputePipeline::ComputePipelineDeleter::operator()(
 void ComputePipeline::tryRecompile(Application& app) {
   if (recompileStaleShaders()) {
     if (hasShaderRecompileErrors()) {
-      std::cout << getShaderRecompileErrors() << "\n";
+      std::cout << getShaderRecompileErrors() << "\n" << std::flush;
     } else {
       recreatePipeline(app);
     }
