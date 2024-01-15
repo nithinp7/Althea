@@ -35,6 +35,25 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
 }
 
 /*static*/
+bool Utilities::writeFile(
+    const std::string& filename,
+    gsl::span<const char> data) {
+  std::ofstream file(filename.c_str(), std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("Failed to open file: " + filename);
+    return false;
+  }
+
+  file.seekp(0);
+  file.write(data.data(), data.size());
+
+  file.close();
+
+  return true;
+}
+
+/*static*/
 bool Utilities::checkFileExists(const std::string& filename) {
   std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary);
   return file.good();

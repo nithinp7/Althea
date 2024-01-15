@@ -14,14 +14,10 @@ class Application;
 template <typename TVertex> class ALTHEA_API DynamicVertexBuffer {
 public:
   DynamicVertexBuffer() = default;
-  DynamicVertexBuffer(
-      const Application& app,
-      VkCommandBuffer commandBuffer,
-      size_t vertexCount)
+  DynamicVertexBuffer(const Application& app, size_t vertexCount)
       : _vertexCount(vertexCount),
         _buffer(
             app,
-            commandBuffer,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             vertexCount * sizeof(TVertex)) {}
 
