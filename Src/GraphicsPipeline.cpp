@@ -405,6 +405,9 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
 
   VkFormat format;
   switch (attributeType) {
+  case VertexAttributeType::UINT:
+    format = VK_FORMAT_R32_UINT;
+    break;
   case VertexAttributeType::INT:
     format = VK_FORMAT_R32_SINT;
     break;

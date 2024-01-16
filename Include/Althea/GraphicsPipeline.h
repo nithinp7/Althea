@@ -28,7 +28,7 @@ struct ALTHEA_API PipelineContext {
   uint32_t colorAttachmentCount;
 };
 
-enum class ALTHEA_API VertexAttributeType { INT, FLOAT, VEC2, VEC3, VEC4 };
+enum class ALTHEA_API VertexAttributeType { UINT, INT, FLOAT, VEC2, VEC3, VEC4 };
 
 enum class ALTHEA_API PrimitiveType { TRIANGLES, LINES, POINTS };
 
