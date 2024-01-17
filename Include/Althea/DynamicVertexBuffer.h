@@ -19,7 +19,8 @@ public:
       : _vertexCount(vertexCount),
         _buffer(
             app,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             vertexCount * sizeof(TVertex)) {}
 
   void registerToHeap(GlobalHeap& heap) { _buffer.registerToHeap(heap); }
