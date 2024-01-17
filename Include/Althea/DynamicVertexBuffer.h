@@ -10,6 +10,7 @@
 
 namespace AltheaEngine {
 class Application;
+class GlobalHeap;
 
 template <typename TVertex> class ALTHEA_API DynamicVertexBuffer {
 public:
@@ -18,8 +19,14 @@ public:
       : _vertexCount(vertexCount),
         _buffer(
             app,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             vertexCount * sizeof(TVertex)) {}
+
+  void registerToHeap(GlobalHeap& heap) { _buffer.registerToHeap(heap); }
+
+  BufferHandle getCurrentBufferHandle(uint32_t ringBufferIndex) const {
+    return _buffer.getCurrentBufferHandle(ringBufferIndex);
+  }
 
   void
   updateVertices(uint32_t ringBufferIndex, gsl::span<const TVertex> vertices) {

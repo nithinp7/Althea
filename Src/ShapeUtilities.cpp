@@ -72,6 +72,76 @@ void ShapeUtilities::createSphere(
   vertices.emplace_back(0.0f, -1.0f, 0.0f);
 
   indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
+  vertexBuffer =
+      VertexBuffer<glm::vec3>(app, commandBuffer, std::move(vertices));
+}
+
+/*static*/
+void ShapeUtilities::createCylinder(
+    Application& app,
+    VkCommandBuffer commandBuffer,
+    VertexBuffer<glm::vec3>& vertexBuffer,
+    IndexBuffer& indexBuffer,
+    uint32_t resolution) {
+  // resolution count of points along circumference on each cap,
+  // plus another point at the center of each cap.
+  uint32_t vertexCount = resolution * 2 + 2;
+  std::vector<glm::vec3> vertices;
+  vertices.reserve(vertexCount);
+
+  // resolution count of triangles on each cap,
+  // 2 * resolution count of triangles on sides connecting caps.
+  uint32_t triangleCount = 3 * resolution;
+  uint32_t indexCount = 3 * triangleCount; 
+  std::vector<uint32_t> indices;
+  indices.reserve(indexCount);
+
+  uint32_t capCenter0Index = 2 * resolution;
+  uint32_t capCenter1Index = capCenter0Index + 1;
+
+  for (uint32_t i = 0; i < resolution; ++i) {
+    float theta = i * 2.0f * glm::pi<float>() / resolution;
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+    vertices.emplace_back(cosTheta, sinTheta, -1.0f);
+    vertices.emplace_back(cosTheta, sinTheta, 1.0f);
+
+    // point on cap 0
+    uint32_t p00 = 2 * i;
+    // corresponding point on cap 1
+    uint32_t p10 = p00 + 1;
+
+    uint32_t j = (i + 1) % resolution;
+    // next point on cap 0
+    uint32_t p01 = 2 * j;
+    // next point on cap 1
+    uint32_t p11 = p01 + 1;
+
+    // TODO: Make sure these are counter-clockwise...
+    // triangle on cap 0
+    indices.push_back(capCenter0Index);
+    indices.push_back(p01);
+    indices.push_back(p00);
+
+    // triangle on cap 1
+    indices.push_back(capCenter1Index);
+    indices.push_back(p10);
+    indices.push_back(p11);
+
+    // two triangles from quad on cylinder side
+    indices.push_back(p00);
+    indices.push_back(p11);
+    indices.push_back(p10);
+
+    indices.push_back(p00);
+    indices.push_back(p01);
+    indices.push_back(p11);
+  }
+
+  vertices.emplace_back(0.0f, 0.0f, 0.0f);
+  vertices.emplace_back(0.0f, 0.0f, 1.0f);
+
+  indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
   vertexBuffer = VertexBuffer<glm::vec3>(app, commandBuffer, std::move(vertices));
 }
 } // namespace AltheaEngine
