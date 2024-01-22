@@ -7,12 +7,14 @@
 namespace AltheaEngine {
 class ALTHEA_API Camera {
 public:
+  Camera() = default;
   Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPlane);
   void setFovDegrees(float fovDegrees);
   void setAspectRatio(float aspectRatio);
   void setClippingPlanes(float nearPlane, float farPlane);
   void setPosition(const glm::vec3& position);
-  void setRotation(float yawDegrees, float pitchDegrees);
+  void setRotationRadians(float yaw, float pitch);
+  void setRotationDegrees(float yawDegrees, float pitchDegrees);
 
   const glm::mat4& getTransform() const { return this->_transform; }
 

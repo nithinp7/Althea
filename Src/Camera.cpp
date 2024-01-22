@@ -39,11 +39,16 @@ void Camera::setPosition(const glm::vec3& position) {
   this->_transform[3] = glm::vec4(position, 1.0f);
 }
 
-void Camera::setRotation(float yawDegrees, float pitchDegrees) {
-  pitchDegrees = glm::clamp(pitchDegrees, -89.0f, 89.0f);
 
+void Camera::setRotationDegrees(float yawDegrees, float pitchDegrees) {
   float yawRadians = glm::radians(yawDegrees);
   float pitchRadians = glm::radians(pitchDegrees);
+  setRotationRadians(yawRadians, pitchRadians);
+}
+
+void Camera::setRotationRadians(float yawRadians, float pitchRadians) {
+  float pitchLimit = glm::pi<float>() - 0.01f;
+  pitchRadians = glm::clamp(pitchRadians, -pitchLimit, pitchLimit);
 
   float cosPitch = cos(pitchRadians);
   glm::vec3 zAxis(

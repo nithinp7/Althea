@@ -87,32 +87,32 @@ PointLightCollection::PointLightCollection(
       // front back up down right left
       // X+ X- Y+ Y- Z+ Z-
       sceneCaptureCamera.setPosition(glm::vec3(0.0f));
-      sceneCaptureCamera.setRotation(90.0f, 0.0f);
+      sceneCaptureCamera.setRotationDegrees(90.0f, 0.0f);
       pointLightConstants.views[0] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[0] =
           glm::inverse(pointLightConstants.views[0]);
 
-      sceneCaptureCamera.setRotation(-90.0f, 0.0f);
+      sceneCaptureCamera.setRotationDegrees(-90.0f, 0.0f);
       pointLightConstants.views[1] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[1] =
           glm::inverse(pointLightConstants.views[1]);
 
-      sceneCaptureCamera.setRotation(180.0f, 90.0f);
+      sceneCaptureCamera.setRotationDegrees(180.0f, 90.0f);
       pointLightConstants.views[2] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[2] =
           glm::inverse(pointLightConstants.views[2]);
 
-      sceneCaptureCamera.setRotation(180.0f, -90.0f);
+      sceneCaptureCamera.setRotationDegrees(180.0f, -90.0f);
       pointLightConstants.views[3] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[3] =
           glm::inverse(pointLightConstants.views[3]);
 
-      sceneCaptureCamera.setRotation(180.0f, 0.0f);
+      sceneCaptureCamera.setRotationDegrees(180.0f, 0.0f);
       pointLightConstants.views[4] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[4] =
           glm::inverse(pointLightConstants.views[4]);
 
-      sceneCaptureCamera.setRotation(0.0f, 0.0f);
+      sceneCaptureCamera.setRotationDegrees(0.0f, 0.0f);
       pointLightConstants.views[5] = sceneCaptureCamera.computeView();
       pointLightConstants.inverseViews[5] =
           glm::inverse(pointLightConstants.views[5]);

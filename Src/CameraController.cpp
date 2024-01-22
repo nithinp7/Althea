@@ -127,7 +127,7 @@ void CameraController::tick(float deltaTime) {
   this->_yaw += this->_yawRate * deltaTime;
 
   this->_camera.setPosition(newPosition);
-  this->_camera.setRotation(this->_yaw, newPitch);
+  this->_camera.setRotationDegrees(this->_yaw, newPitch);
 }
 
 void CameraController::setMinSpeed(float speed) {
