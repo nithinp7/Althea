@@ -167,13 +167,13 @@ void main() {
   #if 1
     //payload.Lo = vec3(0.0);
   #else
-        illuminationFromPointLights(
-          worldPos + payload.wi * 0.01,
-          globalNormal,
-          rayDir,
-          baseColor.rgb,
-          metallicRoughness.x,
-          metallicRoughness.y,
-          pdf * 0.0);
+        // illuminationFromPointLights(
+        //   worldPos + payload.wi * 0.01,
+        //   globalNormal,
+        //   rayDir,
+        //   baseColor.rgb,
+        //   metallicRoughness.x,
+        //   metallicRoughness.y,
+        //   pdf * 0.0);
   #endif
 }

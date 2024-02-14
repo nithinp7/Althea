@@ -4,6 +4,7 @@
 #define BUFFER_HEAP_BINDING 0
 #define UNIFORM_HEAP_BINDING 1
 #define TEXTURE_HEAP_BINDING 2
+#define TLAS_HEAP_BINDING 3
 
 #ifndef BINDLESS_SET
 #define BINDLESS_SET 0
@@ -43,6 +44,10 @@
 #define UNIFORM_BUFFER(NAME,BODY) \
     layout(std430, set=BINDLESS_SET, binding=UNIFORM_HEAP_BINDING) \
       uniform BODY NAME[]
+
+#define TLAS(NAME) \
+    layout(set=BINDLESS_SET, binding=TLAS_HEAP_BINDING) \
+      uniform accelerationStructureEXT NAME[]
 
 #define RESOURCE(NAME,IDX) NAME[IDX]
 #define TEXTURE_SAMPLE(NAME,IDX,UV) texture(RESOURCE(NAME,IDX),UV)

@@ -31,6 +31,9 @@ public:
   DescriptorSetLayoutBuilder& addAccelerationStructureBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 
+  DescriptorSetLayoutBuilder&
+  addAccelerationStructureHeapBinding(uint32_t count, VkShaderStageFlags stageFlags);
+
   /**
    * @brief Add an image binding to the descriptor set layout for access in a
    * compute shader. Only valid for use in a compute pipeline.
@@ -124,6 +127,7 @@ private:
 };
 
 class ALTHEA_API DescriptorSet {
+  friend class PerFrameResources; // who cares
 public:
   DescriptorSet() = default;
   DescriptorSet(DescriptorSet&& rhs) noexcept;
@@ -145,12 +149,12 @@ private:
       VkDescriptorSet descriptorSet,
       DescriptorSetAllocator& allocator);
 
-  VkDevice _device;
-  VkDescriptorSet _descriptorSet;
+  VkDevice _device{};
+  VkDescriptorSet _descriptorSet{};
 
   // TODO: this is ridiculous and not safe, the descriptor set does
   // not work great as a RAII type, it's not worth forcing it this way
-  DescriptorSetAllocator* _allocator;
+  DescriptorSetAllocator* _allocator{};
 };
 
 class ALTHEA_API DescriptorAssignment {

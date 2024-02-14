@@ -21,6 +21,20 @@ DescriptorSetLayoutBuilder::addAccelerationStructureBinding(
 
   return *this;
 }
+DescriptorSetLayoutBuilder&
+DescriptorSetLayoutBuilder::addAccelerationStructureHeapBinding(
+    uint32_t count,
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = count;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
 
 DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageImageBinding(
     VkShaderStageFlags stageFlags) {
@@ -123,6 +137,7 @@ DescriptorSet::DescriptorSet(DescriptorSet&& rhs) noexcept
   // Is this hacky? This prevents the moved-from object from
   // releasing the descriptor set handle.
   rhs._descriptorSet = VK_NULL_HANDLE;
+  rhs._allocator = nullptr;
 }
 
 DescriptorSet& DescriptorSet::operator=(DescriptorSet&& rhs) noexcept {

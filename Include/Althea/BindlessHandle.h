@@ -22,4 +22,10 @@ struct ALTHEA_API ImageHandle {
 
   bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
 };
+
+struct ALTHEA_API TlasHandle {
+  uint32_t index = INVALID_BINDLESS_HANDLE;
+
+  bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
+};
 } // AltheaEngine

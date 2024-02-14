@@ -35,6 +35,7 @@ private:
 
 class ALTHEA_API RayTracingPipeline {
 public:
+  RayTracingPipeline() = default;
   RayTracingPipeline(const Application& app, RayTracingPipelineBuilder&& builder);
 
   void traceRays(const VkExtent2D& extent, VkCommandBuffer commandBuffer) const;
@@ -55,6 +56,7 @@ public:
     return static_cast<uint32_t>(this->_closestHitShaders.size());
   }
 
+  void tryRecompile(Application& app);
   /**
    * @brief Reload and attempt to recompile any stale shaders that is
    * out-of-date with the corresponding shader file on disk. Note that the

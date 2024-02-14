@@ -7,14 +7,17 @@
 #define STORAGE_BUFFER_HEAP_BINDING 0
 #define UNIFORM_HEAP_BINDING 1
 #define TEXTURE_HEAP_BINDING 2
+#define TLAS_HEAP_BINDING 3
 
 namespace AltheaEngine {
-GlobalHeap::GlobalHeap(const Application& app)
-: _device(app.getDevice()) {
+GlobalHeap::GlobalHeap(const Application& app) : _device(app.getDevice()) {
   DescriptorSetLayoutBuilder layoutBuilder{};
   layoutBuilder.addBufferHeapBinding(BUFFER_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addUniformHeapBinding(UNIFORM_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addTextureHeapBinding(TEXTURE_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
+  layoutBuilder.addAccelerationStructureHeapBinding(
+      TLAS_HEAP_SLOTS,
+      VK_SHADER_STAGE_ALL);
 
   this->_setAllocator = DescriptorSetAllocator(app, layoutBuilder, 1);
   this->_set = this->_setAllocator.allocateVkDescriptorSet();
@@ -72,7 +75,7 @@ void GlobalHeap::updateUniformBuffer(
   write.pBufferInfo = &bufferInfo;
   write.pImageInfo = nullptr;
   write.pTexelBufferView = nullptr;
-  
+
   vkUpdateDescriptorSets(this->_device, 1, &write, 0, nullptr);
 }
 
@@ -99,7 +102,7 @@ void GlobalHeap::updateTexture(
   write.pBufferInfo = nullptr;
   write.pImageInfo = &imageInfo;
   write.pTexelBufferView = nullptr;
-  
+
   vkUpdateDescriptorSets(this->_device, 1, &write, 0, nullptr);
 }
 
@@ -126,7 +129,31 @@ void GlobalHeap::updateStorageImage(
   write.pBufferInfo = nullptr;
   write.pImageInfo = &imageInfo;
   write.pTexelBufferView = nullptr;
-  
+
+  vkUpdateDescriptorSets(this->_device, 1, &write, 0, nullptr);
+}
+
+void GlobalHeap::updateTlas(
+    TlasHandle handle,
+    VkAccelerationStructureKHR tlas) {
+      
+  VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo{
+      VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR};
+  accelerationStructureInfo.accelerationStructureCount = 1;
+  accelerationStructureInfo.pAccelerationStructures = &tlas;
+
+  VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+  write.dstSet = this->_set;
+  write.dstBinding = TLAS_HEAP_BINDING;
+  write.dstArrayElement = handle.index;
+  write.descriptorType =
+      VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+  write.descriptorCount = 1;
+  write.pBufferInfo = nullptr;
+  write.pImageInfo = nullptr;
+  write.pTexelBufferView = nullptr;
+  write.pNext = &accelerationStructureInfo;
+
   vkUpdateDescriptorSets(this->_device, 1, &write, 0, nullptr);
 }
 } // namespace AltheaEngine

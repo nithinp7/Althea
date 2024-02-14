@@ -23,17 +23,23 @@ public:
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
       this->_descriptorSets[i] = {};
     this->_descriptorSetAllocator = std::move(other._descriptorSetAllocator);
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       this->_descriptorSets[i] = std::move(other._descriptorSets[i]);
+      // need to fix up the allocator pointer FFS
+      this->_descriptorSets[i]._allocator = &this->_descriptorSetAllocator;
+    }
   }
 
   PerFrameResources& operator=(PerFrameResources&& other) {
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
       this->_descriptorSets[i] = {};
     this->_descriptorSetAllocator = std::move(other._descriptorSetAllocator);
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       this->_descriptorSets[i] = std::move(other._descriptorSets[i]);
-
+      // need to fix up the allocator pointer FFS
+      this->_descriptorSets[i]._allocator = &this->_descriptorSetAllocator;
+    }
+    
     return *this;
   }
 
@@ -48,6 +54,6 @@ public:
 private:
   DescriptorSetAllocator _descriptorSetAllocator;
   // One descriptor set for each frame-in-flight
-  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT];
+  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT]{};
 };
 } // namespace AltheaEngine

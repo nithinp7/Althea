@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <stdexcept>
 
+#include <iostream>
+
 namespace AltheaEngine {
 // TODO: AnyHit and Intersection shaders...
 RayTracingPipeline::RayTracingPipeline(
@@ -129,6 +131,16 @@ void RayTracingPipeline::RayTracingPipelineDeleter::operator()(
     VkDevice device,
     VkPipeline rayTracingPipeline) {
   vkDestroyPipeline(device, rayTracingPipeline, nullptr);
+}
+
+void RayTracingPipeline::tryRecompile(Application &app) {  
+  if (recompileStaleShaders()) {
+    if (hasShaderRecompileErrors()) {
+      std::cout << getShaderRecompileErrors() << "\n" << std::flush;
+    } else {
+      recreatePipeline(app);
+    }
+  }
 }
 
 bool RayTracingPipeline::recompileStaleShaders() {

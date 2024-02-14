@@ -1,6 +1,7 @@
 #include "AccelerationStructure.h"
 
 #include "Application.h"
+#include "GlobalHeap.h"
 
 #include <stdexcept>
 
@@ -441,5 +442,10 @@ void AccelerationStructure::AccelerationStructureDeleter::operator()(
       device,
       accelerationStructure,
       nullptr);
+}
+
+void AccelerationStructure::registerToHeap(GlobalHeap& heap) {
+  _tlasHandle = heap.registerTlas();
+  heap.updateTlas(_tlasHandle, _tlas);
 }
 } // namespace AltheaEngine

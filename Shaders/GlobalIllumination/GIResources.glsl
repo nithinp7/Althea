@@ -18,16 +18,16 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 #define GLOBAL_UNIFORMS_BINDING 4
 #include <Global/GlobalUniforms.glsl>
 
-#define POINT_LIGHTS_SET 0
-#define POINT_LIGHTS_BINDING 5
-#include <PointLights.glsl>
+// #define POINT_LIGHTS_SET 0
+// #define POINT_LIGHTS_BINDING 5
+// #include <PointLights.glsl>
 
-layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
+// layout(set=0, binding=5) uniform samplerCubeArray shadowMapArray;
 
-layout(set=0, binding=7) uniform sampler2D textureHeap[];
+layout(set=0, binding=5) uniform sampler2D textureHeap[];
 
 #define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 8
+#define PRIMITIVE_CONSTANTS_BINDING 6
 #include <PrimitiveConstants.glsl>
 
 struct Vertex {
@@ -39,8 +39,8 @@ struct Vertex {
 };
 
 #extension GL_EXT_scalar_block_layout : enable
-layout(scalar, set=0, binding=9) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
-layout(set=0, binding=10) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
+layout(scalar, set=0, binding=7) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
+layout(set=0, binding=8) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
 
 struct ProbeSlot {
   vec4 irradiance;
