@@ -24,7 +24,6 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 
 void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
-  // TODO: double check this works
   vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
 
   payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.frameNumber+1, pushConstants.frameNumber+2);

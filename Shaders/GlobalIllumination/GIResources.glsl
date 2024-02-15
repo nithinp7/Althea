@@ -6,29 +6,62 @@
 
 #include <Misc/Hash.glsl>
 
+#include <Bindless/GlobalHeap.glsl>
+#include <Global/GlobalResources.glsl>
+#include <Global/GlobalUniforms.glsl>
+#include <PrimitiveConstants.glsl>
+
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : enable
 
-layout(set=0, binding=0) uniform sampler2D environmentMap; 
-layout(set=0, binding=1) uniform sampler2D prefilteredMap; 
-layout(set=0, binding=2) uniform sampler2D irradianceMap;
-layout(set=0, binding=3) uniform sampler2D brdfLut;
+layout(push_constant) uniform PushConstant {
+  uint globalResourcesHandle;
+  uint globalUniformsHandle;
+  uint tlasHandle;
 
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include <Global/GlobalUniforms.glsl>
+  uint prevImgHandle;
+  uint imgHandle;
+  uint prevDepthBufferHandle;
+  uint depthBufferHandle;
+  
+  uint framesSinceCameraMoved;
+} pushConstants;
 
-// #define POINT_LIGHTS_SET 0
-// #define POINT_LIGHTS_BINDING 5
-// #include <PointLights.glsl>
+SAMPLER2D(textureHeap);
 
-// layout(set=0, binding=5) uniform samplerCubeArray shadowMapArray;
+#define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
+#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
 
-layout(set=0, binding=5) uniform sampler2D textureHeap[];
+#define environmentMap textureHeap[resources.ibl.environmentMapHandle]
+#define prefilteredMap textureHeap[resources.ibl.prefilteredMapHandle]
+#define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
+#define brdfLut textureHeap[resources.ibl.brdfLutHandle]
 
-#define PRIMITIVE_CONSTANTS_SET 0
-#define PRIMITIVE_CONSTANTS_BINDING 6
-#include <PrimitiveConstants.glsl>
+#define getPrimitive(primIdx) \
+    RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer) \
+      .primitiveConstantsArr[primIdx]
+
+#define baseColorTexture(primIdx) \
+    textureHeap[getPrimitive(primIdx).baseTextureHandle]
+#define normalMapTexture(primIdx) \
+    textureHeap[getPrimitive(primIdx).normalTextureHandle]
+#define metallicRoughnessTexture(primIdx) \
+    textureHeap[getPrimitive(primIdx).metallicRoughnessTextureHandle]
+#define occlusionTexture(primIdx) \
+    textureHeap[getPrimitive(primIdx).occlusionTextureHandle]
+#define emissiveTexture(primIdx) \
+    textureHeap[getPrimitive(primIdx).emissiveTextureHandle]
+
+IMAGE2D_W(imageHeap);
+
+#define prevImg textureHeap[pushConstants.prevImgHandle]
+#define img imageHeap[pushConstants.imgHandle]
+#define prevDepthBuffer textureHeap[pushConstants.prevDepthBufferHandle]
+#define depthBuffer imageHeap[pushConstants.depthBufferHandle]
+
+TLAS(tlasHeap);
+
+#define acc tlasHeap[pushConstants.tlasHandle]
 
 struct Vertex {
   vec3 position;
@@ -42,70 +75,29 @@ struct Vertex {
 layout(scalar, set=0, binding=7) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
 layout(set=0, binding=8) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
 
-struct ProbeSlot {
-  vec4 irradiance;
-  int gridX;
-  int gridY;
-  int gridZ;
-  int dbg;
-};
+// struct ProbeSlot {
+//   vec4 irradiance;
+//   int gridX;
+//   int gridY;
+//   int gridZ;
+//   int dbg;
+// };
 
-struct Probe {
-  ProbeSlot slots[4];
-};
+// struct Probe {
+//   ProbeSlot slots[4];
+// };
 
-layout(set=1, binding=0) uniform accelerationStructureEXT acc;
+// layout(set=1, binding=5) uniform GI_UNIFORMS {
+//   uint spatialHashSize;
+//   uint spatialHashSlotsPerBuffer;
+//   uint probeCount;
+//   uint probesPerBuffer;
 
-// Output image
-layout(set=1, binding=1) uniform sampler2D prevImg;
-// Motion vectors
-layout(set=1, binding=2, rgba32f) uniform image2D img;
-// Prev depth buffer
-layout(set=1, binding=3) uniform sampler2D prevDepthBuffer;
-// Current depth buffer
-layout(set=1, binding=4, r32f) uniform image2D depthBuffer;
-
-layout(set=1, binding=5) uniform GI_UNIFORMS {
-  uint spatialHashSize;
-  uint spatialHashSlotsPerBuffer;
-  uint probeCount;
-  uint probesPerBuffer;
-
-  uint gridCellSize;
-  float padding1;
-  float padding2;
-  float padding3;
-};
-
-layout(std430, set=1, binding=6) buffer LIGHT_PROBES 
-{
-  Probe probes[];
-} probeHeap[];
-
-layout(std430, set=1, binding=7) buffer PROBE_HASH_GRID
-{
-  uint hashGrid[];
-} hashHeap[];
-
-struct FreeList {
-  uint counter;
-};
-layout(std430, set=1, binding=8) buffer FREE_LIST
-{
-  FreeList freeList;
-};
-
-layout(set=1, binding=9, rgba32f) uniform image2D debugTarget;
-
-layout(push_constant) uniform PathTracePushConstants {
-  uint frameNumber; // frames since camera moved
-} pushConstants;
-
-#define baseColorTexture textureHeap[5*gl_InstanceCustomIndexEXT+0]
-#define normalMapTexture textureHeap[5*gl_InstanceCustomIndexEXT+1]
-#define metallicRoughnessTexture textureHeap[5*gl_InstanceCustomIndexEXT+2]
-#define occlusionTexture textureHeap[5*gl_InstanceCustomIndexEXT+3]
-#define emissiveTexture textureHeap[5*gl_InstanceCustomIndexEXT+4]
+//   uint gridCellSize;
+//   float padding1;
+//   float padding2;
+//   float padding3;
+// };
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
