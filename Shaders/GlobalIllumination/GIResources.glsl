@@ -9,7 +9,7 @@
 #include <Bindless/GlobalHeap.glsl>
 #include <Global/GlobalResources.glsl>
 #include <Global/GlobalUniforms.glsl>
-#include <PrimitiveConstants.glsl>
+#include <PrimitiveResources.glsl>
 
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : enable
@@ -37,21 +37,6 @@ SAMPLER2D(textureHeap);
 #define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
 #define brdfLut textureHeap[resources.ibl.brdfLutHandle]
 
-#define getPrimitive(primIdx) \
-    RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer) \
-      .primitiveConstantsArr[primIdx]
-
-#define baseColorTexture(primIdx) \
-    textureHeap[getPrimitive(primIdx).baseTextureHandle]
-#define normalMapTexture(primIdx) \
-    textureHeap[getPrimitive(primIdx).normalTextureHandle]
-#define metallicRoughnessTexture(primIdx) \
-    textureHeap[getPrimitive(primIdx).metallicRoughnessTextureHandle]
-#define occlusionTexture(primIdx) \
-    textureHeap[getPrimitive(primIdx).occlusionTextureHandle]
-#define emissiveTexture(primIdx) \
-    textureHeap[getPrimitive(primIdx).emissiveTextureHandle]
-
 IMAGE2D_W(imageHeap);
 
 #define prevImg textureHeap[pushConstants.prevImgHandle]
@@ -62,18 +47,6 @@ IMAGE2D_W(imageHeap);
 TLAS(tlasHeap);
 
 #define acc tlasHeap[pushConstants.tlasHandle]
-
-struct Vertex {
-  vec3 position;
-  vec3 tangent;
-  vec3 bitangent;
-  vec3 normal;
-  vec2 uvs[4];
-};
-
-#extension GL_EXT_scalar_block_layout : enable
-layout(scalar, set=0, binding=7) readonly buffer VERTEX_BUFFER_HEAP { Vertex vertices[]; } vertexBufferHeap[];
-layout(set=0, binding=8) readonly buffer INDEX_BUFFER_HEAP { uint indices[]; } indexBufferHeap[];
 
 // struct ProbeSlot {
 //   vec4 irradiance;

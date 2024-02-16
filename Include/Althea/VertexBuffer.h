@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Allocator.h"
+#include "BindlessHandle.h"
 #include "BufferUtilities.h"
 #include "Library.h"
 #include "SingleTimeCommandBuffer.h"
@@ -13,6 +14,7 @@
 
 namespace AltheaEngine {
 class Application;
+class GlobalHeap;
 
 template <typename TVertex> class ALTHEA_API VertexBuffer {
 public:
@@ -91,6 +93,17 @@ public:
          app.getCurrentFrameRingBufferIndex()});
   }
 
+  void registerToHeap(GlobalHeap& heap) {
+    this->_handle = heap.registerBuffer();
+    heap.updateStorageBuffer(
+        this->_handle,
+        this->_allocation.getBuffer(),
+        0,
+        this->getSize());
+  }
+
+  BufferHandle getHandle() const { return _handle; }
+
   const std::vector<TVertex>& getVertices() const { return this->_vertices; }
 
   size_t getVertexCount() const { return this->_vertices.size(); }
@@ -98,9 +111,10 @@ public:
   const BufferAllocation& getAllocation() const { return this->_allocation; }
 
   size_t getSize() const { return getVertexCount() * sizeof(TVertex); }
-  
+
 private:
   std::vector<TVertex> _vertices;
   BufferAllocation _allocation;
+  BufferHandle _handle;
 };
 } // namespace AltheaEngine

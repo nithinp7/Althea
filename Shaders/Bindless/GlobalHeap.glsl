@@ -29,7 +29,7 @@
       readonly image2D NAME[]
 #define IMAGE2D_W(NAME) \
     layout(set=BINDLESS_SET,binding=TEXTURE_HEAP_BINDING) \
-      writeonly image2D NAME[]
+      uniform writeonly image2D NAME[]
 
 #define BUFFER_RW(NAME,BODY) \
     layout(std430, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \

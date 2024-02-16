@@ -6,7 +6,7 @@ layout(location=1) in vec2 baseColorUV;
 layout(depth_any) out float gl_FragDepth;
 
 #include "Global/GlobalResources.glsl"
-#include "PrimitiveConstants.glsl"
+#include "PrimitiveResources.glsl"
 
 SAMPLER2D(textureHeap);
 

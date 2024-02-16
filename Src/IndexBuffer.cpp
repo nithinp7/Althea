@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "BufferUtilities.h"
+#include "GlobalHeap.h"
 
 #include <gsl/span>
 
@@ -69,6 +70,15 @@ IndexBuffer::IndexBuffer(
       this->_allocation.getBuffer(),
       0,
       indicesView.size());
+}
+
+void IndexBuffer::registerToHeap(GlobalHeap& heap) {
+  this->_handle = heap.registerBuffer();
+  heap.updateStorageBuffer(
+      this->_handle,
+      this->_allocation.getBuffer(),
+      0,
+      this->getSize());
 }
 
 IndexBuffer::IndexBuffer(

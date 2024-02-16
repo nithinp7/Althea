@@ -15,9 +15,7 @@ layout(location = 0) rayPayloadInEXT PathTracePayload payload;
 hitAttributeEXT vec2 attribs;
 layout(location = 1) rayPayloadEXT PathTracePayload shadowRayPayload;
 
-#include <PBR/PBRMaterial.glsl>
-
-#include "DirectLightSample.glsl"
+#include "BRDF.glsl"
 
 vec3 sampleEnvMap(vec3 dir) {
   float yaw = atan(dir.z, dir.x);
@@ -27,18 +25,20 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
+#define primInfo getPrimitive(primIdx)
+
 void main() {
     vec3 bc = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
-    uint idx0 = indexBufferHeap[gl_InstanceCustomIndexEXT].indices[3*gl_PrimitiveID+0];
-    uint idx1 = indexBufferHeap[gl_InstanceCustomIndexEXT].indices[3*gl_PrimitiveID+1];
-    uint idx2 = indexBufferHeap[gl_InstanceCustomIndexEXT].indices[3*gl_PrimitiveID+2];
+    uint primIdx = uint(gl_InstanceCustomIndexEXT);
 
-    Vertex v0 = vertexBufferHeap[gl_InstanceCustomIndexEXT].vertices[idx0];
-    Vertex v1 = vertexBufferHeap[gl_InstanceCustomIndexEXT].vertices[idx1];
-    Vertex v2 = vertexBufferHeap[gl_InstanceCustomIndexEXT].vertices[idx2];
+    uint idx0 = getIndex(primIdx, 3*gl_PrimitiveID+0);
+    uint idx1 = getIndex(primIdx, 3*gl_PrimitiveID+1);
+    uint idx2 = getIndex(primIdx, 3*gl_PrimitiveID+2);
 
-    PrimitiveConstants primInfo = primitiveConstants[gl_InstanceCustomIndexEXT];
+    Vertex v0 = getVertex(primIdx, idx0);
+    Vertex v1 = getVertex(primIdx, idx1);
+    Vertex v2 = getVertex(primIdx, idx2);
 
     Vertex v;
     INTERPOLATE(position);
@@ -52,9 +52,9 @@ void main() {
 
     vec3 worldPos = gl_ObjectToWorldEXT * vec4(v.position, 1.0);
     vec4 baseColor = 
-        texture(baseColorTexture, v.uvs[primInfo.baseTextureCoordinateIndex]) * primInfo.baseColorFactor;
+        texture(baseColorTexture(primIdx), v.uvs[primInfo.baseTextureCoordinateIndex]) * primInfo.baseColorFactor;
 
-    vec3 normalMapSample = texture(normalMapTexture, v.uvs[primInfo.baseTextureCoordinateIndex]).rgb;
+    vec3 normalMapSample = texture(normalMapTexture(primIdx), v.uvs[primInfo.baseTextureCoordinateIndex]).rgb;
     vec3 tangentSpaceNormal = 
         (2.0 * normalMapSample - 1.0) *
         vec3(primInfo.normalScale, primInfo.normalScale, 1.0);
@@ -66,13 +66,13 @@ void main() {
           tangentSpaceNormal.z * v.normal), 0.0));
 
     vec2 metallicRoughness = 
-        texture(metallicRoughnessTexture, v.uvs[primInfo.metallicRoughnessTextureCoordinateIndex]).bg *
+        texture(metallicRoughnessTexture(primIdx), v.uvs[primInfo.metallicRoughnessTextureCoordinateIndex]).bg *
         vec2(primInfo.metallicFactor, primInfo.roughnessFactor);
     float ambientOcclusion = 
-        texture(occlusionTexture, v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
+        texture(occlusionTexture(primIdx), v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
 
     // TODO: Support emissive objects
-    // vec3 emissive = texture(emissiveTexture, v.uvs[primInfo.emissiveTextureCoordinateIndex]).rgb * primInfo.emissiveFactor.rgb;
+    // vec3 emissive = texture(emissiveTexture(primIdx), v.uvs[primInfo.emissiveTextureCoordinateIndex]).rgb * primInfo.emissiveFactor.rgb;
 
     // if (emissive.x >  0.0 || emissive > 0.0 || emissive > 0.0)
     // {

@@ -69,7 +69,12 @@ struct ALTHEA_API PrimitiveConstants {
   uint32_t occlusionTextureHandle;
   uint32_t emissiveTextureHandle;
 
-  uint32_t padding;
+  uint32_t vertexBufferHandle;
+  uint32_t indexBufferHandle;
+
+  uint32_t padding1;
+  uint32_t padding2;
+  uint32_t padding3; 
 };
 
 struct ALTHEA_API TextureSlots {

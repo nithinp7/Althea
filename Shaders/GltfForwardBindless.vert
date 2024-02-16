@@ -20,7 +20,7 @@ layout(location=9) out vec3 direction;
 #include "Bindless/GlobalHeap.glsl"
 #include "Global/GlobalUniforms.glsl"
 #include "Global/GlobalResources.glsl"
-#include "PrimitiveConstants.glsl"
+#include "PrimitiveResources.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;

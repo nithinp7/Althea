@@ -15,7 +15,7 @@ layout(location=1) out vec2 baseColorUV;
 #include <PointLights.glsl>
 
 #include "Global/GlobalResources.glsl"
-#include "PrimitiveConstants.glsl"
+#include "PrimitiveResources.glsl"
 
 layout(push_constant) uniform PushConstants {
   mat4 model;

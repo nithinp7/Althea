@@ -606,7 +606,7 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
         this->_textureSlots.pBaseTexture->getSampler());
     this->_constants.baseTextureHandle = handle.index;
   }
-  
+
   {
     ImageHandle handle = heap.registerTexture();
     heap.updateTexture(
@@ -641,6 +641,14 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
         this->_textureSlots.pEmissiveTexture->getImageView(),
         this->_textureSlots.pEmissiveTexture->getSampler());
     this->_constants.emissiveTextureHandle = handle.index;
+  }
+
+  {
+    this->_vertexBuffer.registerToHeap(heap);
+    this->_constants.vertexBufferHandle = this->_vertexBuffer.getHandle().index;
+
+    this->_indexBuffer.registerToHeap(heap);
+    this->_constants.indexBufferHandle = this->_indexBuffer.getHandle().index;
   }
 }
 

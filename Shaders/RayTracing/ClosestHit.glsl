@@ -37,7 +37,7 @@ layout(set=0, binding=7) uniform sampler2D textureHeap[TEXTURE_HEAP_COUNT];
 
 #define PRIMITIVE_CONSTANTS_SET 0
 #define PRIMITIVE_CONSTANTS_BINDING 8
-#include <PrimitiveConstants.glsl>
+#include <PrimitiveResources.glsl>
 
 struct Vertex {
   vec3 position;

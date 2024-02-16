@@ -26,7 +26,7 @@ void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
 
-  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.frameNumber+1, pushConstants.frameNumber+2);
+  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.framesSinceCameraMoved+1, pushConstants.framesSinceCameraMoved+2);
 
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
@@ -115,12 +115,12 @@ void main() {
 
   // prevColor.a = 0.0; // TODO: REmove
 
-  if (pushConstants.frameNumber == 0 || 
+  if (pushConstants.framesSinceCameraMoved == 0 || 
       prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 
       prevScrUv.y < 0.0 || prevScrUv.y > 1.0) {
     blendedColor = vec4(color, 1.0);
   } else {
-    // blendedColor = (color + float(pushConstants.frameNumber) * prevColor) / float(pushConstants.frameNumber + 1);
+    // blendedColor = (color + float(pushConstants.framesSinceCameraMoved) * prevColor) / float(pushConstants.framesSinceCameraMoved + 1);
     blendedColor = vec4(color + prevColor.rgb * prevColor.a, 1.0 + prevColor.a);
     blendedColor.rgb = blendedColor.rgb / blendedColor.a;
   }
