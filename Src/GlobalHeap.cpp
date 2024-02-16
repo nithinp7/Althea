@@ -7,7 +7,8 @@
 #define STORAGE_BUFFER_HEAP_BINDING 0
 #define UNIFORM_HEAP_BINDING 1
 #define TEXTURE_HEAP_BINDING 2
-#define TLAS_HEAP_BINDING 3
+#define IMAGE_HEAP_BINDING 3
+#define TLAS_HEAP_BINDING 4
 
 namespace AltheaEngine {
 GlobalHeap::GlobalHeap(const Application& app) : _device(app.getDevice()) {
@@ -15,6 +16,7 @@ GlobalHeap::GlobalHeap(const Application& app) : _device(app.getDevice()) {
   layoutBuilder.addBufferHeapBinding(BUFFER_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addUniformHeapBinding(UNIFORM_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addTextureHeapBinding(TEXTURE_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
+  layoutBuilder.addStorageImageHeapBinding(IMAGE_HEAP_SLOTS, VK_SHADER_STAGE_ALL);
   layoutBuilder.addAccelerationStructureHeapBinding(
       TLAS_HEAP_SLOTS,
       VK_SHADER_STAGE_ALL);
@@ -80,7 +82,7 @@ void GlobalHeap::updateUniformBuffer(
 }
 
 void GlobalHeap::updateTexture(
-    ImageHandle handle,
+    TextureHandle handle,
     VkImageView view,
     VkSampler sampler) {
   if (!handle.isValid()) {
@@ -122,7 +124,7 @@ void GlobalHeap::updateStorageImage(
 
   VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
   write.dstSet = this->_set;
-  write.dstBinding = TEXTURE_HEAP_BINDING;
+  write.dstBinding = IMAGE_HEAP_BINDING;
   write.dstArrayElement = handle.index;
   write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   write.descriptorCount = 1;

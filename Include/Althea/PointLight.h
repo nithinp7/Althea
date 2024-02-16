@@ -111,7 +111,7 @@ public:
     return this->_shadowMap.getDepthSampler();
   }
 
-  ImageHandle getShadowMapHandle() const { return this->_shadowMapHandle; }
+  TextureHandle getShadowMapHandle() const { return this->_shadowMapHandle; }
 
   RenderPass& getShadowMapPass() { return this->_shadowPass; }
 
@@ -145,7 +145,7 @@ private:
 
   // Resources needed for shadow mapping, if it is enabled
   RenderTargetCollection _shadowMap;
-  ImageHandle _shadowMapHandle;
+  TextureHandle _shadowMapHandle;
   RenderPass _shadowPass;
   std::vector<FrameBuffer> _shadowFrameBuffers;
 

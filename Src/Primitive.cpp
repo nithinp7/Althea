@@ -599,7 +599,7 @@ AABB Primitive::computeWorldAABB() const {
 
 void Primitive::registerToHeap(GlobalHeap& heap) {
   {
-    ImageHandle handle = heap.registerTexture();
+    TextureHandle handle = heap.registerTexture();
     heap.updateTexture(
         handle,
         this->_textureSlots.pBaseTexture->getImageView(),
@@ -608,7 +608,7 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 
   {
-    ImageHandle handle = heap.registerTexture();
+    TextureHandle handle = heap.registerTexture();
     heap.updateTexture(
         handle,
         this->_textureSlots.pNormalMapTexture->getImageView(),
@@ -617,7 +617,7 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 
   {
-    ImageHandle handle = heap.registerTexture();
+    TextureHandle handle = heap.registerTexture();
     heap.updateTexture(
         handle,
         this->_textureSlots.pMetallicRoughnessTexture->getImageView(),
@@ -626,7 +626,7 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 
   {
-    ImageHandle handle = heap.registerTexture();
+    TextureHandle handle = heap.registerTexture();
     heap.updateTexture(
         handle,
         this->_textureSlots.pOcclusionTexture->getImageView(),
@@ -635,7 +635,7 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 
   {
-    ImageHandle handle = heap.registerTexture();
+    TextureHandle handle = heap.registerTexture();
     heap.updateTexture(
         handle,
         this->_textureSlots.pEmissiveTexture->getImageView(),

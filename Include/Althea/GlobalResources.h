@@ -29,7 +29,7 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       GlobalHeap& heap,
-      ImageHandle shadowMapArrayHandle,
+      TextureHandle shadowMapArrayHandle,
       BufferHandle primitiveConstantBuffer);
 
   const IBLResources& getIBL() const { return this->_ibl; }

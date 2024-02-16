@@ -41,7 +41,10 @@ public:
    * @return This builder.
    */
   DescriptorSetLayoutBuilder& addStorageImageBinding(
-      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_COMPUTE_BIT);
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
+  DescriptorSetLayoutBuilder& addStorageImageHeapBinding(
+      uint32_t count,
+      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
 
   /**
    * @brief Add a storage buffer binding to the descriptor set layout for access

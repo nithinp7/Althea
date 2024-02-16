@@ -63,10 +63,10 @@ private:
   ImageResource _albedo{};
   ImageResource _metallicRoughnessOcclusion{};
 
-  ImageHandle _positionHandle{};
-  ImageHandle _normalHandle{};
-  ImageHandle _albedoHandle{};
-  ImageHandle _metallicRoughnessOcclusionHandle{};
+  TextureHandle _positionHandle{};
+  TextureHandle _normalHandle{};
+  TextureHandle _albedoHandle{};
+  TextureHandle _metallicRoughnessOcclusionHandle{};
 
   std::vector<Attachment> _attachmentDescriptions;
   std::vector<VkImageView> _attachmentViews;

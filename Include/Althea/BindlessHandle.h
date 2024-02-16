@@ -5,27 +5,16 @@
 
 namespace AltheaEngine {
 #define INVALID_BINDLESS_HANDLE 0xFFFFFFFF
-struct ALTHEA_API UniformHandle {
-  uint32_t index = INVALID_BINDLESS_HANDLE;
 
-  bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
-};
+#define DECL_BINDLESS_HANDLE_TYPE(NAME)                               \
+  struct ALTHEA_API NAME {                                            \
+    uint32_t index = INVALID_BINDLESS_HANDLE;                         \
+    bool isValid() const { return index != INVALID_BINDLESS_HANDLE; } \
+  };
 
-struct ALTHEA_API BufferHandle {
-  uint32_t index = INVALID_BINDLESS_HANDLE;
-
-  bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
-};
-
-struct ALTHEA_API ImageHandle {
-  uint32_t index = INVALID_BINDLESS_HANDLE;
-
-  bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
-};
-
-struct ALTHEA_API TlasHandle {
-  uint32_t index = INVALID_BINDLESS_HANDLE;
-
-  bool isValid() const { return index != INVALID_BINDLESS_HANDLE; }
-};
+DECL_BINDLESS_HANDLE_TYPE(UniformHandle)
+DECL_BINDLESS_HANDLE_TYPE(BufferHandle)
+DECL_BINDLESS_HANDLE_TYPE(TextureHandle)
+DECL_BINDLESS_HANDLE_TYPE(ImageHandle)
+DECL_BINDLESS_HANDLE_TYPE(TlasHandle)
 } // AltheaEngine

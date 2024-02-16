@@ -23,13 +23,13 @@ struct ALTHEA_API IBLHandles {
 
 struct ALTHEA_API IBLResources {
   ImageResource environmentMap{};
-  ImageHandle environmentMapHandle{};
+  TextureHandle environmentMapHandle{};
   ImageResource prefilteredMap{};
-  ImageHandle prefilteredMapHandle{};
+  TextureHandle prefilteredMapHandle{};
   ImageResource irradianceMap{};
-  ImageHandle irradianceMapHandle{};
+  TextureHandle irradianceMapHandle{};
   ImageResource brdfLut{};
-  ImageHandle brdfLutHandle{};
+  TextureHandle brdfLutHandle{};
 
   void bind(ResourcesAssignment& assignment);
   void registerToHeap(GlobalHeap& heap);

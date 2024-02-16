@@ -5,11 +5,10 @@
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
 
+#include <GlobalIllumination/GIResources.glsl>
 #include "PathTracePayload.glsl"
 
 layout(location = 0) rayPayloadInEXT PathTracePayload payload;
-
-layout(set=0, binding=0) uniform sampler2D environmentMap; 
 
 #define PI 3.14159265359
 

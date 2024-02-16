@@ -4,7 +4,8 @@
 #define BUFFER_HEAP_BINDING 0
 #define UNIFORM_HEAP_BINDING 1
 #define TEXTURE_HEAP_BINDING 2
-#define TLAS_HEAP_BINDING 3
+#define IMAGE_HEAP_BINDING 3
+#define TLAS_HEAP_BINDING 4
 
 #ifndef BINDLESS_SET
 #define BINDLESS_SET 0
@@ -22,13 +23,13 @@
       uniform samplerCubeArray NAME[]
 
 #define IMAGE2D_RW(NAME,FORMAT) \
-    layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING, FORMAT) \
+    layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
       image2D NAME[]
 #define IMAGE2D_R(NAME,FORMAT) \
-    layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING, FORMAT) \
+    layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
       readonly image2D NAME[]
 #define IMAGE2D_W(NAME) \
-    layout(set=BINDLESS_SET,binding=TEXTURE_HEAP_BINDING) \
+    layout(set=BINDLESS_SET,binding=IMAGE_HEAP_BINDING) \
       uniform writeonly image2D NAME[]
 
 #define BUFFER_RW(NAME,BODY) \

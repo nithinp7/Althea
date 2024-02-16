@@ -49,6 +49,20 @@ DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageImageBinding(
   return *this;
 }
 
+DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageImageHeapBinding(
+    uint32_t count,
+    VkShaderStageFlags stageFlags) {
+  uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());
+  VkDescriptorSetLayoutBinding& binding = this->_bindings.emplace_back();
+  binding.binding = bindingIndex;
+  binding.descriptorCount = count;
+  binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  binding.pImmutableSamplers = nullptr;
+  binding.stageFlags = stageFlags;
+
+  return *this;
+}
+
 DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::addStorageBufferBinding(
     VkShaderStageFlags stageFlags) {
   uint32_t bindingIndex = static_cast<uint32_t>(this->_bindings.size());

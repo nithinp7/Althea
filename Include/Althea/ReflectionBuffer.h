@@ -85,7 +85,7 @@ public:
 
   void registerToHeap(GlobalHeap& heap);
 
-  ImageHandle getHandle() const { return this->_reflectionBufferHandle; }
+  TextureHandle getHandle() const { return this->_reflectionBufferHandle; }
 
 private:
   std::unique_ptr<ComputePipeline> _pConvolutionPass;
@@ -95,7 +95,7 @@ private:
   // Entire reflection buffer resource
   // The view contains all the mips together
   ImageResource _reflectionBuffer;
-  ImageHandle _reflectionBufferHandle;
+  TextureHandle _reflectionBufferHandle;
 
   // Individual mip views of the reflection buffer mips
   std::vector<ImageView> _mipViews;

@@ -9,7 +9,7 @@ GlobalResources::GlobalResources(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     GlobalHeap& heap,
-    ImageHandle shadowMapArrayHandle,
+    TextureHandle shadowMapArrayHandle,
     BufferHandle primitiveConstantBuffer) {
 
   this->_gBuffer = GBufferResources(app);
