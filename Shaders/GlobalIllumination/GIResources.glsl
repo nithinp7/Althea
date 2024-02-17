@@ -27,7 +27,10 @@ UNIFORM_BUFFER(_giUniforms, GIUniforms{
   uint colorTargets[2];
   uint depthSamplers[2];
   uint depthTargets[2];
-
+  
+  uint targetWidth;
+  uint targetHeight;
+  
   uint writeIndex;
   
   uint reservoirHeap;

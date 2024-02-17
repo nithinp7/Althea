@@ -91,7 +91,8 @@ void main() {
   prevColor.a = min(prevColor.a, 50000.0);
   float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
   mat4 viewDiff = globals.view - globals.prevView;
-  if (length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01) {
+  bool bCameraMoved = length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01;
+  if (bCameraMoved) {
     if (log(depthDiscrepancy + 1.0) > 0.5) {
     //if (depthDiscrepancy > 0.1) {
       prevColor.a = 0.0;
@@ -124,4 +125,44 @@ void main() {
     
   imageStore(colorTargetImg, pixelPos, blendedColor);
   imageStore(depthTargetImg, pixelPos, vec4(depth, 0.0, 0.0, 1.0));
+
+  uint reservoirIdx = pixelPos.x * gl_LaunchSizeEXT.y + pixelPos.y;
+
+  // Kick sample with lowest weight
+  uint sampleIdx = getReservoir(reservoirIdx).sampleCount;
+  getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
+  float w = getReservoir(reservoirIdx).samples[sampleIdx].W;
+  for (int i = 0; i < 8; ++i) {
+    if (i == sampleIdx)
+      continue;
+    float w1 = getReservoir(reservoirIdx).samples[i].W;
+    if (w1 < w) {
+      sampleIdx = i;
+      w = w1;
+    }
+  }
+
+  // getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
+  getReservoir(reservoirIdx).samples[sampleIdx].radiance = color.rgb;
+  
+  if (bCameraMoved) 
+  {
+    // TODO: Find better approach
+    for (int i = 0; i < 8; ++i) {
+      getReservoir(reservoirIdx).samples[i].radiance = 8.0 * color.rgb;
+    }
+  }
+
+  // update weights
+  float wSum = 0.0;
+  for (int i = 0; i < 8; ++i) {
+    float w = 
+        i == sampleIdx ? 
+          length(color.rgb) : 
+          length(getReservoir(reservoirIdx).samples[i].radiance);
+    wSum += w;
+    getReservoir(reservoirIdx).samples[i].W = w;
+  }
+
+  getReservoir(reservoirIdx).wSum = wSum;
 }

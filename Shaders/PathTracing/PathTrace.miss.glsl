@@ -1,6 +1,3 @@
-// Based on:
-// https://www.khronos.org/blog/ray-tracing-in-vulkan
-
 // Miss shader
 #version 460 core
 #extension GL_EXT_ray_tracing : enable
