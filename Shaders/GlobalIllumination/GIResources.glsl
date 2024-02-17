@@ -17,15 +17,25 @@
 layout(push_constant) uniform PushConstant {
   uint globalResourcesHandle;
   uint globalUniformsHandle;
-  uint tlasHandle;
-
-  uint prevImgHandle;
-  uint imgHandle;
-  uint prevDepthBufferHandle;
-  uint depthBufferHandle;
-  
-  uint framesSinceCameraMoved;
+  uint giUniformsHandle;
 } pushConstants;
+
+UNIFORM_BUFFER(_giUniforms, GIUniforms{
+  uint tlas;
+  
+  uint colorSamplers[2];
+  uint colorTargets[2];
+  uint depthSamplers[2];
+  uint depthTargets[2];
+
+  uint writeIndex;
+  
+  uint reservoirHeap;
+  uint reservoirsPerBuffer;
+
+  uint framesSinceCameraMoved;
+});
+#define giUniforms _giUniforms[pushConstants.giUniformsHandle]
 
 SAMPLER2D(textureHeap);
 
@@ -39,99 +49,54 @@ SAMPLER2D(textureHeap);
 
 IMAGE2D_W(imageHeap);
 
-#define prevImg textureHeap[pushConstants.prevImgHandle]
-#define img imageHeap[pushConstants.imgHandle]
-#define prevDepthBuffer textureHeap[pushConstants.prevDepthBufferHandle]
-#define depthBuffer imageHeap[pushConstants.depthBufferHandle]
+#define prevColorTargetTx textureHeap[giUniforms.colorSamplers[giUniforms.writeIndex^1]]
+#define colorTargetTx textureHeap[giUniforms.colorSamplers[giUniforms.writeIndex]]
 
+#define prevColorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex^1]]
+#define colorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex]]
+
+#define prevDepthTargetTx textureHeap[giUniforms.depthSamplers[giUniforms.writeIndex^1]]
+#define depthTargetTx textureHeap[giUniforms.depthSamplers[giUniforms.writeIndex]]
+
+#define prevDepthTargetImg imageHeap[giUniforms.depthTargets[giUniforms.writeIndex^1]]
+#define depthTargetImg imageHeap[giUniforms.depthTargets[giUniforms.writeIndex]]
+
+#ifndef IS_RT_SHADER
+#define IS_RT_SHADER 1
+#endif 
+
+#if IS_RT_SHADER
 TLAS(tlasHeap);
+#define acc tlasHeap[giUniforms.tlas]
+#endif 
 
-#define acc tlasHeap[pushConstants.tlasHandle]
+struct GISample {
+  vec3 dir;
+  float W;
+  vec3 radiance;
+  float padding; 
+};
 
-// struct ProbeSlot {
-//   vec4 irradiance;
-//   int gridX;
-//   int gridY;
-//   int gridZ;
-//   int dbg;
-// };
+struct Reservoir {
+  GISample samples[8];
+  uint sampleCount;
+  float wSum;
+};
 
-// struct Probe {
-//   ProbeSlot slots[4];
-// };
+BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
+  Reservoir reservoirs[];
+});
 
-// layout(set=1, binding=5) uniform GI_UNIFORMS {
-//   uint spatialHashSize;
-//   uint spatialHashSlotsPerBuffer;
-//   uint probeCount;
-//   uint probesPerBuffer;
-
-//   uint gridCellSize;
-//   float padding1;
-//   float padding2;
-//   float padding3;
-// };
+// The reservoir heap is split into sub-buffers with sequential bindless indices. 
+// The first sub-buffer is given by giUniforms.reservoirHeap and each buffer
+// has giUniforms.reservoirsPerBuffer entries.
+#define getReservoir(reservoirIdx)                    \
+    _reservoirBuffer[                                 \
+      giUniforms.reservoirHeap +                      \
+      reservoirIdx / giUniforms.reservoirsPerBuffer]  \
+        .reservoirs[                                  \
+          reservoirIdx % giUniforms.reservoirsPerBuffer]
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
-
-// void writeSpatialHash(vec3 pos, vec3 color) {
-//   ivec3 gridPosi = ivec3(floor(pos / gridCellSize));
-
-//   uint hash = hashCoords(gridPosi.x, gridPosi.y, gridPosi.z);
-//   uint hashSlotIdx = hash % spatialHashSize;
-  
-//   uint hashBufferIdx = hashSlotIdx / spatialHashSlotsPerBuffer;
-//   uint hashSlotLocalIdx = hashSlotIdx % spatialHashSlotsPerBuffer;
-//   uint prevVal = atomicCompSwap(hashHeap[hashBufferIdx].hashGrid[hashSlotLocalIdx], EMPTY_SLOT, RESERVED_SLOT);
-//   // if (prevVal == RESERVED_SLOT)
-//   // {
-//   //   // Already being allocated from another thread
-//   //   return;
-//   // }
-//   // if (prevVal != EMPTY_SLOT)
-//   // {
-//   //   // Bucket allocation already exists
-//   //   // TODO: Append color info in existing buckets
-//   //   return;
-//   // }
-//   // else
-//   {
-//     // uint prevCounter = atomicAdd(freeLists[gl_SubgroupInvocationID],1);
-//     // uint bucketIdx = prevCounter + gl_SubgroupInvocationID;
-//     uint bucketIdx = atomicAdd(freeList.counter, 1) % probeCount;
-
-//     hashHeap[hashBufferIdx].hashGrid[hashSlotLocalIdx] = bucketIdx;
-
-//     uint bucketBufferIdx = bucketIdx / probesPerBuffer;
-//     uint bucketLocalIdx = bucketIdx % probesPerBuffer;
-
-//     ProbeBucket bucket;
-//     bucket.probes[0].color = vec4(color, 1.0);
-    
-//     probeHeap[bucketBufferIdx].buckets[bucketLocalIdx] = bucket;
-//   }
-// }
-
-// vec3 readSpatialHash(vec3 pos) {
-//   ivec3 gridPosi = ivec3(floor(pos / gridCellSize));
-
-//   uint hash = hashCoords(gridPosi.x, gridPosi.y, gridPosi.z);
-//   uint hashSlotIdx = hash % spatialHashSize;
-  
-//   uint hashBufferIdx = hashSlotIdx / spatialHashSlotsPerBuffer;
-//   uint hashSlotLocalIdx = hashSlotIdx % spatialHashSlotsPerBuffer;
-//   uint bucketIdx = hashHeap[hashBufferIdx].hashGrid[hashSlotLocalIdx];
- 
-//   if (bucketIdx != EMPTY_SLOT && bucketIdx != RESERVED_SLOT)
-//   {
-//     uint bucketBufferIdx = bucketIdx / probesPerBuffer;
-//     uint bucketLocalIdx = bucketIdx % probesPerBuffer;
-
-//     ProbeBucket bucket = probeHeap[bucketBufferIdx].buckets[bucketLocalIdx];
-//     return bucket.probes[0].color.xyz;
-//   }
-
-//   return vec3(0.0);
-// }
 
 #endif // _GIRESOURCES_

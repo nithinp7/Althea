@@ -26,7 +26,7 @@ void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
 
-  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(pushConstants.framesSinceCameraMoved+1, pushConstants.framesSinceCameraMoved+2);
+  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.framesSinceCameraMoved+1, giUniforms.framesSinceCameraMoved+2);
 
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
@@ -76,10 +76,6 @@ void main() {
       break;
     }
 
-  #if 1
-
-  #endif
-
     // Set the next GI ray params
     rayDir = payload.wi;
     rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;
@@ -89,8 +85,8 @@ void main() {
 
   vec4 blendedColor = vec4(0.0);
 
-  vec4 prevColor = texture(prevImg, prevScrUv);
-  float prevDepth = texture(prevDepthBuffer, prevScrUv).r;
+  vec4 prevColor = texture(prevColorTargetTx, prevScrUv);
+  float prevDepth = texture(prevDepthTargetTx, prevScrUv).r;
 
   prevColor.a = min(prevColor.a, 50000.0);
   float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
@@ -99,8 +95,6 @@ void main() {
     if (log(depthDiscrepancy + 1.0) > 0.5) {
     //if (depthDiscrepancy > 0.1) {
       prevColor.a = 0.0;
-      // writeSpatialHash(firstBouncePos, color.rgb);
-      // writeSpatialHash(firstBouncePos, dbgCol);
     } else {
       // If the first bounce is mostly diffuse we can keep more of the history than
       // the specular case. Fortunately, specular surfaces take fewer rays to converge
@@ -109,18 +103,15 @@ void main() {
       // float trimmedHistory = mix(2.0, 500.0, firstBounceRoughness);
       float trimmedHistory = mix(2.0, 300.0, 2.0 * firstBounceRoughness / (1.0 * firstBounceRoughness + 1.0));
       prevColor.a = min(prevColor.a, trimmedHistory);
-      // color += readSpatialHash(firstBouncePos);
     }
   }
 
-  // prevColor.a = 0.0; // TODO: REmove
-
-  if (pushConstants.framesSinceCameraMoved == 0 || 
+  if (giUniforms.framesSinceCameraMoved == 0 || 
       prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 
       prevScrUv.y < 0.0 || prevScrUv.y > 1.0) {
     blendedColor = vec4(color, 1.0);
   } else {
-    // blendedColor = (color + float(pushConstants.framesSinceCameraMoved) * prevColor) / float(pushConstants.framesSinceCameraMoved + 1);
+    // blendedColor = (color + float(giUniforms.framesSinceCameraMoved) * prevColor) / float(giUniforms.framesSinceCameraMoved + 1);
     blendedColor = vec4(color + prevColor.rgb * prevColor.a, 1.0 + prevColor.a);
     blendedColor.rgb = blendedColor.rgb / blendedColor.a;
   }
@@ -131,6 +122,6 @@ void main() {
   if (isnan(color.x) || isnan(color.y) || isnan(color.z))
     blendedColor = vec4(0.0, 1000.0, 0.0, 1.0);
     
-  imageStore(img, pixelPos, blendedColor);
-  imageStore(depthBuffer, pixelPos, vec4(depth, 0.0, 0.0, 1.0));
+  imageStore(colorTargetImg, pixelPos, blendedColor);
+  imageStore(depthTargetImg, pixelPos, vec4(depth, 0.0, 0.0, 1.0));
 }

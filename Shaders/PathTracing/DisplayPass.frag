@@ -5,21 +5,11 @@ layout(location=1) in vec2 uv;
 
 layout(location=0) out vec4 outColor;
 
-#include <Bindless/GlobalHeap.glsl>
-#include <Global/GlobalUniforms.glsl>
-
-layout(push_constant) uniform PushConstants {
-  uint globalUniformsHandle;
-  uint texHandle;
-} pushConstants;
-
-#define globals RESOURCE(globalUniforms, pushConstants.globalUniformsHandle)
-
-SAMPLER2D(textureHeap);
-#define tex textureHeap[pushConstants.texHandle]
+#define IS_RT_SHADER 0
+#include <GlobalIllumination/GIResources.glsl>
 
 void main() {
-  vec3 texSample = texture(tex, uv).rgb;
+  vec3 texSample = texture(colorTargetTx, uv).rgb;
 
 #ifndef SKIP_TONEMAP
   texSample = vec3(1.0) - exp(-texSample * globals.exposure);

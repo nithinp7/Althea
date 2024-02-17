@@ -35,6 +35,10 @@ struct PrimitiveConstants {
 
 SAMPLER2D(primTexHeap);
 
+BUFFER_R(primitiveConstants, PrimitiveConstantsResource{
+  PrimitiveConstants primitiveConstantsArr[];
+});
+
 #define getPrimitive(primIdx) \
     RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer) \
       .primitiveConstantsArr[primIdx]
@@ -49,10 +53,6 @@ SAMPLER2D(primTexHeap);
     primTexHeap[getPrimitive(primIdx).occlusionTextureHandle]
 #define emissiveTexture(primIdx) \
     primTexHeap[getPrimitive(primIdx).emissiveTextureHandle]
-
-BUFFER_R(primitiveConstants, PrimitiveConstantsResource{
-  PrimitiveConstants primitiveConstantsArr[];
-});
 
 struct Vertex {
   vec3 position;
