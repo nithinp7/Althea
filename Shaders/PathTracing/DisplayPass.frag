@@ -9,18 +9,12 @@ layout(location=0) out vec4 outColor;
 #include <GlobalIllumination/GIResources.glsl>
 
 void main() {
-#if 0
+#if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
 #else  
   uvec2 pixelPos = uvec2(uv.x * giUniforms.targetWidth, uv.y * giUniforms.targetHeight);
   uint reservoirIdx = pixelPos.x * giUniforms.targetHeight + pixelPos.y;
-  vec3 texSample = vec3(0.0);
-  float wSum = getReservoir(reservoirIdx).wSum;
-  for (int i = 0; i < 8; ++i) {
-    texSample += 
-        0.125 * getReservoir(reservoirIdx).samples[i].radiance 
-        * getReservoir(reservoirIdx).samples[i].W / wSum;
-  }
+  vec3 texSample = integrateReservoir(reservoirIdx);
 #endif 
 
 #ifndef SKIP_TONEMAP

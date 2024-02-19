@@ -10,6 +10,7 @@
 #include <Global/GlobalResources.glsl>
 #include <Global/GlobalUniforms.glsl>
 #include <PrimitiveResources.glsl>
+#include <Misc/Sampling.glsl>
 
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : enable
@@ -102,4 +103,37 @@ BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
+
+vec3 integrateReservoir(uint reservoirIdx) {
+  vec3 irradiance = vec3(0.0);
+  float wSum = getReservoir(reservoirIdx).wSum;
+  for (int i = 0; i < 8; ++i) {
+    irradiance += 
+        0.125 * getReservoir(reservoirIdx).samples[i].radiance 
+        * getReservoir(reservoirIdx).samples[i].W / wSum;
+  }
+
+  return irradiance;
+}
+
+vec3 sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
+  float x = rng(seed) * getReservoir(reservoirIdx).wSum;
+  float p = 0.0;
+  for (int i = 0; i < 8; ++i) {
+    p += getReservoir(reservoirIdx).samples[i].W;
+    if (x <= p || i == 7)
+      return getReservoir(reservoirIdx).samples[i].radiance;
+  }
+}
+
+vec3 sampleReservoirUniform(uint reservoirIdx, inout uvec2 seed) {
+  float x = rng(seed);
+  uint sampleIdx = uint(8.0 * x) % 8;
+  return getReservoir(reservoirIdx).samples[sampleIdx].radiance;
+}
+
+vec2 reprojectToPrevFrameUV(vec4 pos) {
+  vec4 prevScrUvH = globals.projection * globals.prevView * pos;
+  return prevScrUvH.xy / prevScrUvH.w * 0.5 + vec2(0.5);
+}
 #endif // _GIRESOURCES_

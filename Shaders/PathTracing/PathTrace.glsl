@@ -22,6 +22,53 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
+void updateReservoir(bool bCameraMoved, uint reservoirIdx, vec3 color) {
+  // Kick sample with lowest weight
+  uint sampleIdx = getReservoir(reservoirIdx).sampleCount;
+  getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
+  float w = getReservoir(reservoirIdx).samples[sampleIdx].W;
+  if (!bCameraMoved)
+  for (int i = 0; i < 8; ++i) {
+    if (i == sampleIdx)
+      continue;
+    float w1 = getReservoir(reservoirIdx).samples[i].W;
+    if (w1 < w) {
+      sampleIdx = i;
+      w = w1;
+    }
+  }
+
+  getReservoir(reservoirIdx).samples[sampleIdx].radiance = color.rgb;
+
+  // update weights
+  float wSum = 0.0;
+  for (int i = 0; i < 8; ++i) {
+    float w = 
+        i == sampleIdx ? 
+          length(color.rgb) : 
+          length(getReservoir(reservoirIdx).samples[i].radiance);
+    wSum += w;
+    getReservoir(reservoirIdx).samples[i].W = w;
+  }
+
+  getReservoir(reservoirIdx).wSum = wSum;
+}
+
+bool validateColor(inout vec3 color) {
+
+  if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0) {
+    color = vec3(1000.0, 0.0, 0.0);
+    return false;
+  }
+
+  if (isnan(color.x) || isnan(color.y) || isnan(color.z)) {
+    color = vec3(0.0, 1000.0, 0.0);
+    return false;
+  }  
+  
+  return true;
+}
+
 void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
@@ -40,7 +87,7 @@ void main() {
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     payload.o = rayOrigin;
     payload.wo = -rayDir;
@@ -58,15 +105,16 @@ void main() {
         0 /* payload */);
 
     if (i == 0) {
-      // Compute prev screen-pos
-      vec4 prevScrUvH = globals.projection * globals.prevView * payload.p;
-      prevScrUv = prevScrUvH.xy / prevScrUvH.w * 0.5 + vec2(0.5);
+      vec3 pos = payload.p.xyz / payload.p.w;
 
-      depth = length(globals.inverseView[3].xyz - payload.p.xyz / payload.p.w);
-      expectedPrevDepth = length(globals.prevInverseView[3].xyz - payload.p.xyz / payload.p.w);
+      // Compute prev screen-pos
+      prevScrUv = reprojectToPrevFrameUV(payload.p); 
+
+      depth = length(globals.inverseView[3].xyz - pos);
+      expectedPrevDepth = length(globals.prevInverseView[3].xyz - pos);
 
       firstBounceRoughness = payload.roughness;
-      firstBouncePos = payload.p.xyz / payload.p.w;
+      firstBouncePos = pos;
     }
 
     color += throughput * payload.Lo;
@@ -83,15 +131,23 @@ void main() {
     throughput *= payload.throughput;
   }
 
-  vec4 blendedColor = vec4(0.0);
+  mat4 viewDiff = globals.view - globals.prevView;
+  bool bCameraMoved = length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01;
+  
+#if 1
+  uint reservoirIdx = pixelPos.x * gl_LaunchSizeEXT.y + pixelPos.y;
+  updateReservoir(bCameraMoved, reservoirIdx, color.rgb);
+  color.rgb = sampleReservoirWeighted(reservoirIdx, payload.seed); 
+#endif
 
+  bool bReprojectionValid = 
+      prevScrUv.x >= 0.0 && prevScrUv.x <= 1.0 && 
+      prevScrUv.y >= 0.0 && prevScrUv.y <= 1.0;
   vec4 prevColor = texture(prevColorTargetTx, prevScrUv);
   float prevDepth = texture(prevDepthTargetTx, prevScrUv).r;
 
   prevColor.a = min(prevColor.a, 50000.0);
   float depthDiscrepancy = abs(expectedPrevDepth - prevDepth);
-  mat4 viewDiff = globals.view - globals.prevView;
-  bool bCameraMoved = length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01;
   if (bCameraMoved) {
     if (log(depthDiscrepancy + 1.0) > 0.5) {
     //if (depthDiscrepancy > 0.1) {
@@ -107,62 +163,13 @@ void main() {
     }
   }
 
-  if (giUniforms.framesSinceCameraMoved == 0 || 
-      prevScrUv.x < 0.0 || prevScrUv.x > 1.0 || 
-      prevScrUv.y < 0.0 || prevScrUv.y > 1.0) {
-    blendedColor = vec4(color, 1.0);
-  } else {
-    // blendedColor = (color + float(giUniforms.framesSinceCameraMoved) * prevColor) / float(giUniforms.framesSinceCameraMoved + 1);
+  bool bColorValid = validateColor(color);
+  vec4 blendedColor = vec4(color, 1.0);
+  if (bColorValid && bReprojectionValid && giUniforms.framesSinceCameraMoved > 0) {
     blendedColor = vec4(color + prevColor.rgb * prevColor.a, 1.0 + prevColor.a);
     blendedColor.rgb = blendedColor.rgb / blendedColor.a;
   }
 
-  if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0)
-    blendedColor = vec4(1000.0, 0.0, 0.0, 1.0);
-  
-  if (isnan(color.x) || isnan(color.y) || isnan(color.z))
-    blendedColor = vec4(0.0, 1000.0, 0.0, 1.0);
-    
   imageStore(colorTargetImg, pixelPos, blendedColor);
   imageStore(depthTargetImg, pixelPos, vec4(depth, 0.0, 0.0, 1.0));
-
-  uint reservoirIdx = pixelPos.x * gl_LaunchSizeEXT.y + pixelPos.y;
-
-  // Kick sample with lowest weight
-  uint sampleIdx = getReservoir(reservoirIdx).sampleCount;
-  getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
-  float w = getReservoir(reservoirIdx).samples[sampleIdx].W;
-  for (int i = 0; i < 8; ++i) {
-    if (i == sampleIdx)
-      continue;
-    float w1 = getReservoir(reservoirIdx).samples[i].W;
-    if (w1 < w) {
-      sampleIdx = i;
-      w = w1;
-    }
-  }
-
-  // getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
-  getReservoir(reservoirIdx).samples[sampleIdx].radiance = color.rgb;
-  
-  if (bCameraMoved) 
-  {
-    // TODO: Find better approach
-    for (int i = 0; i < 8; ++i) {
-      getReservoir(reservoirIdx).samples[i].radiance = 8.0 * color.rgb;
-    }
-  }
-
-  // update weights
-  float wSum = 0.0;
-  for (int i = 0; i < 8; ++i) {
-    float w = 
-        i == sampleIdx ? 
-          length(color.rgb) : 
-          length(getReservoir(reservoirIdx).samples[i].radiance);
-    wSum += w;
-    getReservoir(reservoirIdx).samples[i].W = w;
-  }
-
-  getReservoir(reservoirIdx).wSum = wSum;
 }
