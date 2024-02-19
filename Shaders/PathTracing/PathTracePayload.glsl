@@ -6,6 +6,7 @@ struct PathTracePayload {
 
   // RAY OUTPUT
   vec4 p; // position of hit
+  vec3 n;
   vec3 wi; // ray continuation direction
   vec3 throughput; // BRDF
   vec3 Lo; // outgoing light

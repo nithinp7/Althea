@@ -100,11 +100,12 @@ void main() {
           payload.wi,
           pdf);
 
-    // TODO: Just for validation
-    // if (f != vec3(0.0))
-    //   f = evaluateBrdf(rayDir, payload.wi, globalNormal, baseColor.rgb, metallicRoughness.x, metallicRoughness.y);
-    
+    // float pdfValidation = evaluateMicrofacetBrdfPdf(payload.wi, rayDir, globalNormal, metallicRoughness.y);
+    // if (abs(pdfValidation - pdf) > 0.1)
+    //   f = vec3(0.0);
+
     payload.p = vec4(worldPos, 1.0);
+    payload.n = globalNormal;
     payload.roughness = metallicRoughness.y;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)

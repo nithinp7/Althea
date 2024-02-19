@@ -116,14 +116,21 @@ vec3 integrateReservoir(uint reservoirIdx) {
   return irradiance;
 }
 
-vec3 sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
+int sampleReservoirIndexWeighted(uint reservoirIdx, inout uvec2 seed) {
   float x = rng(seed) * getReservoir(reservoirIdx).wSum;
   float p = 0.0;
   for (int i = 0; i < 8; ++i) {
     p += getReservoir(reservoirIdx).samples[i].W;
     if (x <= p || i == 7)
-      return getReservoir(reservoirIdx).samples[i].radiance;
+      return i;
   }
+
+  return -1;
+}
+
+vec3 sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
+  int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
+  return getReservoir(reservoirIdx).samples[sampleIdx].radiance;
 }
 
 vec3 sampleReservoirUniform(uint reservoirIdx, inout uvec2 seed) {

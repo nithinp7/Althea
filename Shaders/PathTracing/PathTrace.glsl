@@ -4,13 +4,19 @@
 
 #extension GL_EXT_ray_tracing : enable
 
-// #include "ImportanceSampling.glsl"
-// #include "DirectLightSample.glsl"
 #include <GlobalIllumination/GIResources.glsl>
 
 #include <Misc/Sampling.glsl>
 #include "PathTracePayload.glsl"
+#include "BRDF.glsl"
+
 layout(location = 0) rayPayloadEXT PathTracePayload payload;
+
+bool isValidUV(vec2 uv) {
+  return
+      uv.x >= 0.0 && uv.x <= 1.0 && 
+      uv.y >= 0.0 && uv.y <= 1.0;
+}
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
   const vec2 jitteredPixel = vec2(launchID.xy) + randVec2(payload.seed);
@@ -22,7 +28,7 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
-void updateReservoir(bool bCameraMoved, uint reservoirIdx, vec3 color) {
+void updateReservoir(bool bCameraMoved, uint reservoirIdx, vec3 color, vec3 dir) {
   // Kick sample with lowest weight
   uint sampleIdx = getReservoir(reservoirIdx).sampleCount;
   getReservoir(reservoirIdx).sampleCount = (sampleIdx + 1) % 8;
@@ -39,6 +45,7 @@ void updateReservoir(bool bCameraMoved, uint reservoirIdx, vec3 color) {
   }
 
   getReservoir(reservoirIdx).samples[sampleIdx].radiance = color.rgb;
+  getReservoir(reservoirIdx).samples[sampleIdx].dir = dir;
 
   // update weights
   float wSum = 0.0;
@@ -54,8 +61,37 @@ void updateReservoir(bool bCameraMoved, uint reservoirIdx, vec3 color) {
   getReservoir(reservoirIdx).wSum = wSum;
 }
 
-bool validateColor(inout vec3 color) {
+// TODO: Rename to something better
+vec3 screenSpaceGI(vec3 pos, vec3 rayDir, vec3 N, float roughness, inout uvec2 seed) {
+  vec2 prevUV = reprojectToPrevFrameUV(vec4(pos, 1.0));
+  if (!isValidUV(prevUV)) {
+    // TODO: Need to return invalid bool in this case
+    return vec3(0.0);
+  }
 
+  vec2 pixelPosF = prevUV * vec2(gl_LaunchSizeEXT);
+  ivec2 pixelPos = ivec2(pixelPosF);
+  if (pixelPos.x < 0)
+    pixelPos.x = 0;
+  if (pixelPos.x >= gl_LaunchSizeEXT.x)
+    pixelPos.x = int(gl_LaunchSizeEXT.x);
+  if (pixelPos.y < 0)
+    pixelPos.y = 0;
+  if (pixelPos.y >= gl_LaunchSizeEXT.y)
+    pixelPos.y = int(gl_LaunchSizeEXT.y);
+    
+  uint reservoirIdx = uint(pixelPos.x * gl_LaunchIDEXT.y + pixelPos.y);
+  int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
+  vec3 radiance = getReservoir(reservoirIdx).samples[sampleIdx].radiance;
+  vec3 L = getReservoir(reservoirIdx).samples[sampleIdx].dir;
+  float pdf = evaluateMicrofacetBrdfPdf(L, rayDir, N, roughness);
+  if (pdf < 0.005)
+    return vec3(0.0);
+  
+  return 0.01 * abs(dot(L, N)) * radiance / pdf;
+}
+
+bool validateColor(inout vec3 color) {
   if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0) {
     color = vec3(1000.0, 0.0, 0.0);
     return false;
@@ -83,7 +119,7 @@ void main() {
   float depth = -1.0;
   float firstBounceRoughness = -1.0;
   vec3 firstBouncePos = vec3(0.0);
-  vec3 dbgCol = normalize(rayDir) * 0.5 + vec3(0.5);
+  vec3 firstBounceDir = vec3(0.0);
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
@@ -115,12 +151,21 @@ void main() {
 
       firstBounceRoughness = payload.roughness;
       firstBouncePos = pos;
+      firstBounceDir = payload.wi;
     }
 
     color += throughput * payload.Lo;
 
     if (payload.throughput == vec3(0.0) || payload.p.w == 0.0)
     {
+      break;
+    }
+
+    vec3 p = payload.p.xyz / payload.p.w;
+    // If the current hit location is on-screen, sample the reservoir and early-out
+    vec3 ssgiSample = screenSpaceGI(p, rayDir, payload.n, payload.roughness, payload.seed);
+    if (ssgiSample != vec3(0.0)) {
+      color += throughput * ssgiSample; 
       break;
     }
 
@@ -136,13 +181,10 @@ void main() {
   
 #if 1
   uint reservoirIdx = pixelPos.x * gl_LaunchSizeEXT.y + pixelPos.y;
-  updateReservoir(bCameraMoved, reservoirIdx, color.rgb);
+  updateReservoir(bCameraMoved, reservoirIdx, color.rgb, firstBounceDir);
   color.rgb = sampleReservoirWeighted(reservoirIdx, payload.seed); 
 #endif
 
-  bool bReprojectionValid = 
-      prevScrUv.x >= 0.0 && prevScrUv.x <= 1.0 && 
-      prevScrUv.y >= 0.0 && prevScrUv.y <= 1.0;
   vec4 prevColor = texture(prevColorTargetTx, prevScrUv);
   float prevDepth = texture(prevDepthTargetTx, prevScrUv).r;
 
@@ -163,12 +205,15 @@ void main() {
     }
   }
 
+// hacky temporal filtering...
   bool bColorValid = validateColor(color);
   vec4 blendedColor = vec4(color, 1.0);
-  if (bColorValid && bReprojectionValid && giUniforms.framesSinceCameraMoved > 0) {
+#if 0  
+  if (bColorValid && isValidUV(prevScrUv) && giUniforms.framesSinceCameraMoved > 0) {
     blendedColor = vec4(color + prevColor.rgb * prevColor.a, 1.0 + prevColor.a);
     blendedColor.rgb = blendedColor.rgb / blendedColor.a;
   }
+#endif
 
   imageStore(colorTargetImg, pixelPos, blendedColor);
   imageStore(depthTargetImg, pixelPos, vec4(depth, 0.0, 0.0, 1.0));

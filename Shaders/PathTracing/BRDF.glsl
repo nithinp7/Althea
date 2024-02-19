@@ -145,3 +145,29 @@ vec3 sampleMicrofacetBrdf(
 
   return baseColor * D * G * F / (4.0 * wi.z * wo.z);
 }
+
+float evaluateMicrofacetBrdfPdf(
+    vec3 L,
+    vec3 V,
+    vec3 N,
+    float roughness) {
+  if (roughness < 0.0001) roughness = 0.0001;
+
+  float a = roughness * roughness;
+
+  vec3 H = normalize(V + L);
+  float NdotH = max(dot(N, H), 0.0);
+
+  float cosTheta = NdotH;
+  float cos2Theta = cosTheta * cosTheta;
+  float tan2Theta = 1.0 / cos2Theta - 1.0;
+  float e = tan2Theta / a;
+  if (isinf(e)) return 0.0; // TODO: or 1.0??
+
+  float D = 1.0 / (PI * a * cos2Theta * cosTheta * (1.0 + e) * (1.0 + e));
+    
+  float VdotH = max(dot(V, H), 0.0001);
+  float pdf = D / (4.0 * VdotH);
+
+  return pdf;
+}
