@@ -14,14 +14,6 @@ layout(location = 1) rayPayloadEXT PathTracePayload shadowRayPayload;
 
 #include "BRDF.glsl"
 
-vec3 sampleEnvMap(vec3 dir) {
-  float yaw = atan(dir.z, dir.x);
-  float pitch = -atan(dir.y, length(dir.xz));
-  vec2 envMapUV = vec2(0.5 * yaw, pitch) / PI + 0.5;
-
-  return textureLod(environmentMap, envMapUV, 0.0).rgb;
-} 
-
 #define primInfo getPrimitive(primIdx)
 
 void main() {
@@ -80,12 +72,6 @@ void main() {
 
     vec3 rayDir = -payload.wo;
 
-   // vec3 irradianceColor = sampleIrrMap(globalNormal);
-    // TODO: Might have to handle this logic in AnyHit shader?
-    // if (GBuffer_Albedo.a < primInfo.alphaCutoff) {
-    //   discard;
-    // }
-
     // TODO: Change notation in Payload struct to use wow and wiw (world space)
     float pdf;
     vec3 f = 
@@ -117,8 +103,4 @@ void main() {
     }
 
     payload.Lo = vec3(0.0);
-    // Direct illumination from point lights
-    // payload.Lo = vec3(0.0); 
-    // TODO: Check emissiveness first
-    // Shadow ray to sample env map
 }

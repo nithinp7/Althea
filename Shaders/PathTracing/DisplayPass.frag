@@ -12,9 +12,16 @@ void main() {
 #if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
 #else  
-  uvec2 pixelPos = uvec2(uv.x * giUniforms.targetWidth, uv.y * giUniforms.targetHeight);
-  uint reservoirIdx = pixelPos.x * giUniforms.targetHeight + pixelPos.y;
-  vec3 texSample = integrateReservoir(reservoirIdx);
+  float prevDepth = texture(prevDepthTargetTx, uv).r;
+  // prevDepth = fract(0.5 * log(prevDepth));
+  prevDepth = mod(prevDepth, 10.0);
+  float depth = texture(depthTargetTx, uv).r;
+  // depth = fract(0.5 * log(depth));
+  depth = mod(depth, 10.0);
+  float diff = abs(depth - prevDepth);
+  vec3 texSample = vec3(prevDepth + diff, prevDepth, prevDepth - diff);
+  if (isnan(depth))
+    texSample = vec3(1000., 0.0, 0.0);
 #endif 
 
 #ifndef SKIP_TONEMAP

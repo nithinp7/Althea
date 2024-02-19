@@ -75,6 +75,10 @@ public:
          app.getCurrentFrameRingBufferIndex()});
   }
 
+  void zeroBuffer(VkCommandBuffer commandBuffer) const {
+    vkCmdFillBuffer(commandBuffer, _allocation.getBuffer(), 0, getSize(), 0);
+  }
+  
   void download(std::vector<TElement>& out) const {
     throw std::runtime_error("NOT IMPLEMENTED");
 
