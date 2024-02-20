@@ -70,29 +70,55 @@ void main() {
     //   return;
     // }
 
-    vec3 rayDir = -payload.wo;
+    vec3 rayDir = normalize(-payload.wo);
+
+    vec3 L;
 
     // TODO: Change notation in Payload struct to use wow and wiw (world space)
     float pdf;
     vec3 f = 
         sampleMicrofacetBrdf(
           randVec2(payload.seed),
-          worldPos,
           rayDir,
           globalNormal,
           baseColor.rgb,
           metallicRoughness.x,
           metallicRoughness.y,
-          payload.wi,
+          L,
           pdf);
 
-    // float pdfValidation = evaluateMicrofacetBrdfPdf(payload.wi, rayDir, globalNormal, metallicRoughness.y);
+    payload.Lo = vec3(0.0);
+
+    float pdfValidation = evaluateMicrofacetBrdfPdf(normalize(-payload.wi), normalize(rayDir), globalNormal, metallicRoughness.y);
     // if (abs(pdfValidation - pdf) > 0.1)
-    //   f = vec3(0.0);
+    //   payload.Lo = vec3(10000.0, 0.0, 10000.0);
+
+    bool dbg;
+    vec3 fValidation = 
+        evaluateBrdf(
+          // Why does normalizing this change f?
+          normalize(rayDir), 
+          L, 
+          globalNormal, 
+          baseColor.rgb, 
+          metallicRoughness.x, 
+          metallicRoughness.y, 
+          dbg);
+
+    if (dbg)
+      payload.Lo = vec3(10000.0, 0.0, 0.0);
+    // if (pdf > 0.001 && length(fValidation - f) > 0.5)
+    //   payload.Lo = vec3(0.0, 10000.0, 0.0);
+    f = fValidation;
+    // if (isnan(f.x * f.y * f.z))
+    //   payload.Lo = vec3(0.0, 10000.0, 0.0);
+    // if (f.x < 0.0 || f.y < 0.0 || f.z < 0.0)
+    //   payload.Lo = vec3(0.0, 0.0, 10000.0);
 
     payload.p = vec4(worldPos, 1.0);
     payload.n = globalNormal;
     payload.roughness = metallicRoughness.y;
+    payload.wi = L;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)
     if (f != vec3(0.0))
@@ -102,5 +128,4 @@ void main() {
       payload.throughput = vec3(0.0);
     }
 
-    payload.Lo = vec3(0.0);
 }

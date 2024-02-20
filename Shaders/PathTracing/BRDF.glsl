@@ -77,7 +77,6 @@ float Lambda(vec3 w, float roughness) {
 
 vec3 sampleMicrofacetBrdf(
     vec2 xi,
-    vec3 worldPos,
     vec3 V,
     vec3 N, 
     vec3 baseColor,
@@ -140,6 +139,7 @@ vec3 sampleMicrofacetBrdf(
   // Evaluate the actual brdf
   if (wi.z == 0.0 || wo.z == 0.0) return vec3(0.0);
   if (wh == vec3(0.0)) return vec3(0.0);
+  // TODO: Use metallic
   vec3 F = vec3(1.0);
   float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
 
@@ -177,28 +177,44 @@ float Lambda(float NdotX, float a) {
   // NdotX = abs(NdotX);//max(NdotX, 0.001);
   float NdotX2 = NdotX * NdotX;
   float tan2Theta = (1.0 - NdotX2) / NdotX2;
-  return (-1.0 + sqrt(1.0 + a * tan2Theta)) / 2.0;
+  return (-1.0 + sqrt(max(1.0 + a * tan2Theta, 0.0))) / 2.0;
 }
 
-vec3 evaluateBrdf(vec3 V, vec3 L, vec3 N, vec3 baseColor, float metallic, float roughness)
+vec3 evaluateBrdf(vec3 V, vec3 L, vec3 N, vec3 baseColor, float metallic, float roughness, out bool dbg)
 {
+    dbg = false;
+
     V = -V;
     float NdotV = dot(N, V);
     if (NdotV < 0.0)
       return vec3(0.0);
-    //max(dot(N, -V), 0.0);//abs(dot(N, V));//max(dot(N, -V), 0.0);
-    roughness = max(roughness, 0.01);
+
+    // L = -L;  
+    float NdotL = dot(N, L);//;max(dot(N, L), 0.0);
+    // if (NdotL <= 0.0) 
+    //   dbg = true;
+    // if (NdotL <= 0.0) 
+    //   return vec3(0.0);
+
+    if (roughness < 0.0001) roughness = 0.0001;
     float a = roughness * roughness;
 
     vec3 H = normalize(V + L);
+
+    float NdotH = dot(N,H);//max(dot(N, H), 0.01);
+    if (NdotH < 0.0) {
+      H = -H;
+      NdotH = -NdotH;
+    }
+
     float VdotH = dot(V, H);
+    // if (VdotH < 0.0) {
+    //   VdotH = -VdotH;
+    //   H = -H;
+    // }
     float LdotH = dot(L, H);
 
-    float NdotL = dot(N, L);//;max(dot(N, L), 0.0);
-    if (NdotL < 0.0) 
-      return vec3(0.0);
-    float NdotH = max(dot(N, H), 0.01);
-
+    
     float cosTheta = NdotH;
     float cos2Theta = cosTheta * cosTheta;
     float tan2Theta = 1.0 / cos2Theta - 1.0;
@@ -215,9 +231,17 @@ vec3 evaluateBrdf(vec3 V, vec3 L, vec3 N, vec3 baseColor, float metallic, float 
   //  vec3 F = fresnelSchlick(NdotH, F0, roughness);
     vec3 F = vec3(1.0);
 
-
-    // float G = 1.0;// / (1.0 + Lambda(V, roughness) + Lambda(L, roughness));
     float G = 1.0 / (1.0 + Lambda(NdotV, a) + Lambda(NdotL, a));
+    if (isinf(G)) {
+      dbg = true;
+      return vec3(0.0);
+    }
     
+    // G = max(G, 0.0);
+    NdotL = max(NdotL, 0.0);
+    NdotV = max(NdotV, 0.0);
+    baseColor = abs(baseColor);
+    D = max(D, 0.0);
+    G = max(G, 0.0);
     return baseColor * D * G * F / (4.0 * NdotL * NdotV + 0.001);
 }

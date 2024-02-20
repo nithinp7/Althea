@@ -43,7 +43,7 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
-uint updateReservoir(vec2 scrUv, vec4 pos, vec3 dir, vec3 color) {
+uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
   vec2 prevScrUv = reprojectToPrevFrameUV(pos);
   bool bReprojectionValid = pos.w > 0.0 && isValidUV(prevScrUv);
 
@@ -55,16 +55,12 @@ uint updateReservoir(vec2 scrUv, vec4 pos, vec3 dir, vec3 color) {
 
   bReprojectionValid = bReprojectionValid && bDepthsMatch;
 
-  // TODO: Depth-validate the reprojection...
-  vec2 uv = bReprojectionValid ? prevScrUv : scrUv;
-
-  // ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
-  ivec2 pixelPos = getClosestPixel(uv);
+  ivec2 prevPixelPos = getClosestPixel(prevScrUv);
   
   // The reservoir heap is a ping-pong buffer. This offset can be added to a reservoir
   // index to access the corresponding reservoir in the back-buffer. 
   uint reservoirOffs = gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y;
-  uint prevReservoirIdx = uint(pixelPos.x * gl_LaunchSizeEXT.y + pixelPos.y);
+  uint prevReservoirIdx = uint(prevPixelPos.x * gl_LaunchSizeEXT.y + prevPixelPos.y);
   uint reservoirIdx = uint(gl_LaunchIDEXT.x * gl_LaunchSizeEXT.y + gl_LaunchIDEXT.y);
   if (giUniforms.writeIndex == 0)
     prevReservoirIdx += reservoirOffs;
@@ -216,7 +212,7 @@ void main() {
   // mat4 viewDiff = globals.view - globals.prevView;
   // bool bCameraMoved = length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01;
   
-  uint reservoirIdx = updateReservoir(scrUv, firstBouncePos, firstBounceDir, color.rgb);
+  uint reservoirIdx = updateReservoir(firstBouncePos, firstBounceDir, color.rgb);
   color.rgb = sampleReservoirWeighted(reservoirIdx, payload.seed); 
 
   validateColor(color);
