@@ -107,9 +107,12 @@ void main() {
 
     if (dbg)
       payload.Lo = vec3(10000.0, 0.0, 0.0);
-    // if (pdf > 0.001 && length(fValidation - f) > 0.5)
+    // TODO: visualize discrepancy severity...
+    // if (length(fValidation - f) > 0.5)
     //   payload.Lo = vec3(0.0, 10000.0, 0.0);
     f = fValidation;
+
+
     // if (isnan(f.x * f.y * f.z))
     //   payload.Lo = vec3(0.0, 10000.0, 0.0);
     // if (f.x < 0.0 || f.y < 0.0 || f.z < 0.0)
