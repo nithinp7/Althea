@@ -85,27 +85,29 @@ void main() {
 
     payload.Lo = vec3(0.0);
 
-    float pdfValidation;
-    vec3 fValidation = 
-        evaluateMicrofacetBrdf(
-          payload.wow, 
-          payload.wiw, 
-          globalNormal, 
-          baseColor.rgb, 
-          metallicRoughness.x, 
-          metallicRoughness.y, 
-          pdfValidation);
+    // float pdfValidation;
+    // vec3 fValidation = 
+    //     evaluateMicrofacetBrdf(
+    //       payload.wow, 
+    //       payload.wiw, 
+    //       globalNormal, 
+    //       baseColor.rgb, 
+    //       metallicRoughness.x, 
+    //       metallicRoughness.y, 
+    //       pdfValidation);
 
-    if (f != vec3(0.0) && abs(pdfValidation - pdf) > .05)
-      payload.Lo = vec3(0.0, 0.0, 1000.0);
-    f = fValidation;
-    pdfValidation = pdf;
+    // if (f != vec3(0.0) && abs(pdfValidation - pdf) > .05)
+    //   payload.Lo = vec3(0.0, 0.0, 1000.0);
+    // f = fValidation;
+    // pdfValidation = pdf;
     // if (length(f - fValidation) > 0.5)
     //   payload.Lo = vec3(1000.0, 0.0, 0.0);
     // payload.Lo = baseColor.rgb;
 
     payload.p = vec4(worldPos, 1.0);
     payload.n = globalNormal;
+    payload.baseColor = baseColor.rgb;
+    payload.metallic = metallicRoughness.x;
     payload.roughness = metallicRoughness.y;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)

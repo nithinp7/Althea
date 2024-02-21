@@ -43,7 +43,7 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
-uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
+uint updateReservoir(vec4 pos, vec3 dir, vec3 color, inout uvec2 seed) {
   vec2 prevScrUv = reprojectToPrevFrameUV(pos);
   bool bReprojectionValid = pos.w > 0.0 && isValidUV(prevScrUv);
 
@@ -51,7 +51,7 @@ uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
   // float expectedDepth = length(globals.inverseView[3].xyz / globals.inverseView[3].w - pos.xyz/pos.w); 
   float prevDepth = texture(prevDepthTargetTx, prevScrUv).r;
   float depthDiscrepancy = abs(expectedDepth - prevDepth);
-  bool bDepthsMatch = false;//log(depthDiscrepancy+1.0) < 1.;
+  bool bDepthsMatch = log(depthDiscrepancy+1.0) < 2.;
 
   bReprojectionValid = bReprojectionValid && bDepthsMatch;
 
@@ -77,6 +77,7 @@ uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
     if (sampleCount < 8) {
       sampleIdx = sampleCount++;
     } else {
+#if 0
       // Reservoir full - kick sample with lowest weight
       float w = getReservoir(reservoirIdx).samples[sampleIdx].W;
       for (int i = 1; i < 8; ++i) {
@@ -85,7 +86,11 @@ uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
           sampleIdx = i;
           w = w1;
         }
-      } 
+      }
+#else
+      sampleIdx = uint(sampleReservoirIndexInverseWeighted(reservoirIdx, seed));
+      // sampleIdx = uint(sampleReservoirIndexUniform(reservoirIdx, seed));
+#endif
     }
   }
 
@@ -110,7 +115,7 @@ uint updateReservoir(vec4 pos, vec3 dir, vec3 color) {
 }
 
 // TODO: Rename to something better
-vec3 screenSpaceGI(vec3 pos, vec3 rayDir, vec3 N, float roughness, inout uvec2 seed) {
+vec3 screenSpaceGI(vec3 pos, vec3 rayDir, vec3 N, vec3 baseColor, float metallic, float roughness, inout vec3 wiwOut, inout uvec2 seed) {
   vec2 prevUV = reprojectToPrevFrameUV(vec4(pos, 1.0));
   if (!isValidUV(prevUV)) {
     // TODO: Need to return invalid bool in this case
@@ -125,13 +130,14 @@ vec3 screenSpaceGI(vec3 pos, vec3 rayDir, vec3 N, float roughness, inout uvec2 s
   
   int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
   vec3 radiance = getReservoir(reservoirIdx).samples[sampleIdx].radiance;
-  vec3 L = getReservoir(reservoirIdx).samples[sampleIdx].dir;
-  // TODO:...
-  float pdf = 0.0;// evaluateMicrofacetBrdfPdf(L, rayDir, N, roughness);
-  if (pdf < 0.01)
+  vec3 wiw = getReservoir(reservoirIdx).samples[sampleIdx].dir;
+  float pdf;
+  vec3 f = evaluateMicrofacetBrdf(-rayDir, wiw, N, baseColor, metallic, roughness, pdf);
+  if (pdf == 0.0)
     return vec3(0.0);
   
-  return 0.025 * abs(dot(L, N)) * radiance / pdf;
+  wiwOut = wiw;
+  return f * abs(dot(wiw, N)) / pdf;
 }
 
 bool validateColor(inout vec3 color) {
@@ -163,7 +169,7 @@ void main() {
 
   vec3 throughput = vec3(1.0);
   vec3 color = vec3(0.0);
-  for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < 5; ++i)
   {
     payload.o = rayOrigin;
     payload.wow = -rayDir;
@@ -194,26 +200,27 @@ void main() {
     }
 
     vec3 p = payload.p.xyz / payload.p.w;
-#if 0
+    
+    vec3 localThroughput = payload.throughput;
+    // Set the next GI ray params
+    rayDir = payload.wiw;
+#if 1
     // If the current hit location is on-screen, sample the reservoir and early-out
-    vec3 ssgiSample = screenSpaceGI(p, rayDir, payload.n, payload.roughness, payload.seed);
+    vec3 ssgiSample = screenSpaceGI(p, rayDir, payload.n, payload.baseColor, payload.metallic, payload.roughness, rayDir, payload.seed);
     if (ssgiSample != vec3(0.0)) {
-      color += throughput * ssgiSample; 
-      break;
+      localThroughput = ssgiSample;
     }
 #endif 
 
-    // Set the next GI ray params
-    rayDir = payload.wiw;
     rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;
 
-    throughput *= payload.throughput;
+    throughput *= localThroughput;
   }
 
   // mat4 viewDiff = globals.view - globals.prevView;
   // bool bCameraMoved = length(viewDiff[0]) + length(viewDiff[1]) + length(viewDiff[2]) + length(viewDiff[3]) > 0.01;
   
-  uint reservoirIdx = updateReservoir(firstBouncePos, firstBounceDir, color.rgb);
+  uint reservoirIdx = updateReservoir(firstBouncePos, firstBounceDir, color.rgb, payload.seed);
   color.rgb = sampleReservoirWeighted(reservoirIdx, payload.seed); 
 
   validateColor(color);
