@@ -70,63 +70,48 @@ void main() {
     //   return;
     // }
 
-    vec3 rayDir = normalize(-payload.wo);
-
-    vec3 L;
-
     // TODO: Change notation in Payload struct to use wow and wiw (world space)
     float pdf;
     vec3 f = 
         sampleMicrofacetBrdf(
           randVec2(payload.seed),
-          rayDir,
+          payload.wow,
           globalNormal,
           baseColor.rgb,
           metallicRoughness.x,
           metallicRoughness.y,
-          L,
+          payload.wiw,
           pdf);
 
     payload.Lo = vec3(0.0);
 
-    float pdfValidation = evaluateMicrofacetBrdfPdf(normalize(-payload.wi), normalize(rayDir), globalNormal, metallicRoughness.y);
-    // if (abs(pdfValidation - pdf) > 0.1)
-    //   payload.Lo = vec3(10000.0, 0.0, 10000.0);
-
-    bool dbg;
+    float pdfValidation;
     vec3 fValidation = 
-        evaluateBrdf(
-          // Why does normalizing this change f?
-          normalize(rayDir), 
-          L, 
+        evaluateMicrofacetBrdf(
+          payload.wow, 
+          payload.wiw, 
           globalNormal, 
           baseColor.rgb, 
           metallicRoughness.x, 
           metallicRoughness.y, 
-          dbg);
+          pdfValidation);
 
-    if (dbg)
-      payload.Lo = vec3(10000.0, 0.0, 0.0);
-    // TODO: visualize discrepancy severity...
-    // if (length(fValidation - f) > 0.5)
-    //   payload.Lo = vec3(0.0, 10000.0, 0.0);
+    if (f != vec3(0.0) && abs(pdfValidation - pdf) > .05)
+      payload.Lo = vec3(0.0, 0.0, 1000.0);
     f = fValidation;
-
-
-    // if (isnan(f.x * f.y * f.z))
-    //   payload.Lo = vec3(0.0, 10000.0, 0.0);
-    // if (f.x < 0.0 || f.y < 0.0 || f.z < 0.0)
-    //   payload.Lo = vec3(0.0, 0.0, 10000.0);
+    pdfValidation = pdf;
+    // if (length(f - fValidation) > 0.5)
+    //   payload.Lo = vec3(1000.0, 0.0, 0.0);
+    // payload.Lo = baseColor.rgb;
 
     payload.p = vec4(worldPos, 1.0);
     payload.n = globalNormal;
     payload.roughness = metallicRoughness.y;
-    payload.wi = L;
 
     // TODO: Clamp low pdf samples (avoids fireflies...)
     if (f != vec3(0.0))
     {
-      payload.throughput = f * abs(dot(payload.wi, globalNormal)) / pdf;
+      payload.throughput = f * abs(dot(payload.wiw, globalNormal)) / pdf;
     } else {
       payload.throughput = vec3(0.0);
     }

@@ -77,7 +77,7 @@ float Lambda(vec3 w, float roughness) {
 
 vec3 sampleMicrofacetBrdf(
     vec2 xi,
-    vec3 V,
+    vec3 wow,
     vec3 N, 
     vec3 baseColor,
     float metallic, 
@@ -87,13 +87,13 @@ vec3 sampleMicrofacetBrdf(
     out float pdf) {
   mat3 localToWorld = LocalToWorld(N);
   mat3 worldToLocal = transpose(localToWorld);
-  vec3 wo = worldToLocal * -V;
+  vec3 wo = worldToLocal * wow;
 
   if (wo.z <= 0.0) {
     return vec3(0.0);
   }
 
-  if (roughness < 0.0001) roughness = 0.0001;
+  roughness = max(roughness, 0.0001);
 
   vec3 wh; // sampled half-vector
   float D; // trowbridgeReitzD - differential area
@@ -130,15 +130,12 @@ vec3 sampleMicrofacetBrdf(
 
   pdf = D / (4.0 * woDotwh);
   vec3 wi = reflect(-wo, wh);
-  if (wi.z * wo.z < 0.0) {
-    return vec3(0.0);
-  }
-
   wiw = normalize(localToWorld * wi);
   
   // Evaluate the actual brdf
-  if (wi.z == 0.0 || wo.z == 0.0) return vec3(0.0);
+  if (wi.z <= 0.0 || wo.z <= 0.0) return vec3(0.0);
   if (wh == vec3(0.0)) return vec3(0.0);
+  
   // TODO: Use metallic
   vec3 F = vec3(1.0);
   float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
@@ -146,52 +143,25 @@ vec3 sampleMicrofacetBrdf(
   return baseColor * D * G * F / (4.0 * wi.z * wo.z);
 }
 
-float evaluateMicrofacetBrdfPdf(
-    vec3 L,
-    vec3 V,
-    vec3 N,
-    float roughness) {
-  if (roughness < 0.0001) roughness = 0.0001;
-
-  float a = roughness * roughness;
-
-  vec3 H = normalize(V + L);
-  float NdotH = max(dot(N, H), 0.0);
-
-  float cosTheta = NdotH;
-  float cos2Theta = cosTheta * cosTheta;
-  float tan2Theta = 1.0 / cos2Theta - 1.0;
-  float e = tan2Theta / a;
-  if (isinf(e)) return 0.0; // TODO: or 1.0??
-
-  float D = 1.0 / (PI * a * cos2Theta * cosTheta * (1.0 + e) * (1.0 + e));
-    
-  float VdotH = max(dot(V, H), 0.0001);
-  float pdf = D / (4.0 * VdotH);
-
-  return pdf;
-}
-
-// TODO: wtf is this
+// TODO: look into this
 float Lambda(float NdotX, float a) {
   float NdotX2 = NdotX * NdotX;
   float tan2Theta = (1.0 - NdotX2) / NdotX2;
   return (-1.0 + sqrt(1.0 + a * tan2Theta)) / 2.0;
 }
 
-vec3 evaluateBrdf(vec3 V, vec3 L, vec3 N, vec3 baseColor, float metallic, float roughness, out bool dbg)
+vec3 evaluateMicrofacetBrdf(vec3 wow, vec3 wiw, vec3 N, vec3 baseColor, float metallic, float roughness, out float pdf)
 {
-    dbg = false;
+    pdf = 0.0;
 
-    V = -V;
-    float NdotV = dot(N, V);
-    float NdotL = dot(N, L);
-    if (NdotV < 0.0 || NdotL < 0.0)
+    float NdotV = dot(N, wow);
+    float NdotL = dot(N, wiw);
+    if (NdotV <= 0.0 || NdotL <= 0.0)
       return vec3(0.0);
 
-    vec3 H = normalize(V + L);
+    vec3 H = normalize(wow + wiw);
     float NdotH = dot(N,H);
-    float VdotH = dot(V, H);
+    float VdotH = max(dot(wow, H), 0.0001);
     
     roughness = max(roughness, 0.0001);
     float a = roughness * roughness;
@@ -204,24 +174,13 @@ vec3 evaluateBrdf(vec3 V, vec3 L, vec3 N, vec3 baseColor, float metallic, float 
 
     // trowbridgeReitzD - differential area
     float D = 1.0 / (PI * a * cos2Theta * cosTheta * (1.0 + e) * (1.0 + e));
-    
+    pdf = D / (4.0 * VdotH);
+
     // vec3 F0 = mix(vec3(0.04), baseColor, metallic);
 
   //  vec3 F = fresnelSchlick(NdotH, F0, roughness);
     vec3 F = vec3(1.0);
-
     float G = 1.0 / (1.0 + Lambda(NdotV, a) + Lambda(NdotL, a));
-    if (isinf(G)) {
-      dbg = true;
-      // return vec3(0.0);
-    }
-    
-    // G = max(G, 0.0);
-    
-    // NdotL = max(NdotL, 0.001);
-    // NdotV = max(NdotV, 0.001);
-    // baseColor = abs(baseColor);
-    // D = max(D, 0.0);
-    // G = max(G, 0.0);
+
     return baseColor * D * G * F / (4.0 * NdotL * NdotV);
 }

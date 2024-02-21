@@ -126,7 +126,8 @@ vec3 screenSpaceGI(vec3 pos, vec3 rayDir, vec3 N, float roughness, inout uvec2 s
   int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
   vec3 radiance = getReservoir(reservoirIdx).samples[sampleIdx].radiance;
   vec3 L = getReservoir(reservoirIdx).samples[sampleIdx].dir;
-  float pdf = evaluateMicrofacetBrdfPdf(L, rayDir, N, roughness);
+  // TODO:...
+  float pdf = 0.0;// evaluateMicrofacetBrdfPdf(L, rayDir, N, roughness);
   if (pdf < 0.01)
     return vec3(0.0);
   
@@ -165,7 +166,7 @@ void main() {
   for (int i = 0; i < 3; ++i)
   {
     payload.o = rayOrigin;
-    payload.wo = -rayDir;
+    payload.wow = -rayDir;
     traceRayEXT(
         acc, 
         gl_RayFlagsOpaqueEXT, 
@@ -182,7 +183,7 @@ void main() {
     if (i == 0) {
       firstBounceRoughness = payload.roughness;
       firstBouncePos = payload.p;
-      firstBounceDir = normalize(payload.wi);
+      firstBounceDir = payload.wiw;
     }
 
     color += throughput * payload.Lo;
@@ -203,7 +204,7 @@ void main() {
 #endif 
 
     // Set the next GI ray params
-    rayDir = normalize(payload.wi);
+    rayDir = payload.wiw;
     rayOrigin = payload.p.xyz / payload.p.w + 0.01 * rayDir;
 
     throughput *= payload.throughput;
