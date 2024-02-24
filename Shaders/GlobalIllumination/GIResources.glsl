@@ -51,6 +51,11 @@ SAMPLER2D(textureHeap);
 #define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
 #define brdfLut textureHeap[resources.ibl.brdfLutHandle]
 
+#define gBufferPosition textureHeap[resources.gBuffer.positionHandle]
+#define gBufferNormal textureHeap[resources.gBuffer.normalHandle]
+#define gBufferAlbedo textureHeap[resources.gBuffer.albedoHandle]
+#define gBufferMetallicRoughnessOcclusion textureHeap[resources.gBuffer.metallicRoughnessOcclusionHandle]
+
 IMAGE2D_W(imageHeap);
 
 #define prevColorTargetTx textureHeap[giUniforms.colorSamplers[giUniforms.writeIndex^1]]

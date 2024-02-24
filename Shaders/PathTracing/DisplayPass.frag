@@ -9,19 +9,10 @@ layout(location=0) out vec4 outColor;
 #include <GlobalIllumination/GIResources.glsl>
 
 void main() {
-#if 1
+#if 0
   vec3 texSample = texture(colorTargetTx, uv).rgb;
 #else  
-  float prevDepth = texture(prevDepthTargetTx, uv).r;
-  // prevDepth = fract(0.5 * log(prevDepth));
-  prevDepth = mod(prevDepth, 10.0);
-  float depth = texture(depthTargetTx, uv).r;
-  // depth = fract(0.5 * log(depth));
-  depth = mod(depth, 10.0);
-  float diff = abs(depth - prevDepth);
-  vec3 texSample = vec3(prevDepth + diff, prevDepth, prevDepth - diff);
-  if (isnan(depth))
-    texSample = vec3(1000., 0.0, 0.0);
+  vec3 texSample = texture(gBufferAlbedo, uv).rgb;
 #endif 
 
 #ifndef SKIP_TONEMAP
