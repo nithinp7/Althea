@@ -9,7 +9,7 @@ layout(location=0) out vec4 outColor;
 #include <GlobalIllumination/GIResources.glsl>
 
 void main() {
-#if 0
+#if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
 #else  
   vec3 texSample = texture(gBufferAlbedo, uv).rgb;

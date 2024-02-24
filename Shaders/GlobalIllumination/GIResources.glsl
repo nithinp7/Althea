@@ -26,8 +26,6 @@ UNIFORM_BUFFER(_giUniforms, GIUniforms{
   
   uint colorSamplers[2];
   uint colorTargets[2];
-  uint depthSamplers[2];
-  uint depthTargets[2];
   
   uint targetWidth;
   uint targetHeight;
@@ -63,12 +61,6 @@ IMAGE2D_W(imageHeap);
 
 #define prevColorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex^1]]
 #define colorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex]]
-
-#define prevDepthTargetTx textureHeap[giUniforms.depthSamplers[giUniforms.writeIndex^1]]
-#define depthTargetTx textureHeap[giUniforms.depthSamplers[giUniforms.writeIndex]]
-
-#define prevDepthTargetImg imageHeap[giUniforms.depthTargets[giUniforms.writeIndex^1]]
-#define depthTargetImg imageHeap[giUniforms.depthTargets[giUniforms.writeIndex]]
 
 #ifndef IS_RT_SHADER
 #define IS_RT_SHADER 1
