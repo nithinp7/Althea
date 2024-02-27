@@ -12,10 +12,9 @@ layout(location=5) in mat3 fragTBN;
 layout(location=8) in vec3 worldPos;
 layout(location=9) in vec3 direction;
 
-layout(location=0) out vec4 GBuffer_Position;
-layout(location=1) out vec4 GBuffer_Normal;
-layout(location=2) out vec4 GBuffer_Albedo;
-layout(location=3) out vec4 GBuffer_MetallicRoughnessOcclusion;
+layout(location=0) out vec4 GBuffer_Normal;
+layout(location=1) out vec4 GBuffer_Albedo;
+layout(location=2) out vec4 GBuffer_MetallicRoughnessOcclusion;
 
 layout(set=1, binding=0) uniform ConstantBufferObject {
   vec4 baseColorFactor;
@@ -46,8 +45,6 @@ layout(set=1, binding=5) uniform sampler2D emissiveTexture;
 
 void main() {
   GBuffer_Albedo = texture(baseColorTexture, baseColorUV) * constants.baseColorFactor;
-
-  GBuffer_Position = vec4(worldPos, GBuffer_Albedo.a);
 
   vec3 normalMapSample = texture(normalMapTexture, normalMapUV).rgb;
   vec3 tangentSpaceNormal = 

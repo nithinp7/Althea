@@ -4,7 +4,7 @@
 #include <Bindless/GlobalHeap.glsl>
 
 struct GBufferHandles {
-  uint positionHandle;
+  uint depthHandle;
   uint normalHandle;
   uint albedoHandle;
   uint metallicRoughnessOcclusionHandle;

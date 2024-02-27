@@ -57,65 +57,14 @@ void main() {
     vec2 metallicRoughness = 
         texture(metallicRoughnessTexture(primIdx), v.uvs[primInfo.metallicRoughnessTextureCoordinateIndex]).bg *
         vec2(primInfo.metallicFactor, primInfo.roughnessFactor);
-    float ambientOcclusion = 
-        texture(occlusionTexture(primIdx), v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
-
-    // TODO: Support emissive objects
-    // vec3 emissive = texture(emissiveTexture(primIdx), v.uvs[primInfo.emissiveTextureCoordinateIndex]).rgb * primInfo.emissiveFactor.rgb;
-
-    // if (emissive.x >  0.0 || emissive > 0.0 || emissive > 0.0)
-    // {
-    //   // TODO: Actually allow reflections off of lights
-    //   payload.Lo = emissive;
-    //   return;
-    // }
-
-    // TODO: Change notation in Payload struct to use wow and wiw (world space)
-    float pdf;
-    vec3 f = 
-        sampleMicrofacetBrdf(
-          randVec2(payload.seed),
-          payload.wow,
-          globalNormal,
-          baseColor.rgb,
-          metallicRoughness.x,
-          metallicRoughness.y,
-          payload.wiw,
-          pdf);
-
-    payload.Lo = vec3(0.0);
-
-    // float pdfValidation;
-    // vec3 fValidation = 
-    //     evaluateMicrofacetBrdf(
-    //       payload.wow, 
-    //       payload.wiw, 
-    //       globalNormal, 
-    //       baseColor.rgb, 
-    //       metallicRoughness.x, 
-    //       metallicRoughness.y, 
-    //       pdfValidation);
-
-    // if (f != vec3(0.0) && abs(pdfValidation - pdf) > .05)
-    //   payload.Lo = vec3(0.0, 0.0, 1000.0);
-    // f = fValidation;
-    // pdfValidation = pdf;
-    // if (length(f - fValidation) > 0.5)
-    //   payload.Lo = vec3(1000.0, 0.0, 0.0);
-    // payload.Lo = baseColor.rgb;
+    // float ambientOcclusion = 
+    //     texture(occlusionTexture(primIdx), v.uvs[primInfo.occlusionTextureCoordinateIndex]).r * primInfo.occlusionStrength;
 
     payload.p = vec4(worldPos, 1.0);
     payload.n = globalNormal;
+
     payload.baseColor = baseColor.rgb;
+    payload.emissive = texture(emissiveTexture(primIdx), v.uvs[primInfo.emissiveTextureCoordinateIndex]).rgb * primInfo.emissiveFactor.rgb;
     payload.metallic = metallicRoughness.x;
     payload.roughness = metallicRoughness.y;
-
-    // TODO: Clamp low pdf samples (avoids fireflies...)
-    if (f != vec3(0.0))
-    {
-      payload.throughput = f * abs(dot(payload.wiw, globalNormal)) / pdf;
-    } else {
-      payload.throughput = vec3(0.0);
-    }
-
 }

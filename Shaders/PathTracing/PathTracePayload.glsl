@@ -5,12 +5,10 @@ struct PathTracePayload {
   uvec2 seed;
 
   // RAY OUTPUT
-  vec4 p; // position of hit
+  vec4 p;
   vec3 n;
-  vec3 wiw; // ray continuation direction
-  vec3 throughput; // BRDF
-  vec3 Lo; // outgoing light
   vec3 baseColor;
+  vec3 emissive;
   float metallic;
-  float roughness; // surface roughness at p
+  float roughness;
 };

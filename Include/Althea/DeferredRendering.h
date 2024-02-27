@@ -20,14 +20,17 @@ class Application;
 class GlobalHeap;
 
 struct ALTHEA_API GBufferHandles {
-  uint32_t positionHandle;
+  uint32_t depthHandle;
   uint32_t normalHandle;
   uint32_t albedoHandle;
   uint32_t metallicRoughnessOcclusionHandle;
 };
 
+class SubpassBuilder;
+
 class ALTHEA_API GBufferResources {
 public:
+  static void setupAttachments(SubpassBuilder& subpassBuilder);
   static void buildMaterial(
       DescriptorSetLayoutBuilder& builder,
       VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL);
@@ -50,7 +53,7 @@ public:
 
   GBufferHandles getHandles() const {
     return {
-      this->_positionHandle.index,
+      this->_depthHandle.index,
       this->_normalHandle.index,
       this->_albedoHandle.index,
       this->_metallicRoughnessOcclusionHandle.index
@@ -58,12 +61,12 @@ public:
   }
 
 private:
-  ImageResource _position{};
+  ImageResource _depth{};
   ImageResource _normal{};
   ImageResource _albedo{};
   ImageResource _metallicRoughnessOcclusion{};
 
-  TextureHandle _positionHandle{};
+  TextureHandle _depthHandle{};
   TextureHandle _normalHandle{};
   TextureHandle _albedoHandle{};
   TextureHandle _metallicRoughnessOcclusionHandle{};

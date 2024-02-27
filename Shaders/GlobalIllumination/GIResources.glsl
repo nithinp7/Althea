@@ -49,10 +49,40 @@ SAMPLER2D(textureHeap);
 #define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
 #define brdfLut textureHeap[resources.ibl.brdfLutHandle]
 
-#define gBufferPosition textureHeap[resources.gBuffer.positionHandle]
+vec3 sampleEnvMap(vec3 dir) {
+  float yaw = atan(dir.z, dir.x);
+  float pitch = -atan(dir.y, length(dir.xz));
+  vec2 envMapUV = vec2(0.5 * yaw, pitch) / PI + 0.5;
+
+  return textureLod(environmentMap, envMapUV, 0.0).rgb;
+} 
+
+#define gBufferDepth textureHeap[resources.gBuffer.depthHandle]
 #define gBufferNormal textureHeap[resources.gBuffer.normalHandle]
 #define gBufferAlbedo textureHeap[resources.gBuffer.albedoHandle]
 #define gBufferMetallicRoughnessOcclusion textureHeap[resources.gBuffer.metallicRoughnessOcclusionHandle]
+
+vec3 reconstructPosition(vec2 uv) {
+  float dRaw = texture(gBufferDepth, uv).r;
+
+  // TODO: Stop hardcoding this
+  float near = 0.01;
+  float far = 1000.0;
+  float d = far * near / (dRaw * (far - near) - far);
+
+  vec2 ndc = 2.0 * uv - vec2(1.0);
+
+  vec4 camPlanePos = vec4(ndc, 2.0, 1.0);
+  vec4 dirH = globals.inverseProjection * camPlanePos;
+  dirH.xyz /= dirH.w;
+  dirH.w = 0.0;
+  dirH = globals.inverseView * dirH;
+  vec3 dir = normalize(dirH.xyz);
+
+  float f = dot(dir, globals.inverseView[2].xyz);
+
+  return globals.inverseView[3].xyz + d * dir / f;
+}
 
 IMAGE2D_W(imageHeap);
 

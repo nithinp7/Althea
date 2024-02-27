@@ -49,30 +49,54 @@ bool validateColor(inout vec3 color) {
 
 vec3 trace() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
-  vec2 scrUv = vec2(pixelPos) / vec2(gl_LaunchSizeEXT);
+  vec2 jitter = vec2(0.5);//randVec2(payload.seed);
+  vec2 scrUv = (vec2(pixelPos) + jitter) / vec2(gl_LaunchSizeEXT);
 
-  vec4 gb_pos = texture(gBufferPosition, scrUv);
-  if (gb_pos.a == 0.0)
-    return vec3(0.0);
+  vec2 ndc = scrUv * 2.0 - 1.0;
+  vec4 camPlanePos = globals.inverseProjection * vec4(ndc.x, ndc.y, 1, 1);
+  vec3 wow = -(globals.inverseView*vec4(normalize(camPlanePos.xyz), 0)).xyz;
+
+  vec4 gb_albedo = texture(gBufferAlbedo, scrUv);
+  if (gb_albedo.a == 0.0) {
+    return sampleEnvMap(-wow);
+  }
   
-  vec3 gb_normal = texture(gBufferNormal, scrUv).rgb;
-  vec3 gb_albedo = texture(gBufferAlbedo, scrUv).rgb;
+  vec3 position = reconstructPosition(scrUv);
+  vec3 gb_normal = normalize(texture(gBufferNormal, scrUv).rgb);
   vec3 gb_metallicRoughnessOcclusion = texture(gBufferMetallicRoughnessOcclusion, scrUv).rgb;
 
   payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.framesSinceCameraMoved+1, giUniforms.framesSinceCameraMoved+2);
 
-  vec3 wow = normalize(globals.inverseView[3].xyz - gb_pos.xyz);
-  // TODO:
+#if 0
   vec3 wiw = reflect(-wow, gb_normal);
-  vec3 p = gb_pos.xyz + wiw * 0.01;
+  float pdf = 1.0;
+  vec3 f = vec3(0.0);
+#else 
+  vec3 wiw;
+  float pdf;
+  vec3 f = 
+      sampleMicrofacetBrdf(
+        randVec2(payload.seed),
+        wow,
+        gb_normal,
+        gb_albedo.rgb,
+        gb_metallicRoughnessOcclusion.x,
+        gb_metallicRoughnessOcclusion.y,
+        wiw,
+        pdf);
+#endif
+  // return fract(0.1 * position.xyz);
+  vec3 p = position + wiw * 0.1;
 
   vec3 color = vec3(0.0);
+  if (pdf > 0.0001)
   {
     payload.o = p;
     payload.wow = -wiw;
     traceRayEXT(
         acc, 
         gl_RayFlagsOpaqueEXT, 
+        // gl_RayFlagsCullBackFacingTrianglesEXT,
         0xff, 
         0, // sbtOffset
         0, // sbtStride, 
@@ -83,11 +107,20 @@ vec3 trace() {
         1000.0, 
         0 /* payload */);
 
+#if 0
     if (payload.p.w > 0.0)
     {
-      p = payload.p.xyz / payload.p.w;
-      color = payload.baseColor;
+      // p = payload.p.xyz / payload.p.w;
+      color = payload.baseColor + payload.emissive;
+    } else {
+      color = payload.emissive;
     }
+#else 
+    if (payload.emissive != vec3(0.0))
+    {
+      color = f * max(dot(wiw, gb_normal), 0.0) * payload.emissive / pdf;
+    }
+#endif
   }
 
   return color;
@@ -97,6 +130,6 @@ void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
 
   vec3 color = trace();
-  validateColor(color);
+  // validateColor(color);
   imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

@@ -12,7 +12,7 @@ void main() {
 #if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
 #else  
-  vec3 texSample = texture(gBufferAlbedo, uv).rgb;
+  vec3 texSample = texture(gBufferNormal, uv).rgb;
 #endif 
 
 #ifndef SKIP_TONEMAP

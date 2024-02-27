@@ -4,9 +4,21 @@
 #include "GlobalHeap.h"
 #include "Image.h"
 #include "ImageView.h"
+#include "RenderPass.h"
 #include "Sampler.h"
 
 namespace AltheaEngine {
+/*static*/
+void GBufferResources::setupAttachments(SubpassBuilder& builder) {
+  // The GBuffer contains the following color attachments
+  // 0. Normal
+  // 1. Albedo
+  // 2. Metallic-Roughness-Occlusion
+  // 3. Depth
+  builder.colorAttachments = {0, 1, 2};
+  builder.depthAttachment = 3;
+}
+
 /*static*/
 void GBufferResources::buildMaterial(
     DescriptorSetLayoutBuilder& builder,
@@ -26,6 +38,29 @@ GBufferResources::GBufferResources(const Application& app) {
   const VkExtent2D& extent = app.getSwapChainExtent();
 
   // Create image resources for the GBuffer
+
+  ImageOptions depthOptions{};
+  depthOptions.width = extent.width;
+  depthOptions.height = extent.height;
+  // TODO: change mipcount? HZB?
+  depthOptions.mipCount = 1;
+  depthOptions.layerCount = 1;
+  depthOptions.format = app.getDepthImageFormat();
+  // TODO: stencil bit?
+  depthOptions.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  depthOptions.usage =
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  this->_depth.image = Image(app, depthOptions);
+
+  ImageViewOptions depthViewOptions{};
+  depthViewOptions.format = app.getDepthImageFormat();
+  depthViewOptions.aspectFlags = depthOptions.aspectMask;
+  this->_depth.view = ImageView(app, this->_depth.image, depthViewOptions);
+
+  SamplerOptions depthSampler{};
+  this->_depth.sampler = Sampler(app, depthSampler);
+
   ImageOptions imageOptions{};
   imageOptions.width = extent.width;
   imageOptions.height = extent.height;
@@ -40,10 +75,6 @@ GBufferResources::GBufferResources(const Application& app) {
   viewOptions.type = VK_IMAGE_VIEW_TYPE_2D;
   viewOptions.format = VK_FORMAT_R16G16B16A16_SFLOAT;
   viewOptions.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-
-  this->_position.image = Image(app, imageOptions);
-  this->_position.sampler = Sampler(app, samplerOptions);
-  this->_position.view = ImageView(app, this->_position.image, viewOptions);
 
   this->_normal.image = Image(app, imageOptions);
   this->_normal.sampler = Sampler(app, samplerOptions);
@@ -63,20 +94,11 @@ GBufferResources::GBufferResources(const Application& app) {
   VkClearValue posClear;
   posClear.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
   VkClearValue colorClear;
-  colorClear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+  colorClear.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
   VkClearValue depthClear;
   depthClear.depthStencil = {1.0f, 0};
 
-  this->_attachmentDescriptions = {// GBuffer Position
-                                   Attachment{
-                                       ATTACHMENT_FLAG_COLOR,
-                                       VK_FORMAT_R16G16B16A16_SFLOAT,
-                                       posClear,
-                                       false,
-                                       false,
-                                       true},
-
-                                   // GBuffer Normal
+  this->_attachmentDescriptions = {// GBuffer Normal
                                    Attachment{
                                        ATTACHMENT_FLAG_COLOR,
                                        VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -113,15 +135,14 @@ GBufferResources::GBufferResources(const Application& app) {
                                        true}};
 
   this->_attachmentViews = {
-      this->_position.view,
       this->_normal.view,
       this->_albedo.view,
       this->_metallicRoughnessOcclusion.view,
-      app.getDepthImageView()};
+      this->_depth.view};
 }
 
 void GBufferResources::bindTextures(ResourcesAssignment& assignment) const {
-  assignment.bindTexture(this->_position)
+  assignment.bindTexture(this->_depth)
       .bindTexture(this->_normal)
       .bindTexture(this->_albedo)
       .bindTexture(this->_metallicRoughnessOcclusion);
@@ -129,11 +150,12 @@ void GBufferResources::bindTextures(ResourcesAssignment& assignment) const {
 
 void GBufferResources::transitionToAttachment(VkCommandBuffer commandBuffer) {
   // Transition GBuffer to attachment
-  this->_position.image.transitionLayout(
+  this->_depth.image.transitionLayout(
       commandBuffer,
-      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
   this->_normal.image.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -152,7 +174,7 @@ void GBufferResources::transitionToAttachment(VkCommandBuffer commandBuffer) {
 }
 
 void GBufferResources::transitionToTextures(VkCommandBuffer commandBuffer) {
-  this->_position.image.transitionLayout(
+  this->_depth.image.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT,
@@ -175,15 +197,15 @@ void GBufferResources::transitionToTextures(VkCommandBuffer commandBuffer) {
 }
 
 void GBufferResources::registerToHeap(GlobalHeap& heap) {
-  this->_positionHandle = heap.registerTexture();
+  this->_depthHandle = heap.registerTexture();
   this->_normalHandle = heap.registerTexture();
   this->_albedoHandle = heap.registerTexture();
   this->_metallicRoughnessOcclusionHandle = heap.registerTexture();
 
   heap.updateTexture(
-      this->_positionHandle,
-      this->_position.view,
-      this->_position.sampler);
+      this->_depthHandle,
+      this->_depth.view,
+      this->_depth.sampler);
   heap.updateTexture(
       this->_normalHandle,
       this->_normal.view,

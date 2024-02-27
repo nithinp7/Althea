@@ -26,7 +26,7 @@ layout(push_constant) uniform PushConstants {
 #define irradianceMap RESOURCE(textureHeap, resources.ibl.irradianceMapHandle)
 #define brdfLut RESOURCE(textureHeap, resources.ibl.brdfLutHandle)
 
-#define gBufferPosition RESOURCE(textureHeap, resources.gBuffer.positionHandle)
+#define gBufferDepth RESOURCE(textureHeap, resources.gBuffer.depthHandle)
 #define gBufferNormal RESOURCE(textureHeap, resources.gBuffer.normalHandle)
 #define gBufferAlbedo RESOURCE(textureHeap, resources.gBuffer.albedoHandle)
 #define gBufferMetallicRoughnessOcclusion RESOURCE(textureHeap, resources.gBuffer.metallicRoughnessOcclusionHandle)
@@ -36,6 +36,29 @@ SAMPLERCUBEARRAY(cubemapHeap);
 #define pointLightArr RESOURCE(pointLights, globals.lightBufferHandle).pointLightArr
 
 #include <PBR/PBRMaterial.glsl>
+
+// TODO: NEED TO CONSOLIDATE ALL THIS GBUFFER STUFF
+vec3 reconstructPosition(vec2 uv) {
+  float dRaw = texture(gBufferDepth, uv).r;
+
+  // TODO: Stop hardcoding this
+  float near = 0.01;
+  float far = 1000.0;
+  float d = far * near / (dRaw * (far - near) - far);
+
+  vec2 ndc = 2.0 * uv - vec2(1.0);
+
+  vec4 camPlanePos = vec4(ndc, 2.0, 1.0);
+  vec4 dirH = globals.inverseProjection * camPlanePos;
+  dirH.xyz /= dirH.w;
+  dirH.w = 0.0;
+  dirH = globals.inverseView * dirH;
+  vec3 dir = normalize(dirH.xyz);
+
+  float f = dot(dir, globals.inverseView[2].xyz);
+
+  return globals.inverseView[3].xyz + d * dir / f;
+}
 
 vec3 sampleEnvMap(vec3 dir) {
   float yaw = atan(dir.z, dir.x);
@@ -93,7 +116,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
 
     // TODO: Check for invalid position
     
-    vec3 currentPos = textureLod(gBufferPosition, currentUV, 0.0).xyz;
+    vec3 currentPos = reconstructPosition(currentUV);
     vec3 dir = currentPos - worldPos;
     float currentProjection = dot(dir, perpRef);
 
@@ -119,13 +142,14 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
 }
 
 void main() {
-  vec4 position = texture(gBufferPosition, uv).rgba;
-  if (position.a == 0.0) {
+  vec4 normal4 = texture(gBufferNormal, uv);
+  if (normal4.a == 0.0) {
     // Nothing in the GBuffer, draw the environment map
     reflectedColor = vec4(0.0);
   }
 
-  vec3 normal = normalize(texture(gBufferNormal, uv).xyz);
+  vec3 position = reconstructPosition(uv);
+  vec3 normal = normalize(normal4.xyz);
   vec3 reflectedDirection = reflect(normalize(direction), normal);
 
   reflectedColor = raymarchGBuffer(uv, position.xyz, normal, reflectedDirection);

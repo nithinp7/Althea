@@ -24,9 +24,7 @@ DebugDraw::DebugDraw(
   {
     SubpassBuilder& subpassBuilder = builders.emplace_back();
 
-    // GBuffer and depth attachments
-    subpassBuilder.colorAttachments = {0, 1, 2, 3};
-    subpassBuilder.depthAttachment = 4;
+    GBufferResources::setupAttachments(subpassBuilder);
 
     ShaderDefines defs;
     defs.emplace("DEBUG_BUFFER_BINDING", std::to_string(debugBufferBinding));

@@ -5,6 +5,7 @@
 #include "ConfigParser.h"
 #include "DeletionTasks.h"
 #include "FrameContext.h"
+#include "ImageResource.h"
 #include "Image.h"
 #include "ImageView.h"
 #include "InputManager.h"
@@ -113,8 +114,6 @@ private:
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
 
-  Image depthImage;
-  ImageView depthImageView;
   VkFormat depthImageFormat;
 
   VkCommandPool commandPool;
@@ -171,8 +170,6 @@ private:
   void createSwapChain();
   void cleanupSwapChain();
   void recreateSwapChain();
-  void createDepthResource();
-  void cleanupDepthResource();
   void createCommandPool();
   void createCommandBuffers();
   void createSyncObjects();
@@ -222,10 +219,6 @@ public:
   }
 
   VkFormat getDepthImageFormat() const { return depthImageFormat; }
-
-  VkImageView getDepthImageView() const { return depthImageView; }
-
-  Image& getDepthImage() { return depthImage; }
 
   bool hasStencilComponent() const;
 

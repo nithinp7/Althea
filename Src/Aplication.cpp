@@ -94,7 +94,8 @@ void Application::initVulkan() {
       this->device,
       this->physicalDevice);
 
-  createDepthResource();
+  depthImageFormat = findDepthFormat();
+
   initDefaultTextures(*this);
   createCommandBuffers();
   createSyncObjects();
@@ -205,7 +206,6 @@ void Application::cleanup() {
   this->deletionTasks.flush();
 
   cleanupSwapChain();
-  cleanupDepthResource();
 
   destroyDefaultTextures();
 
@@ -835,11 +835,6 @@ void Application::cleanupSwapChain() {
   vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
-void Application::cleanupDepthResource() {
-  depthImageView = ImageView();
-  depthImage = Image();
-}
-
 void Application::recreateSwapChain() {
   int width = 0;
   int height = 0;
@@ -854,11 +849,8 @@ void Application::recreateSwapChain() {
   this->gameInstance->destroyRenderState(*this);
 
   cleanupSwapChain();
-  cleanupDepthResource();
-
   createSwapChain();
-  createDepthResource();
-
+  
   this->gameInstance->createRenderState(*this);
 }
 
@@ -895,36 +887,6 @@ VkFormat Application::findDepthFormat() {
 bool Application::hasStencilComponent() const {
   return depthImageFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
          depthImageFormat == VK_FORMAT_D24_UNORM_S8_UINT;
-}
-
-void Application::createDepthResource() {
-  depthImageFormat = findDepthFormat();
-  ImageOptions options{};
-  options.width = swapChainExtent.width;
-  options.height = swapChainExtent.height;
-  // TODO: change mipcount? HZB?
-  options.mipCount = 1;
-  options.layerCount = 1;
-  options.format = depthImageFormat;
-  // TODO: stencil bit?
-  options.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-  options.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-  SingleTimeCommandBuffer commandBuffer(*this);
-
-  depthImage = Image(*this, options);
-
-  ImageViewOptions depthViewOptions{};
-  depthViewOptions.format = depthImageFormat;
-  depthViewOptions.aspectFlags = options.aspectMask;
-  depthImageView = ImageView(*this, depthImage, depthViewOptions);
-
-  depthImage.transitionLayout(
-      commandBuffer,
-      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 }
 
 void Application::createCommandPool() {
