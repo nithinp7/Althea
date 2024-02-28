@@ -99,7 +99,7 @@ IMAGE2D_W(imageHeap);
 #if IS_RT_SHADER
 TLAS(tlasHeap);
 #define acc tlasHeap[giUniforms.tlas]
-#endif 
+#endif // IS_RT_SHADER
 
 struct GISample {
   vec3 dir;
@@ -191,4 +191,47 @@ vec2 reprojectToPrevFrameUV(vec4 pos) {
   vec4 prevScrUvH = globals.projection * globals.prevView * pos;
   return prevScrUvH.xy / prevScrUvH.w * 0.5 + vec2(0.5);
 }
+
+vec2 projectToUV(vec4 pos) {
+  vec4 scrUvH = globals.projection * globals.view * pos;
+  return scrUvH.xy / scrUvH.w * 0.5 + vec2(0.5);
+}
+
+bool isValidUV(vec2 uv) {
+  return
+      uv.x >= 0.0 && uv.x <= 1.0 && 
+      uv.y >= 0.0 && uv.y <= 1.0;
+}
+
+#if IS_RT_SHADER
+ivec2 getClosestPixel(vec2 uv) {
+  vec2 pixelPosF = uv * vec2(gl_LaunchSizeEXT); 
+  ivec2 pixelPos = ivec2(pixelPosF);
+  if (pixelPos.x < 0)
+    pixelPos.x = 0;
+  if (pixelPos.x >= gl_LaunchSizeEXT.x)
+    pixelPos.x = int(gl_LaunchSizeEXT.x-1);
+  if (pixelPos.y < 0)
+    pixelPos.y = 0;
+  if (pixelPos.y >= gl_LaunchSizeEXT.y)
+    pixelPos.y = int(gl_LaunchSizeEXT.y-1);
+    
+  return pixelPos;
+}
+#endif // IS_RT_SHADER
+
+bool validateColor(inout vec3 color) {
+  if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0) {
+    color = vec3(1000.0, 0.0, 0.0);
+    return false;
+  }
+
+  if (isnan(color.x) || isnan(color.y) || isnan(color.z)) {
+    color = vec3(0.0, 1000.0, 0.0);
+    return false;
+  }  
+  
+  return true;
+}
+
 #endif // _GIRESOURCES_
