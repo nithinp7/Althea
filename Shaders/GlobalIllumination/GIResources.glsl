@@ -102,9 +102,9 @@ TLAS(tlasHeap);
 #endif // IS_RT_SHADER
 
 struct GISample {
-  vec3 dir;
-  float W;
-  vec3 radiance;
+  vec3 wiw;
+  float w;
+  vec3 Li;
   float padding; 
 };
 
@@ -149,16 +149,16 @@ int sampleReservoirIndexWeighted(uint reservoirIdx, inout uvec2 seed) {
   uint sampleCount = getReservoir(reservoirIdx).sampleCount;
   for (int i = 0; i < sampleCount; ++i) {
     p += getReservoir(reservoirIdx).samples[i].W;
-    if (x <= p || i == sampleCount)
+    if (x <= p || i == sampleCount-1)
       return i;
   }
 
   return -1;
 }
 
-vec3 sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
+GISample sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
   int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
-  return getReservoir(reservoirIdx).samples[sampleIdx].radiance;
+  return getReservoir(reservoirIdx).samples[sampleIdx];
 }
 
 int sampleReservoirIndexInverseWeighted(uint reservoirIdx, inout uvec2 seed) {

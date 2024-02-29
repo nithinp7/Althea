@@ -14,7 +14,9 @@
 
 layout(location = 0) rayPayloadEXT PathTracePayload payload;
 
-vec3 directSample(out Li, out vec3 wiw, out float pdf) {
+bool directSample(out GISample result, out vec3 color) {
+  vec3 color = vec3(0.0);
+
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = (vec2(pixelPos) + vec2(0.5)) / vec2(gl_LaunchSizeEXT);
 
@@ -24,9 +26,8 @@ vec3 directSample(out Li, out vec3 wiw, out float pdf) {
 
   vec4 gb_albedo = texture(gBufferAlbedo, scrUv);
   if (gb_albedo.a == 0.0) {
-    // TODO: ???
-    pdf = 0.0;
-    return sampleEnvMap(-wow); 
+    color = sampleEnvMap(-wow);
+    return false; 
   }
   
   vec3 position = reconstructPosition(scrUv);
@@ -35,6 +36,7 @@ vec3 directSample(out Li, out vec3 wiw, out float pdf) {
 
   payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.framesSinceCameraMoved+1, giUniforms.framesSinceCameraMoved+2);
 
+  float pdf;
   vec3 f = 
       sampleMicrofacetBrdf(
         randVec2(payload.seed),
@@ -43,15 +45,16 @@ vec3 directSample(out Li, out vec3 wiw, out float pdf) {
         gb_albedo.rgb,
         gb_metallicRoughnessOcclusion.x,
         gb_metallicRoughnessOcclusion.y,
-        wiw,
+        result.wiw,
         pdf);
 
-  vec3 p = position + wiw * 0.1;
+  vec3 p = position + result.wiw * 0.1;
 
-  Li = vec3(0.0);
-  vec3 color = vec3(0.0);
+  result.Li = vec3(0.0);
   if (pdf > 0.0001)
   {
+    result.w = 1.0 / pdf;
+
     payload.o = p;
     payload.wow = -wiw;
     traceRayEXT(
@@ -70,12 +73,12 @@ vec3 directSample(out Li, out vec3 wiw, out float pdf) {
 
     if (payload.emissive != vec3(0.0))
     {
-      Li = payload.emissive;
-      color = f * max(dot(wiw, gb_normal), 0.0) * payload.emissive / pdf;
+      result.Li = payload.emissive;
+      color = f * max(dot(result.wiw, gb_normal), 0.0) * result.Li * result.w;
     }
   }
 
-  return color;
+  return true;
 }
 
 void main() {
@@ -83,22 +86,19 @@ void main() {
   
   uint writeIdxOffset = 
       uint(giUniforms.writeIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
-  uint reservoirIdx = 
+  uint writeReservoirIdx = 
       uint(gl_LaunchIDEXT.x * gl_LaunchSizeEXT.y + gl_LaunchIDEXT.y) + writeIdxOffset;
 
-  vec3 Li;
-  vec3 wiw;
-  float pdf;
-  vec3 color = directSample(Li, wiw, pdf);
+  vec3 color; 
 
-  if (pdf > 0.01) 
-  {
-    getReservoir(reservoirIdx).samples[0].radiance = Li;
-    getReservoir(reservoirIdx).samples[0].dir = wiw;
-    getReservoir(reservoirIdx).samples[0].W = 1.0 / pdf;
+  // TODO: Temporal resampling...
+  
+  GISample newSample;
+  if (directSample(newSample, color)) {
+    getReservoir(reservoirIdx).samples[sampleIdx] = newSample;
     getReservoir(reservoirIdx).sampleCount = 1;
   }
 
-  validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // validateColor(color);
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }
