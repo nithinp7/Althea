@@ -16,8 +16,16 @@ layout(location = 0) rayPayloadEXT PathTracePayload payload;
 
 uvec2 seed;
 
-bool findNearbySample(vec2 uv, vec3 p0, out GISample nearbySample) {
-  vec2 nearbyUv = uv + 10.0 * randVec2(seed) / vec2(gl_LaunchSizeEXT);
+#define KERNEL_RADIUS 100.0
+
+bool findNearbySample(vec2 uv, vec3 p0, out float kernelPdf, out uint nearbyReservoirIdx) {
+  vec2 relRadius = 2.0 * randVec2(seed) - vec2(1.0);
+  kernelPdf = length(relRadius);
+  kernelPdf = exp(-kernelPdf * kernelPdf);
+  // kernelPdf = max(1.0 - length(relRadius), 0.0) + 0.01;
+  // kernelPdf = exp(-kernelPdf);
+  vec2 duv = KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
+  vec2 nearbyUv = uv + duv;
   if (!isValidUV(nearbyUv)) {
     return false;
   }
@@ -25,7 +33,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out GISample nearbySample) {
   vec3 p1 = reconstructPosition(nearbyUv);
 
   float posDiscrepancy = length(p0 - p1);
-  if (posDiscrepancy > 1.0)
+  if (posDiscrepancy > 10.0)
   {
     return false;
   }
@@ -34,10 +42,17 @@ bool findNearbySample(vec2 uv, vec3 p0, out GISample nearbySample) {
   // Should fix these semantics... read idx here was the write idx in the direct sampling pass...
   uint readIdxOffset = 
       uint(giUniforms.writeIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
-  uint nearbyReservoirIdx = uint(nearbyPx.x * gl_LaunchSizeEXT.y + nearbyPx.y) + readIdxOffset;
+  nearbyReservoirIdx = uint(nearbyPx.x * gl_LaunchSizeEXT.y + nearbyPx.y) + readIdxOffset;
 
-  nearbySample = getReservoir(nearbyReservoirIdx).samples[0];
+  return true;
 }
+
+struct SpatialSample {
+  vec3 irradiance;
+  float phat;
+  float resamplingWeight;
+  uint reservoirIdx;
+};
 
 void main() {
   seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.framesSinceCameraMoved+1, giUniforms.framesSinceCameraMoved+2);
@@ -45,18 +60,20 @@ void main() {
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = (vec2(pixelPos) + vec2(0.5)) / vec2(gl_LaunchSizeEXT);
 
+  vec2 ndc = scrUv * 2.0 - 1.0;
+  vec4 camPlanePos = globals.inverseProjection * vec4(ndc.x, ndc.y, 1, 1);
+  vec3 wow = -(globals.inverseView*vec4(normalize(camPlanePos.xyz), 0)).xyz;
+
   vec4 gb_albedo = texture(gBufferAlbedo, scrUv);
   if (gb_albedo.a == 0.0) {
+    vec3 envSample = sampleEnvMap(-wow);
+    imageStore(colorTargetImg, pixelPos, vec4(envSample, 1.0));
     return;
   }
 
   vec3 p0 = reconstructPosition(scrUv);
   vec3 gb_normal = normalize(texture(gBufferNormal, scrUv).rgb);
   vec3 gb_metallicRoughnessOcclusion = texture(gBufferMetallicRoughnessOcclusion, scrUv).rgb;
-
-  vec2 ndc = scrUv * 2.0 - 1.0;
-  vec4 camPlanePos = globals.inverseProjection * vec4(ndc.x, ndc.y, 1, 1);
-  vec3 wow = -(globals.inverseView*vec4(normalize(camPlanePos.xyz), 0)).xyz;
 
   uint readIdxOffset = 
       uint(giUniforms.writeIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
@@ -68,91 +85,72 @@ void main() {
   uint writeReservoirIdx = 
       uint(gl_LaunchIDEXT.x * gl_LaunchSizeEXT.y + gl_LaunchIDEXT.y) + writeIdxOffset;
 
-  GISample curSample = sampleReservoirWeighted(readReservoirIdx, seed);
-  float _;
-  vec3 f0 = 
-    evaluateMicrofacetBrdf(
-        wow,
-        curSample.wiw,
-        gb_normal,
-        gb_albedo.rgb,
-        gb_metallicRoughnessOcclusion.x,
-        gb_metallicRoughnessOcclusion.y,
-        _);
-  float l0 = max(dot(curSample.wiw, gb_normal), 0.0);
-  vec3 irrSample0 = f0 * l0 * curSample.Li;
-  float phat0 = length(irrSample0);
+#define SPATIAL_SAMPLE_COUNT 64
+  SpatialSample spatialSamples[SPATIAL_SAMPLE_COUNT];
+   
+  // float mDenom = 1.0;
+  float mDenom = 0.0;
 
-  for (int i = 0; i < 7; ++i) {
-    GISample nearbySample;
-    if (!findNearbySample(scrUv, p0, nearbySample))
+  float wSum = 0.0;
+  for (int i = 0; i < SPATIAL_SAMPLE_COUNT; ++i)
+  {
+    // TODO: Fix this terminology
+    float kernelPdf = 1.0;
+    if (i == 0)
+    {
+      spatialSamples[i].reservoirIdx = readReservoirIdx;
+    }
+    else 
+    if (!findNearbySample(scrUv, p0, kernelPdf, spatialSamples[i].reservoirIdx)) {
+      spatialSamples[i].resamplingWeight = 0.0;
       continue;
+    }
 
+    GISample s = getReservoir(spatialSamples[i].reservoirIdx).samples[0];
+
+    float pdf;
     vec3 f = 
       evaluateMicrofacetBrdf(
           wow,
-          nearbySample.wiw,
-          gb_normal,
-          gb_albedo.rgb,
-          gb_metallicRoughnessOcclusion.x,
-          gb_metallicRoughnessOcclusion.y,
-          _);
-    vec3 irrSample = f * max(dot(nearbySample.wiw, gb_normal), 0.0) * nearbySample.Li;
-    float phat = legnth(irrSample);
-    float mi = 1.0 / 8.0;
-    // float wi = mi * phat / nearbySample.pdf;
-
-    nearbySample.pdf /= mi * phat;
-    getReservoir(writeReservoirIdx).samples[i+1] = nearbySample;
-  }
-
-  // mis (TODO: use balance heuristic instead...)
-  float m0 = 0.5;
-  float m1 = 0.5;
-  float w0 = m0 * phat0 / curSample.pdf;
-  float w1 = m1 * phat1 / nearbySample.pdf;
-  float wSum = w0 + w1;
-
-  float r = rng(seed) * wSum;
-  
-   
-  GISample outSample = 
-
-  vec3 color = vec3(0.0);
-  if (pdf > 0.01) 
-  {
-    float spatialW = 1.0 / pdf;
-
-    uint sampleIdx = 0;
-    vec3 Li = getReservoir(reservoirIdx).samples[sampleIdx].Li;
-    vec3 wiw = getReservoir(reservoirIdx).samples[sampleIdx].wiw;
-    float w = getReservoir(reservoirIdx).samples[sampleIdx].W;
-
-    float wSum = spatialW + w;
-    float r = rng(payload.seed) * wSum;
-    
-    if (r > w) {
-      getReservoir(reservoirIdx).samples[sampleIdx].radiance = Li;
-      getReservoir(reservoirIdx).samples[sampleIdx].dir = wiw;
-      getReservoir(reservoirIdx).samples[sampleIdx].W = spatialW;
-      w = spatialW;
-    } else {
-      Li = getReservoir(reservoirIdx).samples[sampleIdx].radiance;
-      wiw = getReservoir(reservoirIdx).samples[sampleIdx].dir;
-      f = 
-        evaluateMicrofacetBrdf(
-          wow,
-          wiw,
+          s.wiw,
           gb_normal,
           gb_albedo.rgb,
           gb_metallicRoughnessOcclusion.x,
           gb_metallicRoughnessOcclusion.y,
           pdf);
-    }
+    spatialSamples[i].irradiance = 
+        f * max(dot(s.wiw, gb_normal), 0.0) * s.Li;
+    // estimator for pdf
+    spatialSamples[i].phat = length(spatialSamples[i].irradiance);
+    // mis weight
+    // float m = 1.0 / float(SPATIAL_SAMPLE_COUNT);
+    // float m = length(s.Li);//i == 0 ? 10.0  : pdf;
+    float m = 1.;//1.0 / s.W;
+    mDenom += m;
+    // float m = 1.0 / float(SPATIAL_SAMPLE_COUNT);
+    // resampling weight
+    spatialSamples[i].resamplingWeight = m * spatialSamples[i].phat * s.W;
 
-    color = f * max(dot(wiw, gb_normal), 0.0) * Li * w;
+    wSum += spatialSamples[i].resamplingWeight;
   }
 
+  vec3 color = vec3(0.0);
+  float x = rng(seed) * wSum;
+  for (int i = 0; i < SPATIAL_SAMPLE_COUNT; ++i)
+  {
+    if (x < spatialSamples[i].resamplingWeight) {
+      
+      color = spatialSamples[i].irradiance * wSum / spatialSamples[i].phat / mDenom;
+      GISample s = getReservoir(spatialSamples[i].reservoirIdx).samples[0]; 
+      s.W = wSum / spatialSamples[i].phat / mDenom;
+      // getReservoir(writeReservoirIdx).samples[0] = s; 
+          
+      break;
+    } 
+
+    x -= spatialSamples[i].resamplingWeight;
+  }
+  
   validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

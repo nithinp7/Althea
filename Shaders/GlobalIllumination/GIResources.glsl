@@ -102,9 +102,21 @@ TLAS(tlasHeap);
 #endif // IS_RT_SHADER
 
 struct GISample {
+  // The direction that light was sampled from
+  // (the vector points from the surface out towards light)
   vec3 wiw;
-  float w;
+  
+  // W is an "unbiased contribution weight"
+  // When sampled from a regular distribution we just use
+  // the pdf recipricol.
+  // When resampled in RIS, W is an estimator for the pdf
+  // recipricol - since analytical pdf may not be known in
+  // such a case.
+  float W;
+
+  // The radiance incident upon the point, from the wiw direction
   vec3 Li;
+
   float padding; 
 };
 
@@ -129,19 +141,6 @@ BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
           reservoirIdx % giUniforms.reservoirsPerBuffer]
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
-
-
-vec3 integrateReservoir(uint reservoirIdx) {
-  vec3 irradiance = vec3(0.0);
-  float wSum = getReservoir(reservoirIdx).wSum;
-  for (int i = 0; i < 8; ++i) {
-    irradiance += 
-        0.125 * getReservoir(reservoirIdx).samples[i].radiance 
-        * getReservoir(reservoirIdx).samples[i].W / wSum;
-  }
-
-  return irradiance;
-}
 
 int sampleReservoirIndexWeighted(uint reservoirIdx, inout uvec2 seed) {
   float x = rng(seed) * getReservoir(reservoirIdx).wSum;
@@ -180,11 +179,6 @@ int sampleReservoirIndexUniform(uint reservoirIdx, inout uvec2 seed) {
   uint sampleCount = getReservoir(reservoirIdx).sampleCount;
   uint sampleIdx = uint(8.0 * x) % sampleCount;
   return int(sampleIdx); 
-}
-
-vec3 sampleReservoirUniform(uint reservoirIdx, inout uvec2 seed) {
-  int sampleIdx = sampleReservoirIndexUniform(reservoirIdx, seed);
-  return getReservoir(reservoirIdx).samples[sampleIdx].radiance;
 }
 
 vec2 reprojectToPrevFrameUV(vec4 pos) {
