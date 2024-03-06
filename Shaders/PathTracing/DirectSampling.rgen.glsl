@@ -52,7 +52,7 @@ void main() {
   vec3 gb_normal = normalize(texture(gBufferNormal, scrUv).rgb);
   vec3 gb_metallicRoughnessOcclusion = texture(gBufferMetallicRoughnessOcclusion, scrUv).rgb;
 
-  float m = 0.25;
+  float m = giUniforms.liveValues.temporalBlend;
 
   GISample newSample;
   newSample.Li = vec3(0.0);

@@ -48,7 +48,17 @@ void Gui::createRenderState(Application& app) {
     throw std::runtime_error("Failed to create descriptor set pool for imgui");
   }
 
-  ImGui::CreateContext();
+  static ImFontAtlas* fontAtlas = nullptr;
+  if (!fontAtlas) {
+    static ImFontConfig config{};
+    config.SizePixels = 30.0f;
+    
+    fontAtlas = new ImFontAtlas;
+    fontAtlas->AddFontDefault(&config);
+    fontAtlas->Build();
+  }
+
+  ImGui::CreateContext(fontAtlas);
 
   ImGui_ImplGlfw_InitForVulkan(app.getWindow(), true);
 

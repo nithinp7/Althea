@@ -21,6 +21,14 @@ layout(push_constant) uniform PushConstant {
   uint giUniformsHandle;
 } pushConstants;
 
+struct LiveEditValues {
+  float temporalBlend;
+  float slider1;
+  float slider2;
+  bool checkbox1;
+  bool checkbox2;
+};
+
 UNIFORM_BUFFER(_giUniforms, GIUniforms{
   uint tlas;
   
@@ -36,6 +44,8 @@ UNIFORM_BUFFER(_giUniforms, GIUniforms{
   uint reservoirsPerBuffer;
 
   uint framesSinceCameraMoved;
+
+  LiveEditValues liveValues;
 });
 #define giUniforms _giUniforms[pushConstants.giUniformsHandle]
 
