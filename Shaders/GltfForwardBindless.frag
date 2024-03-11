@@ -56,6 +56,10 @@ void main() {
       TEXTURE_SAMPLE(textureHeap, constants.occlusionTextureHandle, occlusionUV).r * constants.occlusionStrength;
 
   GBuffer_MetallicRoughnessOcclusion = vec4(metallicRoughness, ambientOcclusion, GBuffer_Albedo.a);
+
+
+  // vec4 emissive = TEXTURE_SAMPLE(textureHeap, constants.emissiveTextureHandle, emissiveUV);
+  // GBuffer_Albedo.rgb = emissive.rgb;
   
   if (GBuffer_Albedo.a < constants.alphaCutoff) {
     discard;

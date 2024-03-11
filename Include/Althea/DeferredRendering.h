@@ -20,7 +20,8 @@ class Application;
 class GlobalHeap;
 
 struct ALTHEA_API GBufferHandles {
-  uint32_t depthHandle;
+  uint32_t depthAHandle;
+  uint32_t depthBHandle;
   uint32_t normalHandle;
   uint32_t albedoHandle;
   uint32_t metallicRoughnessOcclusionHandle;
@@ -47,13 +48,18 @@ public:
     return this->_attachmentDescriptions;
   }
 
-  const std::vector<VkImageView>& getAttachmentViews() const {
-    return this->_attachmentViews;
+  const std::vector<VkImageView>& getAttachmentViewsA() const {
+    return this->_attachmentViewsA;
+  }
+
+  const std::vector<VkImageView>& getAttachmentViewsB() const {
+    return this->_attachmentViewsB;
   }
 
   GBufferHandles getHandles() const {
     return {
-      this->_depthHandle.index,
+      this->_depthAHandle.index,
+      this->_depthBHandle.index,
       this->_normalHandle.index,
       this->_albedoHandle.index,
       this->_metallicRoughnessOcclusionHandle.index
@@ -61,17 +67,20 @@ public:
   }
 
 private:
-  ImageResource _depth{};
+  ImageResource _depthA{};
+  ImageResource _depthB{};
   ImageResource _normal{};
   ImageResource _albedo{};
   ImageResource _metallicRoughnessOcclusion{};
 
-  TextureHandle _depthHandle{};
+  TextureHandle _depthAHandle{};
+  TextureHandle _depthBHandle{};
   TextureHandle _normalHandle{};
   TextureHandle _albedoHandle{};
   TextureHandle _metallicRoughnessOcclusionHandle{};
 
   std::vector<Attachment> _attachmentDescriptions;
-  std::vector<VkImageView> _attachmentViews;
+  std::vector<VkImageView> _attachmentViewsA;
+  std::vector<VkImageView> _attachmentViewsB;
 };
 } // namespace AltheaEngine

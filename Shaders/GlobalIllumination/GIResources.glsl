@@ -43,7 +43,7 @@ UNIFORM_BUFFER(_giUniforms, GIUniforms{
   uint reservoirHeap;
   uint reservoirsPerBuffer;
 
-  uint framesSinceCameraMoved;
+  uint frameNumber;
 
   LiveEditValues liveValues;
 });
@@ -67,7 +67,8 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
-#define gBufferDepth textureHeap[resources.gBuffer.depthHandle]
+#define gBufferDepth textureHeap[resources.gBuffer.depthAHandle + (giUniforms.frameNumber&1)]
+#define gBufferPrevDepth textureHeap[resources.gBuffer.depthAHandle + (giUniforms.frameNumber&1)^1]
 #define gBufferNormal textureHeap[resources.gBuffer.normalHandle]
 #define gBufferAlbedo textureHeap[resources.gBuffer.albedoHandle]
 #define gBufferMetallicRoughnessOcclusion textureHeap[resources.gBuffer.metallicRoughnessOcclusionHandle]
@@ -92,6 +93,28 @@ vec3 reconstructPosition(vec2 uv) {
   float f = dot(dir, globals.inverseView[2].xyz);
 
   return globals.inverseView[3].xyz + d * dir / f;
+}
+
+vec3 reconstructPrevPosition(vec2 uv) {
+  float dRaw = texture(gBufferPrevDepth, uv).r;
+
+  // TODO: Stop hardcoding this
+  float near = 0.01;
+  float far = 1000.0;
+  float d = far * near / (dRaw * (far - near) - far);
+
+  vec2 ndc = 2.0 * uv - vec2(1.0);
+
+  vec4 camPlanePos = vec4(ndc, 2.0, 1.0);
+  vec4 dirH = globals.inverseProjection * camPlanePos;
+  dirH.xyz /= dirH.w;
+  dirH.w = 0.0;
+  dirH = globals.prevInverseView * dirH;
+  vec3 dir = normalize(dirH.xyz);
+
+  float f = dot(dir, globals.prevInverseView[2].xyz);
+
+  return globals.prevInverseView[3].xyz + d * dir / f;
 }
 
 IMAGE2D_W(imageHeap);

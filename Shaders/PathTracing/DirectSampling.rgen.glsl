@@ -26,7 +26,7 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
       0, // sbtStride, 
       0, // missIndex
       payload.o, 
-      0.,
+      0.1,
       dir,
       1000.0, 
       0 /* payload */);
@@ -34,7 +34,7 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
 }
 
 void main() {
-  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.framesSinceCameraMoved+1, giUniforms.framesSinceCameraMoved+2);
+  payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.frameNumber+1, giUniforms.frameNumber+2);
 
   ivec2 pixelPos = ivec2(gl_LaunchIDEXT);
   vec2 scrUv = (vec2(pixelPos) + vec2(0.5)) / vec2(gl_LaunchSizeEXT);
@@ -77,11 +77,11 @@ void main() {
     irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
   }
 
-  uint writeIndex = giUniforms.writeIndex;
+  uint readIndex = 0;
+  uint writeIndex = 1;
 
   uint readIdxOffset = 
-      // uint(writeIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
-      uint((writeIndex^1) * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
+      uint(readIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
   uint writeIdxOffset = 
       uint(writeIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
   uint writeReservoirIdx = 
@@ -90,6 +90,7 @@ void main() {
   // TODO: Do not want to clamp this if off-screen...
   vec2 prevUv = reprojectToPrevFrameUV(vec4(position, 1.0));
   ivec2 prevPx = getClosestPixel(prevUv);
+  vec3 reprojectedPosition = reconstructPrevPosition(prevUv);
   uint readReservoirIdx = 
       uint(prevPx.x * gl_LaunchSizeEXT.y + prevPx.y) + readIdxOffset;
 
@@ -97,7 +98,10 @@ void main() {
   vec3 irrSample1 = vec3(0.0);
   vec3 f1 = vec3(0.0);
   float pdf1 = 0.0;
-  if (temporalSample.Li != vec3(0.0)) {
+  
+  float discrepancyCutoff = giUniforms.liveValues.slider1;
+  bool bReprojectionValid = isValidUV(prevUv) && length(reprojectedPosition - position) < discrepancyCutoff;
+  if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
     f1 = evaluateMicrofacetBrdf(
         wow,
@@ -112,7 +116,11 @@ void main() {
     {
       temporalSample.W = 1.0 / temporalSample.W / pdf1;
       irrSample1 = f1 * max(dot(gb_normal, temporalSample.wiw), 0.0) * temporalSample.Li;
+    } else {
+      temporalSample.W = 0.0;
     }
+  } else if (!bReprojectionValid) {
+    temporalSample.W = 0.0;
   }
 
   // pdf estimators
@@ -134,28 +142,19 @@ void main() {
   // 0.5 * newSample.wiw + vec3(0.5);
   // vec3 color = vec3(length(temporalSample.wiw - newSample.wiw));
   // vec3 color = temporalSample.Li;//(phat1);//0.5 * temporalSample.wiw + vec3(0.5);
-  if (r < w0)
+  if (r < w1) {
+    temporalSample.W = wSum / phat1;
+    // temporalSample.Li *= wSum / phat1;
+    getReservoir(writeReservoirIdx).samples[0] = temporalSample;
+    color = irrSample1 * temporalSample.W;
+  } else 
   {
     newSample.W = wSum / phat0;
     // newSample.Li *= wSum / phat0;
     getReservoir(writeReservoirIdx).samples[0] = newSample;
     color = irrSample0 * newSample.W;
   } 
-  else if (wSum > 0.0 && !isnan(wSum)) {
-    temporalSample.W = wSum / phat1;
-    // temporalSample.Li *= wSum / phat1;
-    getReservoir(writeReservoirIdx).samples[0] = temporalSample;
-    color = irrSample1 * temporalSample.W;
-  } 
-  //else {
-  //   getReservoir(writeReservoirIdx).samples[0] = newSample;
-  // }
-  // else {
-  //   temporalSample.W = 0.0;
-  //   temporalSample.Li = vec3(0.0);
-  //   getReservoir(writeReservoirIdx).samples[0] = temporalSample;
-  // }
 
   validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

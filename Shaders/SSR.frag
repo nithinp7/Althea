@@ -26,7 +26,7 @@ layout(push_constant) uniform PushConstants {
 #define irradianceMap RESOURCE(textureHeap, resources.ibl.irradianceMapHandle)
 #define brdfLut RESOURCE(textureHeap, resources.ibl.brdfLutHandle)
 
-#define gBufferDepth RESOURCE(textureHeap, resources.gBuffer.depthHandle)
+#define gBufferDepth RESOURCE(textureHeap, resources.gBuffer.depthAHandle)
 #define gBufferNormal RESOURCE(textureHeap, resources.gBuffer.normalHandle)
 #define gBufferAlbedo RESOURCE(textureHeap, resources.gBuffer.albedoHandle)
 #define gBufferMetallicRoughnessOcclusion RESOURCE(textureHeap, resources.gBuffer.metallicRoughnessOcclusionHandle)
