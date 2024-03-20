@@ -99,7 +99,7 @@ void main() {
   vec3 f1 = vec3(0.0);
   float pdf1 = 0.0;
   
-  float discrepancyCutoff = giUniforms.liveValues.slider1;
+  float discrepancyCutoff = 10.0 * giUniforms.liveValues.slider1;
   bool bReprojectionValid = isValidUV(prevUv) && length(reprojectedPosition - position) < discrepancyCutoff;
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
@@ -144,13 +144,11 @@ void main() {
   // vec3 color = temporalSample.Li;//(phat1);//0.5 * temporalSample.wiw + vec3(0.5);
   if (r < w1) {
     temporalSample.W = wSum / phat1;
-    // temporalSample.Li *= wSum / phat1;
     getReservoir(writeReservoirIdx).samples[0] = temporalSample;
     color = irrSample1 * temporalSample.W;
   } else 
   {
     newSample.W = wSum / phat0;
-    // newSample.Li *= wSum / phat0;
     getReservoir(writeReservoirIdx).samples[0] = newSample;
     color = irrSample0 * newSample.W;
   } 

@@ -18,12 +18,31 @@ uvec2 seed;
 
 #define KERNEL_RADIUS 20.0
 
-bool findNearbySample(vec2 uv, vec3 p0, out float kernelPdf, out uint nearbyReservoirIdx) {
-  vec2 relRadius = 2.0 * randVec2(seed) - vec2(1.0);
-  kernelPdf = length(relRadius);
-  kernelPdf = exp(-kernelPdf * kernelPdf);
-  // kernelPdf = max(1.0 - length(relRadius), 0.0) + 0.01;
-  // kernelPdf = exp(-kernelPdf);
+vec3 traceEnvMap(vec3 pos, vec3 dir) {
+  payload.o = pos + 0.01 * dir;
+  payload.wow = -dir;
+  traceRayEXT(
+      acc, 
+      gl_RayFlagsOpaqueEXT, 
+      // gl_RayFlagsCullBackFacingTrianglesEXT,
+      0xff, 
+      0, // sbtOffset
+      0, // sbtStride, 
+      0, // missIndex
+      payload.o, 
+      0.1,
+      dir,
+      1000.0, 
+      0 /* payload */);
+  return payload.emissive;
+}
+
+bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirIdx) {
+  vec2 xi = randVec2(seed);
+  vec2 relRadius = squareToDiskConcentric(xi).xy;
+  
+  pdf = 1.0 ;/// PI;
+  
   vec2 duv = giUniforms.liveValues.slider2 * KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
   vec2 nearbyUv = uv + duv;
   if (!isValidUV(nearbyUv)) {
@@ -39,17 +58,22 @@ bool findNearbySample(vec2 uv, vec3 p0, out float kernelPdf, out uint nearbyRese
   }
 
   ivec2 nearbyPx = getClosestPixel(nearbyUv);
-  // Should fix these semantics... read idx here was the write idx in the direct sampling pass...
   int readIndex = 1;
   uint readIdxOffset = 
       uint(readIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
   nearbyReservoirIdx = uint(nearbyPx.x * gl_LaunchSizeEXT.y + nearbyPx.y) + readIdxOffset;
+
+  GISample s = getReservoir(nearbyReservoirIdx).samples[0];
+  vec3 light = traceEnvMap(p0, s.wiw);
+  if (light == vec3(0.0))
+    return false;
 
   return true;
 }
 
 struct SpatialSample {
   vec3 irradiance;
+  float W;
   float phat;
   float resamplingWeight;
   uint reservoirIdx;
@@ -88,7 +112,7 @@ void main() {
   uint writeReservoirIdx = 
       uint(gl_LaunchIDEXT.x * gl_LaunchSizeEXT.y + gl_LaunchIDEXT.y) + writeIdxOffset;
 
-#define SPATIAL_SAMPLE_COUNT 64
+#define SPATIAL_SAMPLE_COUNT 2
   SpatialSample spatialSamples[SPATIAL_SAMPLE_COUNT];
    
   // float mDenom = 1.0;
@@ -99,11 +123,6 @@ void main() {
   {
     // TODO: Fix this terminology
     float kernelPdf = 1.0;
-    // if (i == 0)
-    // {
-    //   spatialSamples[i].reservoirIdx = readReservoirIdx;
-    // }
-    // else 
     if (!findNearbySample(scrUv, p0, kernelPdf, spatialSamples[i].reservoirIdx)) {
       spatialSamples[i].resamplingWeight = 0.0;
       continue;
@@ -121,6 +140,11 @@ void main() {
           gb_metallicRoughnessOcclusion.x,
           gb_metallicRoughnessOcclusion.y,
           pdf);
+    if (s.W < 0.0001 || pdf < 0.0001) {
+      spatialSamples[i].resamplingWeight = 0.0;
+      continue;
+    }
+    spatialSamples[i].W = 1.0 / s.W / pdf;
     spatialSamples[i].irradiance = 
         f * max(dot(s.wiw, gb_normal), 0.0) * s.Li;
     // estimator for pdf
@@ -132,7 +156,7 @@ void main() {
     mDenom += m;
     // float m = 1.0 / float(SPATIAL_SAMPLE_COUNT);
     // resampling weight
-    spatialSamples[i].resamplingWeight = m * spatialSamples[i].phat * s.W;
+    spatialSamples[i].resamplingWeight = m * spatialSamples[i].phat * spatialSamples[i].W;
 
     wSum += spatialSamples[i].resamplingWeight;
   }
@@ -141,12 +165,15 @@ void main() {
   float x = rng(seed) * wSum;
   for (int i = 0; i < SPATIAL_SAMPLE_COUNT; ++i)
   {
-    if (x < spatialSamples[i].resamplingWeight) {
-      
-      color = spatialSamples[i].irradiance * wSum / spatialSamples[i].phat / mDenom;
+    if (x <= spatialSamples[i].resamplingWeight && spatialSamples[i].resamplingWeight > 0.0) {
       GISample s = getReservoir(spatialSamples[i].reservoirIdx).samples[0]; 
-      s.W = wSum / spatialSamples[i].phat / mDenom;
+      s.W = wSum / spatialSamples[i].phat / mDenom;      
+      color = spatialSamples[i].irradiance * s.W;
       getReservoir(writeReservoirIdx).samples[0] = s; 
+
+      color = vec3(spatialSamples[i].irradiance);
+      // color = vec3(1. /spatialSamples[i].W * spatialSamples[i].irradiance / spatialSamples[i].phat);
+      // color = normalize(spatialSamples[i].irradiance);
           
       break;
     } 

@@ -32,8 +32,8 @@ struct LiveEditValues {
 UNIFORM_BUFFER(_giUniforms, GIUniforms{
   uint tlas;
   
-  uint colorSamplers[2];
-  uint colorTargets[2];
+  uint colorSampler;
+  uint colorTarget;
   
   uint targetWidth;
   uint targetHeight;
@@ -119,11 +119,8 @@ vec3 reconstructPrevPosition(vec2 uv) {
 
 IMAGE2D_W(imageHeap);
 
-#define prevColorTargetTx textureHeap[giUniforms.colorSamplers[giUniforms.writeIndex^1]]
-#define colorTargetTx textureHeap[giUniforms.colorSamplers[giUniforms.writeIndex]]
-
-#define prevColorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex^1]]
-#define colorTargetImg imageHeap[giUniforms.colorTargets[giUniforms.writeIndex]]
+#define colorTargetTx textureHeap[giUniforms.colorSampler]
+#define colorTargetImg imageHeap[giUniforms.colorTarget]
 
 #ifndef IS_RT_SHADER
 #define IS_RT_SHADER 1
