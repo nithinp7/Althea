@@ -45,6 +45,10 @@ UNIFORM_BUFFER(_giUniforms, GIUniforms{
 
   uint frameNumber;
 
+  uint probesController;
+  uint probes;
+  uint spatialHash;
+
   LiveEditValues liveValues;
 });
 #define giUniforms _giUniforms[pushConstants.giUniformsHandle]
@@ -210,6 +214,25 @@ int sampleReservoirIndexUniform(uint reservoirIdx, inout uvec2 seed) {
   uint sampleIdx = uint(8.0 * x) % sampleCount;
   return int(sampleIdx); 
 }
+
+struct Probe {
+  GISample samples[8];
+  vec3 position;
+  uint padding;
+};
+BUFFER_RW(_probesBuffer, ProbeBuffer{
+  Probe probes[];
+});
+#define getProbe(probeIdx) \
+    _probesBuffer[giUniforms.probes].probes[probeIdx]
+BUFFER_RW(_probesDrawCmd, ProbeDrawCmd{
+   uint indexCount;
+   uint instanceCount;
+   uint firstIndex;
+   int vertexOffset;
+   uint firstInstance;  
+});
+#define probesController _probesDrawCmd[giUniforms.probesController]
 
 vec2 reprojectToPrevFrameUV(vec4 pos) {
   vec4 prevScrUvH = globals.projection * globals.prevView * pos;
