@@ -172,7 +172,7 @@ GraphicsPipeline::GraphicsPipeline(
   depthStencilInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   depthStencilInfo.depthTestEnable = VK_TRUE;
-  depthStencilInfo.depthWriteEnable = VK_TRUE;
+  depthStencilInfo.depthWriteEnable = builder._depthWrite;
   depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
   depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
   depthStencilInfo.minDepthBounds = 0.0f; // Not used
@@ -447,6 +447,13 @@ GraphicsPipelineBuilder::setPrimitiveType(PrimitiveType type) {
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setLineWidth(float width) {
   this->_lineWidth = width;
+
+  return *this;
+}
+
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::setDepthWrite(bool depthWrite) {
+  this->_depthWrite = depthWrite;
 
   return *this;
 }

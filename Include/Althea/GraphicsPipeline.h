@@ -103,6 +103,9 @@ public:
    */
   GraphicsPipelineBuilder& setLineWidth(float width);
 
+
+  GraphicsPipelineBuilder& setDepthWrite(bool depthWrite);
+
   /**
    * @brief Enable or disable depth testing for this pipeline.
    *
@@ -158,6 +161,7 @@ private:
   float _lineWidth = 1.0f;
 
   bool _depthTest = true;
+  bool _depthWrite = true;
 
   std::vector<VkDynamicState> _dynamicStates;
 };

@@ -56,6 +56,9 @@ public:
     return this->_attachmentViewsB;
   }
 
+  VkImageView getDepthViewA() const { return _depthA.view; }
+  VkImageView getDepthViewB() const { return _depthB.view; }
+
   GBufferHandles getHandles() const {
     return {
       this->_depthAHandle.index,
