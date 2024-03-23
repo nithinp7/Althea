@@ -17,9 +17,7 @@ struct GISample {
 };
 
 struct Reservoir {
-  GISample samples[8];
-  uint32_t sampleCount = 0;
-  float wSum = 0.0f;
+  GISample s;
 };
 
 struct Probe {

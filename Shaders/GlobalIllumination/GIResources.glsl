@@ -154,10 +154,10 @@ struct GISample {
   float padding; 
 };
 
+// TODO: If there is no other useful data to put here, just have a direct sample buffer...
+// Or call the above "GISample" struct "Reservoir" instead
 struct Reservoir {
-  GISample samples[8];
-  uint sampleCount;
-  float wSum;
+  GISample s;
 };
 
 BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
@@ -175,45 +175,6 @@ BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
           reservoirIdx % giUniforms.reservoirsPerBuffer]
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
-
-int sampleReservoirIndexWeighted(uint reservoirIdx, inout uvec2 seed) {
-  float x = rng(seed) * getReservoir(reservoirIdx).wSum;
-  float p = 0.0;
-  uint sampleCount = getReservoir(reservoirIdx).sampleCount;
-  for (int i = 0; i < sampleCount; ++i) {
-    p += getReservoir(reservoirIdx).samples[i].W;
-    if (x <= p || i == sampleCount-1)
-      return i;
-  }
-
-  return -1;
-}
-
-GISample sampleReservoirWeighted(uint reservoirIdx, inout uvec2 seed) {
-  int sampleIdx = sampleReservoirIndexWeighted(reservoirIdx, seed);
-  return getReservoir(reservoirIdx).samples[sampleIdx];
-}
-
-int sampleReservoirIndexInverseWeighted(uint reservoirIdx, inout uvec2 seed) {
-  uint sampleCount = getReservoir(reservoirIdx).sampleCount;
-  float wSum = getReservoir(reservoirIdx).wSum;
-  float x = rng(seed) * (float(sampleCount) - 1.0);
-  float p = 0.0;
-  for (int i = 0; i < sampleCount; ++i) {
-    p += 1.0 - getReservoir(reservoirIdx).samples[i].W / wSum;
-    if (x <= p || i == 7)
-      return i;
-  }
-
-  return -1;
-}
-
-int sampleReservoirIndexUniform(uint reservoirIdx, inout uvec2 seed) {
-  float x = rng(seed);
-  uint sampleCount = getReservoir(reservoirIdx).sampleCount;
-  uint sampleIdx = uint(8.0 * x) % sampleCount;
-  return int(sampleIdx); 
-}
 
 #define PROBE_COUNT 16383
 struct Probe {

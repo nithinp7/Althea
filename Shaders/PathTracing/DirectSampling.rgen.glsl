@@ -94,7 +94,7 @@ void main() {
   uint readReservoirIdx = 
       uint(prevPx.x * gl_LaunchSizeEXT.y + prevPx.y) + readIdxOffset;
 
-  GISample temporalSample = getReservoir(readReservoirIdx).samples[0];
+  GISample temporalSample = getReservoir(readReservoirIdx).s;
   vec3 irrSample1 = vec3(0.0);
   vec3 f1 = vec3(0.0);
   float pdf1 = 0.0;
@@ -144,12 +144,12 @@ void main() {
   // vec3 color = temporalSample.Li;//(phat1);//0.5 * temporalSample.wiw + vec3(0.5);
   if (r < w1) {
     temporalSample.W = wSum / phat1;
-    getReservoir(writeReservoirIdx).samples[0] = temporalSample;
+    getReservoir(writeReservoirIdx).s = temporalSample;
     color = irrSample1 * temporalSample.W;
   } else 
   {
     newSample.W = wSum / phat0;
-    getReservoir(writeReservoirIdx).samples[0] = newSample;
+    getReservoir(writeReservoirIdx).s = newSample;
     color = irrSample0 * newSample.W;
   } 
 

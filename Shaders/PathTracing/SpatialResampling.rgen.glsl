@@ -63,7 +63,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirI
       uint(readIndex * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
   nearbyReservoirIdx = uint(nearbyPx.x * gl_LaunchSizeEXT.y + nearbyPx.y) + readIdxOffset;
 
-  GISample s = getReservoir(nearbyReservoirIdx).samples[0];
+  GISample s = getReservoir(nearbyReservoirIdx).s;
   vec3 light = traceEnvMap(p0, s.wiw);
   if (light == vec3(0.0))
     return false;
@@ -128,7 +128,7 @@ void main() {
       continue;
     }
 
-    GISample s = getReservoir(spatialSamples[i].reservoirIdx).samples[0];
+    GISample s = getReservoir(spatialSamples[i].reservoirIdx).s;
 
     float pdf;
     vec3 f = 
@@ -166,10 +166,10 @@ void main() {
   for (int i = 0; i < SPATIAL_SAMPLE_COUNT; ++i)
   {
     if (x <= spatialSamples[i].resamplingWeight && spatialSamples[i].resamplingWeight > 0.0) {
-      GISample s = getReservoir(spatialSamples[i].reservoirIdx).samples[0]; 
+      GISample s = getReservoir(spatialSamples[i].reservoirIdx).s; 
       s.W = wSum / spatialSamples[i].phat / mDenom;      
       color = spatialSamples[i].irradiance * s.W;
-      getReservoir(writeReservoirIdx).samples[0] = s; 
+      getReservoir(writeReservoirIdx).s = s; 
 
       color = vec3(spatialSamples[i].irradiance);
       // color = vec3(1. /spatialSamples[i].W * spatialSamples[i].irradiance / spatialSamples[i].phat);
