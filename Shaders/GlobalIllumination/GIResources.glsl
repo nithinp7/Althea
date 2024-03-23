@@ -23,8 +23,8 @@ layout(push_constant) uniform PushConstant {
 
 struct LiveEditValues {
   float temporalBlend;
-  float slider1;
-  float slider2;
+  float depthDiscrepancyTolerance;
+  float spatialResamplingRadius;
   bool checkbox1;
   bool checkbox2;
 };
@@ -215,6 +215,7 @@ int sampleReservoirIndexUniform(uint reservoirIdx, inout uvec2 seed) {
   return int(sampleIdx); 
 }
 
+#define PROBE_COUNT 16383
 struct Probe {
   GISample samples[8];
   vec3 position;

@@ -11,6 +11,8 @@ layout(location=0) out vec4 outColor;
 void main() {
 #if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
+  // if (probesController.instanceCount > 1)
+  //   texSample = vec3(1.0, 0.0, 0.0);
 #else  
   vec3 texSample = texture(gBufferAlbedo, uv).rgb;
   // vec3 texSample = texture(gBufferNormal, uv).rgb;

@@ -30,8 +30,8 @@ struct Probe {
 
 struct LiveEditValues {
   float temporalBlend = 0.25f;
-  float slider1;
-  float slider2;
+  float depthDiscrepancyTolerance = 0.5;
+  float spatialResamplingRadius = 0.5;
   bool checkbox1;
   bool checkbox2;
 };

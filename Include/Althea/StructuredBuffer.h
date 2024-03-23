@@ -25,9 +25,6 @@ public:
       VkBufferUsageFlags additionalFlags = 0) {
     this->_structureArray.resize(count);
 
-    // TODO: This assumes that the uniform buffer will be _often_ rewritten
-    // and perhaps in a random pattern. We should prefer a different type of
-    // memory if the uniform buffer will mostly be persistent.
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 

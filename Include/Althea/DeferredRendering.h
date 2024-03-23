@@ -56,6 +56,8 @@ public:
     return this->_attachmentViewsB;
   }
 
+  ImageResource& getDepthA() { return _depthA; }
+  ImageResource& getDepthB() { return _depthB; }
   VkImageView getDepthViewA() const { return _depthA.view; }
   VkImageView getDepthViewB() const { return _depthB.view; }
 

@@ -99,7 +99,7 @@ void main() {
   vec3 f1 = vec3(0.0);
   float pdf1 = 0.0;
   
-  float discrepancyCutoff = 10.0 * giUniforms.liveValues.slider1;
+  float discrepancyCutoff = 10.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
   bool bReprojectionValid = isValidUV(prevUv) && length(reprojectedPosition - position) < discrepancyCutoff;
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;

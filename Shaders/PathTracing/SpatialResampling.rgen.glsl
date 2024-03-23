@@ -43,7 +43,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirI
   
   pdf = 1.0 ;/// PI;
   
-  vec2 duv = giUniforms.liveValues.slider2 * KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
+  vec2 duv = giUniforms.liveValues.spatialResamplingRadius * KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
   vec2 nearbyUv = uv + duv;
   if (!isValidUV(nearbyUv)) {
     return false;
@@ -52,7 +52,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirI
   vec3 p1 = reconstructPosition(nearbyUv);
 
   float posDiscrepancy = length(p0 - p1);
-  if (posDiscrepancy > giUniforms.liveValues.slider1)
+  if (posDiscrepancy > giUniforms.liveValues.depthDiscrepancyTolerance)
   {
     return false;
   }
