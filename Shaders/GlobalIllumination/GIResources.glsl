@@ -71,8 +71,8 @@ vec3 sampleEnvMap(vec3 dir) {
   return textureLod(environmentMap, envMapUV, 0.0).rgb;
 } 
 
-#define gBufferDepth textureHeap[resources.gBuffer.depthAHandle + (giUniforms.frameNumber&1)]
-#define gBufferPrevDepth textureHeap[resources.gBuffer.depthAHandle + (giUniforms.frameNumber&1)^1]
+#define gBufferDepth textureHeap[resources.gBuffer.depthAHandle + giUniforms.writeIndex]
+#define gBufferPrevDepth textureHeap[resources.gBuffer.depthAHandle + (giUniforms.writeIndex^1)]
 #define gBufferNormal textureHeap[resources.gBuffer.normalHandle]
 #define gBufferAlbedo textureHeap[resources.gBuffer.albedoHandle]
 #define gBufferMetallicRoughnessOcclusion textureHeap[resources.gBuffer.metallicRoughnessOcclusionHandle]

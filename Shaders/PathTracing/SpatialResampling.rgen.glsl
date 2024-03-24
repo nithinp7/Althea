@@ -19,7 +19,7 @@ uvec2 seed;
 #define KERNEL_RADIUS 20.0
 
 vec3 traceEnvMap(vec3 pos, vec3 dir) {
-  payload.o = pos + 0.01 * dir;
+  payload.o = pos;
   payload.wow = -dir;
   traceRayEXT(
       acc, 
@@ -30,7 +30,7 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
       0, // sbtStride, 
       0, // missIndex
       payload.o, 
-      0.1,
+      0.05,
       dir,
       1000.0, 
       0 /* payload */);

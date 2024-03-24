@@ -99,8 +99,9 @@ void main() {
   vec3 f1 = vec3(0.0);
   float pdf1 = 0.0;
   
-  float discrepancyCutoff = 10.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
-  bool bReprojectionValid = isValidUV(prevUv) && length(reprojectedPosition - position) < discrepancyCutoff;
+  float depthDiscrepancy = length(reprojectedPosition - position);
+  float discrepancyCutoff = giUniforms.liveValues.depthDiscrepancyTolerance;
+  bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < discrepancyCutoff;
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
     f1 = evaluateMicrofacetBrdf(
@@ -119,7 +120,7 @@ void main() {
     } else {
       temporalSample.W = 0.0;
     }
-  } else if (!bReprojectionValid) {
+  } else {//if (!bReprojectionValid) {
     temporalSample.W = 0.0;
   }
 

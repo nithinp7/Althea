@@ -9,27 +9,7 @@ layout(location=0) out vec4 outColor;
 #include <GlobalIllumination/GIResources.glsl>
 
 void main() {
-#if 1
   vec3 texSample = texture(colorTargetTx, uv).rgb;
-  // if (probesController.instanceCount > 1)
-  //   texSample = vec3(1.0, 0.0, 0.0);
-#else  
-  vec3 texSample = texture(gBufferAlbedo, uv).rgb;
-  // vec3 texSample = texture(gBufferNormal, uv).rgb;
-#endif 
 
-#ifndef SKIP_TONEMAP
-  // texSample = vec3(1.0) - exp(-texSample * globals.exposure);
-  //texSample = texSample / (vec3(1.0) + texSample);
-#endif
-
-#if 0
-  vec3 dbgSample = texture(dbg, (uv - vec2(0.75)) / 0.25).rgb;
-  if (uv.x > 0.75 && uv.y > 0.75) {
-    outColor = vec4(dbgSample, 1.0);
-  } else 
-#endif
-  {
-    outColor = vec4(texSample, 1.0);
-  }
+  outColor = vec4(texSample, 1.0);
 }
