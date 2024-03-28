@@ -25,8 +25,7 @@ struct LiveEditValues {
   float temporalBlend;
   float depthDiscrepancyTolerance;
   float spatialResamplingRadius;
-  bool checkbox1;
-  bool checkbox2;
+  uint flags;
 };
 
 UNIFORM_BUFFER(_giUniforms, GIUniforms{
@@ -135,7 +134,9 @@ TLAS(tlasHeap);
 #define acc tlasHeap[giUniforms.tlas]
 #endif // IS_RT_SHADER
 
-struct GISample {
+struct GISample { 
+  vec4 position;
+
   // The direction that light was sampled from
   // (the vector points from the surface out towards light)
   vec3 wiw;
@@ -151,7 +152,7 @@ struct GISample {
   // The radiance incident upon the point, from the wiw direction
   vec3 Li;
 
-  float padding; 
+  uint lightIdx; // Temp... light samples should have a dedicated type
 };
 
 // TODO: If there is no other useful data to put here, just have a direct sample buffer...

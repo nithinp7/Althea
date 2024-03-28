@@ -33,6 +33,41 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
   return payload.emissive;
 }
 
+vec3 traceLight(vec3 pos, uint lightIdx, out vec3 dir) {
+  uvec2 colorSeed = uvec2(lightIdx, lightIdx+1);
+  vec3 color = randVec3(colorSeed);
+
+  // For now using the probes as lights
+  vec3 lightPos = getProbe(lightIdx).position;
+  dir = lightPos - pos;
+  float dist = length(dir);
+  dir /= dist;
+
+  payload.o = pos + 0.01 * dir;
+  payload.wow = -dir;
+  traceRayEXT(
+      acc, 
+      gl_RayFlagsOpaqueEXT, 
+      // gl_RayFlagsCullBackFacingTrianglesEXT,
+      0xff, 
+      0, // sbtOffset
+      0, // sbtStride, 
+      0, // missIndex
+      payload.o, 
+      0.1,
+      dir,
+      1000.0, 
+      0 /* payload */);
+  if (payload.p.w == 0.0 || length(payload.p.xyz - pos) > dist)
+  {
+    // light visible
+    return 100. * color;
+  } 
+
+  // light shadowed
+  return vec3(0.0);
+}
+
 void main() {
   payload.seed = uvec2(gl_LaunchIDEXT) * uvec2(giUniforms.frameNumber+1, giUniforms.frameNumber+2);
 
@@ -59,23 +94,48 @@ void main() {
   newSample.W = 0.0;
 
   float pdf0;
-  vec3 f0 = 
-      sampleMicrofacetBrdf(
-        randVec2(payload.seed),
+  vec3 f0;
+  vec3 irrSample0 = vec3(0.0);
+
+  if (giUniforms.liveValues.checkbox1) {
+    // Light sampling mode
+    uint probeCount = probesController.instanceCount;
+    newSample.lightIdx = rngu(payload.seed) % probeCount;
+    float pdfLight = 1.0 / float(probeCount);
+
+    newSample.Li = traceLight(position, newSample.lightIdx, newSample.wiw);
+    if (newSample.Li != vec3(0.0)) {
+      f0 = evaluateMicrofacetBrdf(
         wow,
+        newSample.wiw,
         gb_normal,
         gb_albedo.rgb,
         gb_metallicRoughnessOcclusion.x,
         gb_metallicRoughnessOcclusion.y,
-        newSample.wiw,
         pdf0);
-  vec3 irrSample0 = vec3(0.0);
-  if (pdf0 > 0.0001) {
-    newSample.W = 1.0 / pdf0;
-    newSample.Li = traceEnvMap(position, newSample.wiw);
-    // TODO: div by pdf0??
-    irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
-  }
+
+      if (pdf0 > 0.0001) {
+        newSample.W = pdfLight / pdf0;
+        irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
+      }
+    }
+  } else {
+    // BRDF sampling + env-map mode
+    f0 = sampleMicrofacetBrdf(
+          randVec2(payload.seed),
+          wow,
+          gb_normal,
+          gb_albedo.rgb,
+          gb_metallicRoughnessOcclusion.x,
+          gb_metallicRoughnessOcclusion.y,
+          newSample.wiw,
+          pdf0);
+    if (pdf0 > 0.0001) {
+      newSample.W = 1.0 / pdf0;
+      newSample.Li = traceEnvMap(position, newSample.wiw);
+      irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
+    }
+  } 
 
   uint readIndex = 0;
   uint writeIndex = 1;
@@ -100,7 +160,7 @@ void main() {
   float pdf1 = 0.0;
   
   float depthDiscrepancy = length(reprojectedPosition - position);
-  float discrepancyCutoff = giUniforms.liveValues.depthDiscrepancyTolerance;
+  float discrepancyCutoff = 10.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
   bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < discrepancyCutoff;
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
@@ -112,7 +172,6 @@ void main() {
         gb_metallicRoughnessOcclusion.x,
         gb_metallicRoughnessOcclusion.y,
         pdf1);
-    // TODO: div by pdf??
     if (pdf1 > 0.0001)
     {
       temporalSample.W = 1.0 / temporalSample.W / pdf1;
@@ -120,7 +179,7 @@ void main() {
     } else {
       temporalSample.W = 0.0;
     }
-  } else {//if (!bReprojectionValid) {
+  } else if (!bReprojectionValid) {
     temporalSample.W = 0.0;
   }
 
@@ -129,20 +188,13 @@ void main() {
   float phat1 = length(irrSample1) + 0.0001;
   
   // resampling weights
-  // TODO: Multiply MIS weights here...
   float w0 = phat0 * newSample.W * m;
   float w1 = phat1 * temporalSample.W * (1.0 - m);
 
   float wSum = w0 + w1;
   float r = rng(payload.seed) * wSum;
   
-  // vec3 color = vec3(w1);//vec3(0.01 * r);
-  // vec3 color = vec3(abs(readReservoirIdx - writeReservoirIdx) - gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y);
-  // vec3 color = vec3(pdf1);
   vec3 color = vec3(0.0);
-  // 0.5 * newSample.wiw + vec3(0.5);
-  // vec3 color = vec3(length(temporalSample.wiw - newSample.wiw));
-  // vec3 color = temporalSample.Li;//(phat1);//0.5 * temporalSample.wiw + vec3(0.5);
   if (r < w1) {
     temporalSample.W = wSum / phat1;
     getReservoir(writeReservoirIdx).s = temporalSample;
@@ -155,5 +207,5 @@ void main() {
   } 
 
   validateColor(color);
-  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

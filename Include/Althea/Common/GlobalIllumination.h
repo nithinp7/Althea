@@ -10,6 +10,8 @@ namespace AltheaEngine {
 namespace GlobalIllumination {
 
 struct GISample {
+  glm::vec4 position;
+  
   alignas(16) glm::vec3 wiw;
   alignas(8) float W;
   alignas(16) glm::vec3 Li;
@@ -30,8 +32,7 @@ struct LiveEditValues {
   float temporalBlend = 0.25f;
   float depthDiscrepancyTolerance = 0.5;
   float spatialResamplingRadius = 0.5;
-  bool checkbox1;
-  bool checkbox2;
+  uint32_t flags = 0;
 };
 
 struct Uniforms {

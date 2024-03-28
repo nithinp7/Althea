@@ -10,11 +10,14 @@ layout(location = 0) rayPayloadInEXT PathTracePayload payload;
 #define PI 3.14159265359
 
 void main() {
-    payload.p = vec4(-payload.wow, 1.0);
+    payload.p = vec4(-payload.wow, 0.0);
     payload.n = vec3(0.0);
 
     payload.baseColor = vec3(0.0);
-    payload.emissive = 2.5 * sampleEnvMap(-payload.wow);
+    payload.emissive = 
+        giUniforms.liveValues.checkbox2 ? 
+        vec3(0.0) : 
+        sampleEnvMap(-payload.wow);
     payload.metallic = 0.0;
     payload.roughness = 0.0;
 }

@@ -10,6 +10,6 @@ layout(location=0) out vec4 outColor;
 
 void main() {
   vec3 texSample = texture(colorTargetTx, uv).rgb;
-
+  // vec3 texSample = texture(gBufferNormal, uv).rgb;
   outColor = vec4(texSample, 1.0);
 }

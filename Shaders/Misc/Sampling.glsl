@@ -12,8 +12,18 @@ float rng(inout uvec2 seed) {
   return float(n) * (1.0 / float(0xffffffffU));
 }
 
+uint rngu(inout uvec2 seed) {
+  seed += uvec2(1);
+  uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
+  return 1103515245U * ( (q.x) ^ (q.y >> 3U) );
+}
+
 vec2 randVec2(inout uvec2 seed) {
   return vec2(rng(seed), rng(seed));
+}
+
+vec3 randVec3(inout uvec2 seed) {
+  return vec3(rng(seed), rng(seed), rng(seed));
 }
 
 // Useful functions for transforming directions

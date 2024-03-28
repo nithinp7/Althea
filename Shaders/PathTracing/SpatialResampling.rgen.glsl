@@ -37,11 +37,11 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
   return payload.emissive;
 }
 
-bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirIdx) {
+bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirIdx, out vec3 Li) {
   vec2 xi = randVec2(seed);
   vec2 relRadius = squareToDiskConcentric(xi).xy;
   
-  pdf = 1.0 ;/// PI;
+  pdf = 1.0 / PI;
   
   vec2 duv = giUniforms.liveValues.spatialResamplingRadius * KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
   vec2 nearbyUv = uv + duv;
@@ -52,7 +52,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirI
   vec3 p1 = reconstructPosition(nearbyUv);
 
   float posDiscrepancy = length(p0 - p1);
-  if (posDiscrepancy > giUniforms.liveValues.depthDiscrepancyTolerance)
+  if (posDiscrepancy > 10.0 * giUniforms.liveValues.depthDiscrepancyTolerance)
   {
     return false;
   }
@@ -64,8 +64,8 @@ bool findNearbySample(vec2 uv, vec3 p0, out float pdf, out uint nearbyReservoirI
   nearbyReservoirIdx = uint(nearbyPx.x * gl_LaunchSizeEXT.y + nearbyPx.y) + readIdxOffset;
 
   GISample s = getReservoir(nearbyReservoirIdx).s;
-  vec3 light = traceEnvMap(p0, s.wiw);
-  if (light == vec3(0.0))
+  Li = traceEnvMap(p0, s.wiw);
+  if (Li == vec3(0.0))
     return false;
 
   return true;
@@ -112,10 +112,9 @@ void main() {
   uint writeReservoirIdx = 
       uint(gl_LaunchIDEXT.x * gl_LaunchSizeEXT.y + gl_LaunchIDEXT.y) + writeIdxOffset;
 
-#define SPATIAL_SAMPLE_COUNT 2
+#define SPATIAL_SAMPLE_COUNT 4
   SpatialSample spatialSamples[SPATIAL_SAMPLE_COUNT];
    
-  // float mDenom = 1.0;
   float mDenom = 0.0;
 
   float wSum = 0.0;
@@ -123,12 +122,14 @@ void main() {
   {
     // TODO: Fix this terminology
     float kernelPdf = 1.0;
-    if (!findNearbySample(scrUv, p0, kernelPdf, spatialSamples[i].reservoirIdx)) {
+    vec3 Li = vec3(0.0);
+    if (!findNearbySample(scrUv, p0, kernelPdf, spatialSamples[i].reservoirIdx, Li)) {
       spatialSamples[i].resamplingWeight = 0.0;
       continue;
     }
 
     GISample s = getReservoir(spatialSamples[i].reservoirIdx).s;
+    s.Li = Li;
 
     float pdf;
     vec3 f = 
@@ -140,21 +141,18 @@ void main() {
           gb_metallicRoughnessOcclusion.x,
           gb_metallicRoughnessOcclusion.y,
           pdf);
-    if (s.W < 0.0001 || pdf < 0.0001) {
+    float nDotWi = dot(s.wiw, gb_normal);
+    if (s.W < 0.0001 || pdf < 0.0001 || nDotWi <= 0.0) {
       spatialSamples[i].resamplingWeight = 0.0;
       continue;
     }
     spatialSamples[i].W = 1.0 / s.W / pdf;
-    spatialSamples[i].irradiance = 
-        f * max(dot(s.wiw, gb_normal), 0.0) * s.Li;
+    spatialSamples[i].irradiance = f * nDotWi * s.Li;
     // estimator for pdf
-    spatialSamples[i].phat = length(spatialSamples[i].irradiance) + 0.0001;
+    spatialSamples[i].phat = length(spatialSamples[i].irradiance);// + 0.0001;
     // mis weight
-    // float m = 1.0 / float(SPATIAL_SAMPLE_COUNT);
-    // float m = length(s.Li);//i == 0 ? 10.0  : pdf;
-    float m = 1.;//1.0 / s.W;
+    float m = 1.0;
     mDenom += m;
-    // float m = 1.0 / float(SPATIAL_SAMPLE_COUNT);
     // resampling weight
     spatialSamples[i].resamplingWeight = m * spatialSamples[i].phat * spatialSamples[i].W;
 
@@ -169,12 +167,9 @@ void main() {
       GISample s = getReservoir(spatialSamples[i].reservoirIdx).s; 
       s.W = wSum / spatialSamples[i].phat / mDenom;      
       color = spatialSamples[i].irradiance * s.W;
-      getReservoir(writeReservoirIdx).s = s; 
+      // getReservoir(writeReservoirIdx).s = s; 
 
-      color = vec3(spatialSamples[i].irradiance);
-      // color = vec3(1. /spatialSamples[i].W * spatialSamples[i].irradiance / spatialSamples[i].phat);
-      // color = normalize(spatialSamples[i].irradiance);
-          
+      color = vec3(spatialSamples[i].irradiance);          
       break;
     } 
 
@@ -182,5 +177,5 @@ void main() {
   }
   
   validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }
