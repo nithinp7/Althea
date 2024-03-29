@@ -11,6 +11,7 @@
 #include <Global/GlobalUniforms.glsl>
 #include <PrimitiveResources.glsl>
 #include <Misc/Sampling.glsl>
+#include <Misc/Input.glsl>
 
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : enable
@@ -21,10 +22,16 @@ layout(push_constant) uniform PushConstant {
   uint giUniformsHandle;
 } pushConstants;
 
+#define MAX_W 1.0
+
+#define LEF_LIGHT_SAMPLING_MODE BIT(0)
+#define LEF_DISABLE_ENV_MAP     BIT(1)
+
 struct LiveEditValues {
   float temporalBlend;
   float depthDiscrepancyTolerance;
   float spatialResamplingRadius;
+  float lightIntensity;
   uint flags;
 };
 
@@ -62,7 +69,16 @@ SAMPLER2D(textureHeap);
 #define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
 #define brdfLut textureHeap[resources.ibl.brdfLutHandle]
 
+vec3 getLightColor(uint lightIdx) {
+  uint colorIdx = lightIdx / 10;
+  uvec2 colorSeed = uvec2(colorIdx, colorIdx+1);
+  return normalize(randVec3(colorSeed));
+}
+
 vec3 sampleEnvMap(vec3 dir) {
+  if (bool(giUniforms.liveValues.flags & LEF_DISABLE_ENV_MAP))
+    return vec3(0.0);
+
   float yaw = atan(dir.z, dir.x);
   float pitch = -atan(dir.y, length(dir.xz));
   vec2 envMapUV = vec2(0.5 * yaw, pitch) / PI + 0.5;

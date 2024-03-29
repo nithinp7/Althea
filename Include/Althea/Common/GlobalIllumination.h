@@ -28,10 +28,17 @@ struct Probe {
   alignas(4) float padding; // ??
 };
 
+enum LiveEditFlags {
+  LEF_NONE = 0,
+  LEF_LIGHT_SAMPLING_MODE = 1,
+  LEF_DISABLE_ENV_MAP = 1<<1
+};
+
 struct LiveEditValues {
   float temporalBlend = 0.25f;
   float depthDiscrepancyTolerance = 0.5;
   float spatialResamplingRadius = 0.5;
+  float lightIntensity = 0.5;
   uint32_t flags = 0;
 };
 

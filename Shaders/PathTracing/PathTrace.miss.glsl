@@ -15,7 +15,7 @@ void main() {
 
     payload.baseColor = vec3(0.0);
     payload.emissive = 
-        giUniforms.liveValues.checkbox2 ? 
+        bool(giUniforms.liveValues.flags & LEF_DISABLE_ENV_MAP) ? 
         vec3(0.0) : 
         sampleEnvMap(-payload.wow);
     payload.metallic = 0.0;

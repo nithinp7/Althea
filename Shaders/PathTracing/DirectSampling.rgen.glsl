@@ -34,8 +34,7 @@ vec3 traceEnvMap(vec3 pos, vec3 dir) {
 }
 
 vec3 traceLight(vec3 pos, uint lightIdx, out vec3 dir) {
-  uvec2 colorSeed = uvec2(lightIdx, lightIdx+1);
-  vec3 color = randVec3(colorSeed);
+  vec3 color = getLightColor(lightIdx);
 
   // For now using the probes as lights
   vec3 lightPos = getProbe(lightIdx).position;
@@ -61,7 +60,7 @@ vec3 traceLight(vec3 pos, uint lightIdx, out vec3 dir) {
   if (payload.p.w == 0.0 || length(payload.p.xyz - pos) > dist)
   {
     // light visible
-    return 100. * color;
+    return 1000.0 * giUniforms.liveValues.lightIntensity / dist / dist * color;
   } 
 
   // light shadowed
@@ -97,7 +96,7 @@ void main() {
   vec3 f0;
   vec3 irrSample0 = vec3(0.0);
 
-  if (giUniforms.liveValues.checkbox1) {
+  if (bool(giUniforms.liveValues.flags & LEF_LIGHT_SAMPLING_MODE)) {
     // Light sampling mode
     uint probeCount = probesController.instanceCount;
     newSample.lightIdx = rngu(payload.seed) % probeCount;
@@ -115,7 +114,7 @@ void main() {
         pdf0);
 
       if (pdf0 > 0.0001) {
-        newSample.W = pdfLight / pdf0;
+        newSample.W = 1. / pdfLight;// / pdf0;
         irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
       }
     }
@@ -174,7 +173,7 @@ void main() {
         pdf1);
     if (pdf1 > 0.0001)
     {
-      temporalSample.W = 1.0 / temporalSample.W / pdf1;
+      // temporalSample.W = 1.0 / temporalSample.W / pdf1;
       irrSample1 = f1 * max(dot(gb_normal, temporalSample.wiw), 0.0) * temporalSample.Li;
     } else {
       temporalSample.W = 0.0;
@@ -184,8 +183,8 @@ void main() {
   }
 
   // pdf estimators
-  float phat0 = length(irrSample0) + 0.0001;
-  float phat1 = length(irrSample1) + 0.0001;
+  float phat0 = length(irrSample0);// + 0.0001;
+  float phat1 = length(irrSample1);// + 0.0001;
   
   // resampling weights
   float w0 = phat0 * newSample.W * m;
@@ -195,17 +194,18 @@ void main() {
   float r = rng(payload.seed) * wSum;
   
   vec3 color = vec3(0.0);
+  // if (w1 > w0) {
   if (r < w1) {
-    temporalSample.W = wSum / phat1;
+    temporalSample.W = clamp(wSum / phat1, 0.0, MAX_W);
     getReservoir(writeReservoirIdx).s = temporalSample;
     color = irrSample1 * temporalSample.W;
-  } else 
+  } else
   {
-    newSample.W = wSum / phat0;
+    newSample.W = clamp(wSum / phat0, 0.0, MAX_W);
     getReservoir(writeReservoirIdx).s = newSample;
     color = irrSample0 * newSample.W;
   } 
 
   validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

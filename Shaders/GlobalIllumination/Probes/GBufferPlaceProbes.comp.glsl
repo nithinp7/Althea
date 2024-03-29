@@ -11,7 +11,7 @@ void main() {
     return;
 
   if (bool(globals.inputMask & INPUT_BIT_CTRL) &&
-      bool(globals.inputMask & INPUT_BIT_SPACE)) {
+      bool(globals.inputMask & INPUT_BIT_LEFT_MOUSE)) {
     probesController.instanceCount = 0;
     return;
   }
@@ -25,7 +25,8 @@ void main() {
   }
   
   // Fetch world pos from depth
-  vec3 position = reconstructPosition(uv);
+  vec3 normal = texture(gBufferNormal, uv).rgb;
+  vec3 position = reconstructPosition(uv) + normal;
 
   getProbe(probeIdx).position = position;
 }
