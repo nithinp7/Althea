@@ -60,7 +60,7 @@ vec3 traceLight(vec3 pos, uint lightIdx, out vec3 dir) {
   if (payload.p.w == 0.0 || length(payload.p.xyz - pos) > dist)
   {
     // light visible
-    return 1000.0 * giUniforms.liveValues.lightIntensity / dist / dist * color;
+    return getLightIntensity(dist) * color;
   } 
 
   // light shadowed
@@ -85,8 +85,6 @@ void main() {
   vec3 position = reconstructPosition(scrUv);
   vec3 gb_normal = normalize(texture(gBufferNormal, scrUv).rgb);
   vec3 gb_metallicRoughnessOcclusion = texture(gBufferMetallicRoughnessOcclusion, scrUv).rgb;
-
-  float m = giUniforms.liveValues.temporalBlend;
 
   GISample newSample;
   newSample.Li = vec3(0.0);
@@ -113,8 +111,10 @@ void main() {
         gb_metallicRoughnessOcclusion.y,
         pdf0);
 
-      if (pdf0 > 0.0001) {
-        newSample.W = 1. / pdfLight;// / pdf0;
+      if (pdf0 > 0.0001) 
+      {
+        newSample.W = float(probeCount); 
+        // 1.0 / pdf0;//. / pdfLight;// / pdf0;
         irrSample0 = f0 * max(dot(gb_normal, newSample.wiw), 0.0) * newSample.Li;
       }
     }
@@ -159,8 +159,10 @@ void main() {
   float pdf1 = 0.0;
   
   float depthDiscrepancy = length(reprojectedPosition - position);
-  float discrepancyCutoff = 10.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
-  bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < discrepancyCutoff;
+  bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < getMaxDepthDiscrepancy();
+  if (bool(giUniforms.liveValues.flags & LEF_LIGHT_SAMPLING_MODE) && 
+      temporalSample.lightIdx >= probesController.instanceCount)
+    bReprojectionValid = false;
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
     f1 = evaluateMicrofacetBrdf(
@@ -185,10 +187,19 @@ void main() {
   // pdf estimators
   float phat0 = length(irrSample0);// + 0.0001;
   float phat1 = length(irrSample1);// + 0.0001;
+
+  float m0 = giUniforms.liveValues.temporalBlend;
+  float m1 = 1.0 - m0;
+  m0 *= phat0;
+  m1 *= phat1;
+  
+  float msum = m0 + m1;
+  m0 /= msum;
+  m1 /= msum;
   
   // resampling weights
-  float w0 = phat0 * newSample.W * m;
-  float w1 = phat1 * temporalSample.W * (1.0 - m);
+  float w0 = phat0 * newSample.W * m0;
+  float w1 = phat1 * temporalSample.W * m1;
 
   float wSum = w0 + w1;
   float r = rng(payload.seed) * wSum;

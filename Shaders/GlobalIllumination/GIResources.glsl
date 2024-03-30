@@ -22,8 +22,6 @@ layout(push_constant) uniform PushConstant {
   uint giUniformsHandle;
 } pushConstants;
 
-#define MAX_W 1.0
-
 #define LEF_LIGHT_SAMPLING_MODE BIT(0)
 #define LEF_DISABLE_ENV_MAP     BIT(1)
 
@@ -68,12 +66,6 @@ SAMPLER2D(textureHeap);
 #define prefilteredMap textureHeap[resources.ibl.prefilteredMapHandle]
 #define irradianceMap textureHeap[resources.ibl.irradianceMapHandle]
 #define brdfLut textureHeap[resources.ibl.brdfLutHandle]
-
-vec3 getLightColor(uint lightIdx) {
-  uint colorIdx = lightIdx / 10;
-  uvec2 colorSeed = uvec2(colorIdx, colorIdx+1);
-  return normalize(randVec3(colorSeed));
-}
 
 vec3 sampleEnvMap(vec3 dir) {
   if (bool(giUniforms.liveValues.flags & LEF_DISABLE_ENV_MAP))
@@ -245,6 +237,22 @@ ivec2 getClosestPixel(vec2 uv) {
   return pixelPos;
 }
 #endif // IS_RT_SHADER
+
+#define MAX_W 10000000.0
+
+float getMaxDepthDiscrepancy() {
+  return 1000.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
+}
+
+vec3 getLightColor(uint lightIdx) {
+  uint colorIdx = lightIdx / 10;
+  uvec2 colorSeed = uvec2(colorIdx, colorIdx+1);
+  return normalize(randVec3(colorSeed));
+}
+
+float getLightIntensity(float dist) {
+  return 1000.0 * giUniforms.liveValues.lightIntensity / dist / dist;
+}
 
 bool validateColor(inout vec3 color) {
   if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0) {
