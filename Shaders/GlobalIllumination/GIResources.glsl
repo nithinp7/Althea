@@ -238,20 +238,21 @@ ivec2 getClosestPixel(vec2 uv) {
 }
 #endif // IS_RT_SHADER
 
-#define MAX_W 10000000.0
+#define MAX_W 100000.0
 
 float getMaxDepthDiscrepancy() {
-  return 1000.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
+  return 1.0 * giUniforms.liveValues.depthDiscrepancyTolerance;
 }
 
 vec3 getLightColor(uint lightIdx) {
   uint colorIdx = lightIdx / 10;
   uvec2 colorSeed = uvec2(colorIdx, colorIdx+1);
-  return normalize(randVec3(colorSeed));
+  float randIntensity = 10. * rng(colorSeed);
+  return randIntensity * normalize(randVec3(colorSeed));
 }
 
 float getLightIntensity(float dist) {
-  return 1000.0 * giUniforms.liveValues.lightIntensity / dist / dist;
+  return 5.0 * giUniforms.liveValues.lightIntensity / dist / dist;
 }
 
 bool validateColor(inout vec3 color) {

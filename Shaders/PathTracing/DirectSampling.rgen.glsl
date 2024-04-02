@@ -53,7 +53,7 @@ vec3 traceLight(vec3 pos, uint lightIdx, out vec3 dir) {
       0, // sbtStride, 
       0, // missIndex
       payload.o, 
-      0.1,
+      0.5,
       dir,
       1000.0, 
       0 /* payload */);
@@ -159,10 +159,18 @@ void main() {
   float pdf1 = 0.0;
   
   float depthDiscrepancy = length(reprojectedPosition - position);
-  bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < getMaxDepthDiscrepancy();
+
+  // TESTING
+  depthDiscrepancy = 
+      abs(texture(gBufferDepth, scrUv).r - texture(gBufferPrevDepth, prevUv).r);
+
+  float maxDepthDiscrepancy = getMaxDepthDiscrepancy();
+  bool bReprojectionValid = isValidUV(prevUv) &&  depthDiscrepancy < maxDepthDiscrepancy;
   if (bool(giUniforms.liveValues.flags & LEF_LIGHT_SAMPLING_MODE) && 
       temporalSample.lightIdx >= probesController.instanceCount)
     bReprojectionValid = false;
+  if (bReprojectionValid)
+    temporalSample.Li = traceLight(position, temporalSample.lightIdx, temporalSample.wiw);
   if (bReprojectionValid && temporalSample.Li != vec3(0.0)) {
     pdf1 = 0.0;
     f1 = evaluateMicrofacetBrdf(
@@ -177,7 +185,9 @@ void main() {
     {
       // temporalSample.W = 1.0 / temporalSample.W / pdf1;
       irrSample1 = f1 * max(dot(gb_normal, temporalSample.wiw), 0.0) * temporalSample.Li;
-    } else {
+    } 
+    else 
+    {
       temporalSample.W = 0.0;
     }
   } else if (!bReprojectionValid) {
@@ -188,11 +198,18 @@ void main() {
   float phat0 = length(irrSample0);// + 0.0001;
   float phat1 = length(irrSample1);// + 0.0001;
 
+  float t = max(maxDepthDiscrepancy - depthDiscrepancy, 0.0) / maxDepthDiscrepancy;
   float m0 = giUniforms.liveValues.temporalBlend;
   float m1 = 1.0 - m0;
+  
   m0 *= phat0;
   m1 *= phat1;
-  
+  if (temporalSample.W == 0.0 || phat1 == 0.0)
+  {
+    m0 = 1.0;
+    m1 = 0.0;
+  }
+
   float msum = m0 + m1;
   m0 /= msum;
   m1 /= msum;
@@ -205,7 +222,6 @@ void main() {
   float r = rng(payload.seed) * wSum;
   
   vec3 color = vec3(0.0);
-  // if (w1 > w0) {
   if (r < w1) {
     temporalSample.W = clamp(wSum / phat1, 0.0, MAX_W);
     getReservoir(writeReservoirIdx).s = temporalSample;
@@ -216,7 +232,17 @@ void main() {
     getReservoir(writeReservoirIdx).s = newSample;
     color = irrSample0 * newSample.W;
   } 
+ 
+  bool bReject = (temporalSample.W == 0.0 || phat1 == 0.0) || !bReprojectionValid;
+  bool bDebugViz = bool(globals.inputMask & INPUT_BIT_CTRL) && bool(globals.inputMask & INPUT_BIT_D); 
+  if (bDebugViz)
+  {
+    color = vec3(m0, m1, 0.);
+  }
+  // color = vec3(m0, m1, 0.);
+  // color = vec3(bReprojectionValid ? 1. : 0.);
+  // color = vec3(100. * depthDiscrepancy);
 
   validateColor(color);
-  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }

@@ -16,7 +16,7 @@ layout(location = 0) rayPayloadEXT PathTracePayload payload;
 
 uvec2 seed;
 
-#define KERNEL_RADIUS 20.0
+#define KERNEL_RADIUS 50.0
 
 vec3 traceEnvMap(vec3 pos, vec3 dir) {
   payload.o = pos;
@@ -76,21 +76,25 @@ bool getInitialSample(vec2 uv, vec3 p0, uint reservoirIdx, out vec3 Li, out floa
   vec3 p1 = reconstructPosition(uv);
 
   float posDiscrepancy = length(p0 - p1);
-  if (posDiscrepancy > getMaxDepthDiscrepancy())
-  {
-    return false;
-  }
+  // if (posDiscrepancy > getMaxDepthDiscrepancy())
+  // {
+  //   return false;
+  // }
 
   GISample s = getReservoir(reservoirIdx).s;
   if (bool(giUniforms.liveValues.flags & LEF_LIGHT_SAMPLING_MODE)) {
+    if (s.lightIdx >= probesController.instanceCount)
+      return false;
     float dist;
-    Li = traceLight(p0, s.lightIdx, s.wiw, dist);
-    // dist = length(getProbe(s.lightIdx).position - p1);
+    // Li = traceLight(p0, s.lightIdx, s.wiw, dist);
+    dist = length(getProbe(s.lightIdx).position - p1);
     Li = getLightColor(s.lightIdx) * getLightIntensity(dist);
   } else {
-    // Li = traceEnvMap(p0, s.wiw);
-    Li = sampleEnvMap(s.wiw);
+    Li = traceEnvMap(p0, s.wiw);
+    // Li = sampleEnvMap(s.wiw);
   }
+
+  m = length(Li);
 
   if (Li == vec3(0.0))
     return false;
@@ -103,7 +107,7 @@ bool findNearbySample(vec2 uv, vec3 p0, out uint nearbyReservoirIdx, out vec3 Li
   vec2 relRadius = squareToDiskConcentric(xi).xy;
   
   // m = 1.0 / (dot(relRadius, relRadius) + 0.001);
-  m = 1.;//exp(-0.5 * dot(relRadius, relRadius));
+  m = exp(-0.5 * dot(relRadius, relRadius));
   
   vec2 duv = giUniforms.liveValues.spatialResamplingRadius * KERNEL_RADIUS * relRadius / vec2(gl_LaunchSizeEXT);
   vec2 nearbyUv = uv + duv;
@@ -114,6 +118,13 @@ bool findNearbySample(vec2 uv, vec3 p0, out uint nearbyReservoirIdx, out vec3 Li
   vec3 p1 = reconstructPosition(nearbyUv);
 
   float posDiscrepancy = length(p0 - p1);
+  
+  
+  // TESTING
+  posDiscrepancy = 
+      abs(texture(gBufferDepth, uv).r - texture(gBufferDepth, nearbyUv).r);
+
+  
   if (posDiscrepancy > getMaxDepthDiscrepancy())
   {
     return false;
@@ -127,11 +138,15 @@ bool findNearbySample(vec2 uv, vec3 p0, out uint nearbyReservoirIdx, out vec3 Li
 
   GISample s = getReservoir(nearbyReservoirIdx).s;
   if (bool(giUniforms.liveValues.flags & LEF_LIGHT_SAMPLING_MODE)) {
+    if (s.lightIdx >= probesController.instanceCount)
+      return false;
     float dist;
     Li = traceLight(p0, s.lightIdx, s.wiw, dist);
   } else {
     Li = traceEnvMap(p0, s.wiw);
   }
+
+  m = length(Li);
 
   if (Li == vec3(0.0))
     return false;
@@ -211,12 +226,14 @@ void main() {
           gb_metallicRoughnessOcclusion.y,
           pdf);
     float nDotWi = dot(s.wiw, gb_normal);
-    if (s.W < 0.0001 || pdf < 0.0001 || nDotWi < 0.0) {
+    if (s.W < 0.001 || pdf < 0.001 || nDotWi < 0.0) 
+    {
       spatialSamples[i].resamplingWeight = 0.0;
       continue;
     }
     spatialSamples[i].W = s.W;
     // spatialSamples[i].W = 1.0 / s.W / pdf;
+
     spatialSamples[i].irradiance = f * nDotWi * s.Li;
     // estimator for pdf
     spatialSamples[i].phat = length(spatialSamples[i].irradiance);// + 0.0001;
@@ -239,7 +256,7 @@ void main() {
       color = spatialSamples[i].irradiance * s.W;
       getReservoir(writeReservoirIdx).s = s; 
 
-      color = vec3(spatialSamples[i].irradiance);          
+      // color = vec3(spatialSamples[i].irradiance);          
       break;
     } 
 
@@ -247,5 +264,5 @@ void main() {
   }
   
   validateColor(color);
-  imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
+  // imageStore(colorTargetImg, pixelPos, vec4(color, 1.0));
 }
