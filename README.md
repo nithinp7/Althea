@@ -1,46 +1,39 @@
-# Althea Renderer
+# Althea
 
 ### Nithin Pranesh
 
-Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and the tentative roadmap are discussed below.
+Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and some of my current projects using the engine are detailed below.
 
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_1.png" width=800/>
   
 ## Projects Showcase
 
 These are a few projects built using Althea.
 
-### Althea Demo: Restir DI
+### [Althea Demo](https://github.com/nithinp7/AltheaDemo): Restir DI
 
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_1.png" height=300/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_2.png" height=300/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_2.png" width=600/>
 </p>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI.gif"/>
 
-### Althea Demo: GPU Particle Collisions
+### [Althea Demo](https://github.com/nithinp7/AltheaDemo): GPU Particle Collisions
 
 <p float="left">
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles1.gif" height=350/>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles2.gif" height=350/>
 </p>
 
-[Althea Demo](https://github.com/nithinp7/AltheaDemo) showcases and demonstrates engine features. It is useful as a template project to create new Althea projects.
+### [Stable Fluids](https://github.com/nithinp7/StableFluids)
 
-<p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.png" height=450/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=450/>
-</p>
-
-### Stable Fluids
-
-[Stable Fluids](https://github.com/nithinp7/StableFluids) is a 2D incompressible fluid simulation based on "Stable Fluids" by Jos Stam.
+Stable Fluids is a 2D incompressible fluid simulation based on "Stable Fluids" by Jos Stam.
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Fluid.gif" w=900px>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MandelbrotFluid.gif" w=500px>
 
-### Pies for Althea
+### [Pies for Althea](https://github.com/nithinp7/PiesForAlthea)
 
-[Pies for Althea](https://github.com/nithinp7/PiesForAlthea) is an Althea integration of [Pies](https://github.com/nithinp7/Pies). Pies is a constraint- and particle-based, soft-body physics engine based on the paper "Projective Dynamics: Fusing Constraint Projections for Fast Simulation", Bouaziz et. al 2014.
+Pies for Althea is an Althea integration of [Pies](https://github.com/nithinp7/Pies). Pies is a constraint- and particle-based, soft-body physics engine based on the paper "Projective Dynamics: Fusing Constraint Projections for Fast Simulation", Bouaziz et. al 2014.
 
 <p float="left">
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PD.gif" height=225/>
@@ -51,41 +44,40 @@ These are a few projects built using Althea.
 
 ### Point lights and omni-directional shadow mapping.
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" height=450/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=450/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights.gif" height=300/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PointLights2.gif" height=300/>
 </p>
 
 ### Physically based rendering of glTF models with HDR image-based lighting.
 
 ##### Results
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=800/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PBRHelmet2.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=500/>
 
 ##### Precomputed diffuse and glossy irradiance maps
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Chapel.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelDiffuseIrr.png" width=400/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelGlossy2.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Chapel.png" width=200/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelDiffuseIrr.png" width=200/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelGlossy2.png" width=200/>
 </p>
 
 ### Deferred Rendering
 
 ##### G-Buffer contains textures for positions, normals, albedo, and metallic-roughness-occlusion.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DeferredRendering.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DeferredRendering.png" width=600/>
 
 ### Screen-Space Reflection / Ambient Occlusion
 
 ##### Results
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PiesSSR_SSAO.png" width=800/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaSSR_SSAO.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PiesSSR_SSAO.png" width=600/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SponzaSSR_SSAO.png" width=600/>
 
 ##### An example GBuffer, the reflection buffer, the Gaussian-blurred glossy reflections, and the final render.
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleGBuffer.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleGBuffer.png" width=600/>
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SSR_ReflectionBuffer.png" width=300/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ConvolvedReflectionBuffer.png" width=300/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/SSR_ReflectionBuffer.png" width=250/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ConvolvedReflectionBuffer.png" width=250/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleSSR_SSAO.png" width=250/>
 </p>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ExampleSSR_SSAO.png" width=600/>
 
 ### Shader Hot-Reloading
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
