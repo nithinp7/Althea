@@ -4,7 +4,7 @@
 
 Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a flexible and performant rendering platform to support future graphics projects. The progress so far and some of my current projects using the engine are detailed below.
 
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/PathTracing_Naive2.png" width=800/>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_1.png" width=800/>
   
 ## Projects Showcase
@@ -51,13 +51,17 @@ Pies for Althea is an Althea integration of [Pies](https://github.com/nithinp7/P
 ### Physically based rendering of glTF models with HDR image-based lighting.
 
 ##### Results
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=500/>
+
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MetallicRoughnessSpheres.png" width=400/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=400/>
+</p>
 
 ##### Precomputed diffuse and glossy irradiance maps
 <p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Chapel.png" width=200/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelDiffuseIrr.png" width=200/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelGlossy2.png" width=200/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Chapel.png" width=250/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelDiffuseIrr.png" width=250/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/ChapelGlossy2.png" width=250/>
 </p>
 
 ### Deferred Rendering
