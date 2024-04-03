@@ -6,15 +6,24 @@ Althea is a glTF-based rendering engine built in Vulkan. The goal is to create a
 
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/DamagedHelmet1.png" width=800/>
   
-## Get Started
-
-Checkout the template project [Althea Demo](https://github.com/nithinp7/AltheaDemo) to get started!
-
 ## Projects Showcase
 
 These are a few projects built using Althea.
 
-### Althea Demo
+### Althea Demo: Restir DI
+
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_1.png" height=300/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI_2.png" height=300/>
+</p>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI.gif"/>
+
+### Althea Demo: GPU Particle Collisions
+
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles1.gif" height=350/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles2.gif" height=350/>
+</p>
 
 [Althea Demo](https://github.com/nithinp7/AltheaDemo) showcases and demonstrates engine features. It is useful as a template project to create new Althea projects.
 
@@ -81,79 +90,27 @@ These are a few projects built using Althea.
 ### Shader Hot-Reloading
 <img src = "https://github.com/nithinp7/Althea/blob/main/Screenshots/ShaderHotReloading.gif" width=800/>
 
-#### Core Renderer
+#### Core API
 - [x] Vulkan backend to initialize device, manage the swapchain, synchronize a double-buffered render-loop, etc.
-- [x] Simple API to create vertex inputs and specify their vertex layouts. 
-- [x] Resource layout API, abstracting away descriptor set management / allocation etc. Currently textures, UBOs, and inline constant buffers can be specified in the layout and bound ("assigned" to descriptor sets under-the-hood). Resources can be global, render pass wide, subpass wide, or they can be material (per-object) resources.
-- [x] Pipeline building API, abstracting away tons of boilerplate involved in explicitly setting up PSOs.
-- [x] Similar builder-pattern APIs for constructing render passes and subpasses. 
-- [x] Shader management
-- [x] Cubemap and texture management
+- [x] Abstractions and convenient builders for render passes, graphics / compute / RT pipelines, frame buffers, etc.
+- [x] Abstractions for old-school descriptor set allocation / binding.
+- [x] More modern, bindless heap available for easy registration of resources. Matching shader-side framework to dereference bindless handles safely.
+- [x] Resource wrappers and utilities for all sorts of buffers, images, samplers, acceleration structures, shader binding tables, render targets, etc. VMA integration to manage device allocations. 
+- [x] Shader hot-reloading - shaderc used for GLSL to Spir-V compilation.
 
-#### Model Loading
-- [x] Basic glTF loading, including normals, tangents, UVs, base color textures, and normal maps. Cesium Native is used for parsing the glTFs.
+#### Gltf Loading
+- [x] Loading and rendering of gltfs - compatible with both bindless as well as conventional binding-based contexts. Cesium Native is used for parsing the glTFs.
 - [x] Integrate MikkTSpace for generating tangents when missing from the glTF.
 
+#### Rendering Features
+- [x] Deferred rendering framework. Screen-space reflections / ambient-occlusion
+- [x] Various PBR shader utilities for BRDF evaluations, random sampling, IBL pre-computation / sampling, etc.
+- [x] Screen-space reflection and screen-space ambient occlusion.
+- [x] Point-light shadow-cubemaps.  
+- [x] Realtime path-tracing framework based on Restir - currently implements Restir DI.
+
 #### Miscellaneous
-- [x] Flexible, listener-based, input-management system built on top of GLFW.
-- [x] Velocity feedback camera controller.
+- [x] GPU-visible input system built on GLFW.
+- [x] Velocity feedback based camera controller.
+- [x] ImGui integration. 
 - [x] Integrated clang-format.
-
-#### Implementations
-- [x] Skybox and environment mapped reflections
-- [x] Normal mapping
-
-## Roadmap
-#### Engine Features
-- [x] PBR glTF materials (with image-based reflections).
-- [x] Image-based lighting.
-- [x] Point lights and omni-directional shadow mapping
-- [ ] Physically-based atmosphere and sun 
-- [ ] Volumetric clouds
-- [ ] Global illumination
-
-#### Renderer Features
-- [ ] Complete glTF featureset (ambient occlusion, emmisive map, opacity masking, vertex colors).
-- [x] Mipmaps
-- [x] Deferred rendering setup
-- [x] Screen-space reflections / ambient occlusion
-- [ ] Scenegraph / Entity Component System
-- [ ] Use spir-v reflection via shaderc to code-gen pipeline layouts / binding declarations in application-level C++.
-
-#### Vulkan Backend
-- [x] API to leverage compute pipeline.
-- [ ] API to leverage raytrace pipeline.
-- [ ] Pipeline caching - validation based on UUID and checksum hash.
-
-#### Behind the scenes
-- [x] Vulkan Memory Allocator integration.
-- [x] Update to a newer, tagged version of Cesium Native on a fork.
-- [x] Integrate shaderc library to compile glsl to spirv, instead of a cmake-based shader compilation process using CLI tools.
-- [x] Cleanly decouple engine code from "application" code. Likewise for resources (shaders, textures, etc.)
-- [x] Integrate a hash-based checksum library to detect file edits during loading.
-- [ ] Derived content caching framework (e.g., mip-maps, irradiance maps, compiled shaders etc.)
-- [ ] Multi-threaded rendering / job system
-- [ ] Async model loading / uploading, eventually geometry "streaming"
-
-#### Editor Features
-- [ ] Basic Imgui-based editor capabilities (e.g., transform gizmos, load models etc.)
-- [x] Shader hot-reloading and shader include directives
-
-#### Usability / Maintainability
-- [ ] Integrate unit-testing framework, write unit tests
-
-#### Documentation
-- [ ] Improve overall code documentation coverage, especially for stable, user-facing APIs.
-- [ ] Write high-level architecture diagram / writeup about engine.
-- [x] Write small application-level example codes.
-
-#### Way Out Ideas!
-- [ ] Integrate full 3D Tiles streaming support with Cesium Native
-- [ ] Experiment with bindless, GPU-driven pipelines, and mesh shaders.
-- [ ] Experiment with 3D Tiles and such GPU-driven approaches (e.g., compute-based LOD selection, residency management, culling, and multi-draw indirect). 
-
-### Setup Instructions (Only supports Windows for now)
-- `git clone git@github.com:nithinp7/Althea --recursive`
-- `cd Althea`
-- `./build.bat`
-- `./run.bat`
