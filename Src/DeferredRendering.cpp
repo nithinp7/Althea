@@ -101,6 +101,7 @@ GBufferResources::GBufferResources(const Application& app) {
   VkClearValue depthClear;
   depthClear.depthStencil = {1.0f, 0};
 
+  // TODO: Consider signed R8G8B8A8_NORM for normals
   this->_attachmentDescriptions = {// GBuffer Normal
                                    Attachment{
                                        ATTACHMENT_FLAG_COLOR,

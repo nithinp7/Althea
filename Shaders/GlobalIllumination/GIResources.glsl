@@ -179,9 +179,9 @@ BUFFER_RW(_reservoirBuffer, ReservoirBuffer{
 #define getReservoir(reservoirIdx)                    \
     _reservoirBuffer[                                 \
       giUniforms.reservoirHeap +                      \
-      reservoirIdx / giUniforms.reservoirsPerBuffer]  \
+      (reservoirIdx) / giUniforms.reservoirsPerBuffer]  \
         .reservoirs[                                  \
-          reservoirIdx % giUniforms.reservoirsPerBuffer]
+          (reservoirIdx) % giUniforms.reservoirsPerBuffer]
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
