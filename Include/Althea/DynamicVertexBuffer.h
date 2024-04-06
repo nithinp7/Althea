@@ -15,13 +15,18 @@ class GlobalHeap;
 template <typename TVertex> class ALTHEA_API DynamicVertexBuffer {
 public:
   DynamicVertexBuffer() = default;
-  DynamicVertexBuffer(const Application& app, size_t vertexCount)
+  DynamicVertexBuffer(const Application& app, size_t vertexCount, bool bRetainCpuCopy = false)
       : _vertexCount(vertexCount),
         _buffer(
             app,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            vertexCount * sizeof(TVertex)) {}
+            vertexCount * sizeof(TVertex)) {
+    if (bRetainCpuCopy)
+    {
+      _vertices.resize(vertexCount);
+    }
+  }
 
   void registerToHeap(GlobalHeap& heap) { _buffer.registerToHeap(heap); }
 
@@ -49,6 +54,16 @@ public:
 
   size_t getVertexCount() const { return this->_vertexCount; }
 
+  void setVertex(const TVertex& vert, uint32_t vertexIdx) {
+    // Note: bRetainCpuCopy needs to be true to use this function
+    _vertices[vertexIdx] = vert;
+  }
+
+  void upload(uint32_t ringBufferIndex) {
+    // Note: bRetainCpuCopy needs to be true to use this function
+    updateVertices(ringBufferIndex, gsl::span(_vertices.data(), _vertexCount));
+  }
+
   const BufferAllocation& getAllocation() const {
     return this->_buffer.getAllocation();
   }
@@ -67,5 +82,6 @@ public:
 private:
   size_t _vertexCount;
   DynamicBuffer _buffer;
+  std::vector<TVertex> _vertices;
 };
 } // namespace AltheaEngine
