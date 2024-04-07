@@ -18,7 +18,9 @@ public:
 
   const glm::mat4& getTransform() const { return this->_transform; }
 
+  float computeYaw() const;
   float computeYawDegrees() const;
+  float computePitch() const;
   float computePitchDegrees() const;
   glm::mat4 computeView() const;
 

@@ -66,18 +66,25 @@ void Camera::setRotationRadians(float yawRadians, float pitchRadians) {
 }
 
 // TODO: Double check these
-float Camera::computeYawDegrees() const {
+float Camera::computeYaw() const {
   const glm::vec4& zAxis = this->_transform[2];
-  return glm::degrees(glm::atan(-zAxis.z, zAxis.x));
+  return glm::atan(-zAxis.z, zAxis.x);
 }
 
-float Camera::computePitchDegrees() const {
+float Camera::computeYawDegrees() const {
+  return glm::degrees(computeYaw());
+}
+
+float Camera::computePitch() const {
   const glm::vec4& zAxis = this->_transform[2];
 
   // The z-axis faces backwards, flip the angle so positive
   // pitch corresponds to the camera tilting up.
-  return -glm::degrees(
-      glm::atan(zAxis.y, glm::sqrt(zAxis.x * zAxis.x + zAxis.z * zAxis.z)));
+  return -glm::atan(zAxis.y, glm::sqrt(zAxis.x * zAxis.x + zAxis.z * zAxis.z));
+}
+
+float Camera::computePitchDegrees() const {
+  return glm::degrees(computePitch());
 }
 
 glm::mat4 Camera::computeView() const {
