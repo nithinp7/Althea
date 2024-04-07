@@ -54,13 +54,11 @@ public:
 
   size_t getVertexCount() const { return this->_vertexCount; }
 
-  void setVertex(const TVertex& vert, uint32_t vertexIdx) {
-    // Note: bRetainCpuCopy needs to be true to use this function
-    _vertices[vertexIdx] = vert;
-  }
-
+  // Note: bRetainCpuCopy needs to be true to use these functions
+  TVertex& getVertex(uint32_t vertexIdx) { return _vertices[vertexIdx]; }
+  const TVertex& getVertex(uint32_t vertexIdx) const { return _vertices[vertexIdx]; }
+  void setVertex(const TVertex& vert, uint32_t vertexIdx) { _vertices[vertexIdx] = vert; }
   void upload(uint32_t ringBufferIndex) {
-    // Note: bRetainCpuCopy needs to be true to use this function
     updateVertices(ringBufferIndex, gsl::span(_vertices.data(), _vertexCount));
   }
 
