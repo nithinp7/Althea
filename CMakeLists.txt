@@ -28,7 +28,9 @@ endfunction()
 glob_files(SRC_FILES_LIST Src/*.cpp)
 
 add_library(Althea ${SRC_FILES_LIST})
-include_directories(Include/Althea)
+include_directories(
+  Include/Althea
+  Include/Althea/Containers)
 
 target_compile_definitions(Althea PRIVATE MAX_UV_COORDS=4)
 
