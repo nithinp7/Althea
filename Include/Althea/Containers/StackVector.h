@@ -5,36 +5,27 @@
 #include <cstdint>
 
 namespace AltheaEngine {
-template<typename _T>
-class StackVector {
+template <typename _T> class StackVector {
 public:
-
   typedef SimpleIterator<_T> iterator;
-  typedef SimpleIterator<const _T> const_iterator;     
+  typedef SimpleIterator<const _T> const_iterator;
 
-  StackVector(_T* pData, size_t capacity) 
-  : m_pData(pData)
-  , m_count(0),
-  , m_capacity(capacity) {}
+  StackVector(_T* pData, size_t capacity)
+      : m_pData(pData), m_count(0), m_capacity(capacity) {}
 
   _T& operator[](size_t idx) { return m_pData[idx]; }
   const _T& operator[](size_t idx) const { return m_pData[idx]; }
 
-  iterator begin() { return {m_pData}};
-  const_iterator begin() const { return {m_pData}};
+  iterator begin() { return {m_pData}; }
+  const_iterator begin() const { return {m_pData}; }
   iterator end() { return {&m_pData[m_count]}; }
   const_iterator end() const { return {&m_pData[m_count]}; }
 
-  void push_back(const _T& e) { 
-    new (&m_pData[m_count++]) _T(e);
-  }
+  void push_back(const _T& e) { new (&m_pData[m_count++]) _T(e); }
 
-  void push_back(_T&& e) { 
-    new (&m_pData[m_count++]) _T(std::move(e));
-  }
+  void push_back(_T&& e) { new (&m_pData[m_count++]) _T(std::move(e)); }
 
-  template<typename... Args>
-  void emplace_back(Args... args) {
+  template <typename... Args> void emplace_back(Args... args) {
     new (&m_pData[m_count++]) _T(std::forward<Args>(args));
   }
 
@@ -52,7 +43,7 @@ private:
   size_t m_capacity;
 };
 
-#define ALTHEA_STACK_VECTOR(name,_T,capacity) \
-    StackVector name((_T*)alloca(sizeof(_T)*(capacity)),(capacity))
+#define ALTHEA_STACK_VECTOR(name, _T, capacity)                                \
+  StackVector name((_T*)alloca(sizeof(_T) * (capacity)), (capacity))
 
 } // namespace AltheaEngine

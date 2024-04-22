@@ -9,7 +9,7 @@ namespace AltheaEngine {
 template <typename _T> struct SimpleIterator {
   _T* ptr;
 
-  _T& operator*() { return ptr; }
+  _T& operator*() { return *ptr; }
   void operator++() { ptr++; }
   bool operator!=(SimpleIterator other) const { return ptr != other.ptr; }
 };
