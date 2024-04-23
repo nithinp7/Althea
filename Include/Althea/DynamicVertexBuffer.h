@@ -32,6 +32,14 @@ public:
 
   void registerToHeap(GlobalHeap& heap) { _buffer.registerToHeap(heap); }
 
+  void zeroBuffer(VkCommandBuffer commandBuffer, uint32_t ringBufferIndex) {
+    _buffer.zeroBuffer(commandBuffer, ringBufferIndex);
+  }
+
+  void zeroAllBuffers(VkCommandBuffer commandBuffer) {
+    _buffer.zeroAllBuffers(commandBuffer);
+  }
+
   BufferHandle getCurrentBufferHandle(uint32_t ringBufferIndex) const {
     return _buffer.getCurrentBufferHandle(ringBufferIndex);
   }

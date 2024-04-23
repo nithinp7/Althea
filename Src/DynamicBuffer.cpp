@@ -25,6 +25,26 @@ void DynamicBuffer::registerToHeap(GlobalHeap& heap) {
   }
 }
 
+void DynamicBuffer::zeroBuffer(
+    VkCommandBuffer commandBuffer,
+    uint32_t ringBufferIndex) {
+  vkCmdFillBuffer(
+      commandBuffer,
+      getAllocation().getBuffer(),
+      ringBufferIndex * _bufferSize,
+      _bufferSize,
+      0);
+}
+
+void DynamicBuffer::zeroAllBuffers(VkCommandBuffer commandBuffer) {
+  vkCmdFillBuffer(
+      commandBuffer,
+      getAllocation().getBuffer(),
+      0,
+      MAX_FRAMES_IN_FLIGHT * _bufferSize,
+      0);
+}
+
 DynamicBuffer& DynamicBuffer::operator=(DynamicBuffer&& rhs) {
   if (this->_pMappedMemory) {
     this->_allocation.unmapMemory();
