@@ -501,6 +501,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
          deviceFeatures.features.imageCubeArray &&
+         deviceFeatures.features.wideLines &&
          inlineBlockFeatures.inlineUniformBlock &&
          multiviewFeatures.multiview && accelFeature.accelerationStructure &&
          // accelFeature.accelerationStructureHostCommands &&
@@ -571,7 +572,8 @@ void Application::createLogicalDevice() {
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fillModeNonSolid = VK_TRUE;
   deviceFeatures.imageCubeArray = VK_TRUE;
-
+  deviceFeatures.wideLines = VK_TRUE;
+  
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
