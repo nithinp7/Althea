@@ -32,14 +32,17 @@ PFN_vkGetRayTracingShaderGroupHandlesKHR
     Application::vkGetRayTracingShaderGroupHandlesKHR;
 PFN_vkCreateRayTracingPipelinesKHR Application::vkCreateRayTracingPipelinesKHR;
 
+std::string GApplicationTitle = "";
 std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application(
+    const std::string& appTitle,
     const std::string& projectDir,
     const std::string& engineDir)
     : configParser(engineDir + "/Config/ConfigFile.txt") {
+  GApplicationTitle = appTitle;
   GProjectDirectory = projectDir;
   GEngineDirectory = engineDir;
 }
@@ -70,7 +73,7 @@ void Application::initWindow() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-  window = glfwCreateWindow(WIDTH, HEIGHT, "Althea Renderer", nullptr, nullptr);
+  window = glfwCreateWindow(WIDTH, HEIGHT, GApplicationTitle.c_str(), nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
 
   pInputManager = new InputManager(window);
