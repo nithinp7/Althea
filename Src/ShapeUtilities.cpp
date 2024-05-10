@@ -17,7 +17,8 @@ void ShapeUtilities::createSphere(
     VkCommandBuffer commandBuffer,
     VertexBuffer<glm::vec3>& vertexBuffer,
     IndexBuffer& indexBuffer,
-    uint32_t resolution) {
+    uint32_t resolution,
+    float radius) {
   constexpr float maxPitch = 0.499f * glm::pi<float>();
 
   auto sphereUvIndexToVertIndex = [resolution](uint32_t i, uint32_t j) {
@@ -43,7 +44,7 @@ void ShapeUtilities::createSphere(
       float cosPhi = cos(phi);
       float sinPhi = sin(phi);
 
-      vertices.emplace_back(cosPhi * cosTheta, sinPhi, -cosPhi * sinTheta);
+      vertices.emplace_back(radius * cosPhi * cosTheta, radius * sinPhi, radius * -cosPhi * sinTheta);
 
       if (j < resolution / 2 - 1) {
         indices.push_back(sphereUvIndexToVertIndex(i, j));
@@ -68,8 +69,8 @@ void ShapeUtilities::createSphere(
   }
 
   // Cap vertices
-  vertices.emplace_back(0.0f, 1.0f, 0.0f);
-  vertices.emplace_back(0.0f, -1.0f, 0.0f);
+  vertices.emplace_back(0.0f, radius, 0.0f);
+  vertices.emplace_back(0.0f, -radius, 0.0f);
 
   indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
   vertexBuffer =

@@ -18,7 +18,8 @@ public:
       VkCommandBuffer commandBuffer,
       VertexBuffer<glm::vec3>& vertexBuffer,
       IndexBuffer& indexBuffer,
-      uint32_t resolution);
+      uint32_t resolution,
+      float radius = 1.0f);
   static void createCylinder(
       Application& app,
       VkCommandBuffer commandBuffer, 
