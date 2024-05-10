@@ -27,16 +27,16 @@ void OrbitCamera::tick(
   else
     m_targetYawRate = 0.0f;
 
-  if (inputMask & INPUT_BIT_W)
+  if (inputMask & INPUT_BIT_E)
     m_targetPitchRate = m_maxRotationRate;
-  else if (inputMask & INPUT_BIT_S)
+  else if (inputMask & INPUT_BIT_Q)
     m_targetPitchRate = -m_maxRotationRate;
   else
     m_targetPitchRate = 0.0f;
 
-  if (inputMask & INPUT_BIT_Q)
+  if (inputMask & INPUT_BIT_S)
     m_spacingTarget += 0.1f;
-  else if (inputMask & INPUT_BIT_E)
+  else if (inputMask & INPUT_BIT_W)
     m_spacingTarget -= 0.1f;
 
   m_spacingTarget = glm::clamp(m_spacingTarget, 5.0f, 200.0f);

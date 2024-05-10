@@ -62,7 +62,7 @@ public:
       const Application& app,
       const VkCommandBuffer& commandBuffer,
       const FrameContext& frame,
-      VkFramebuffer frameBuffer);
+      VkFramebuffer frameBuffer) const;
 
   operator VkRenderPass() const {
     return this->_renderPass;

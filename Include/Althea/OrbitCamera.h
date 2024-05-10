@@ -21,6 +21,11 @@ public:
   const Camera& getCamera() const { return m_camera; }
   Camera& getCamera() { return m_camera; }
 
+  void setRotation(float yaw, float pitch) {
+    m_yaw = yaw;
+    m_pitch = pitch;
+  }
+  float getSpacing() const { return m_spacingTarget; }
   void setSpacing(float spacing) { m_spacingTarget = spacing; }
   void setTargetPosition(const glm::vec3& target) { m_lookTarget = target; }
 

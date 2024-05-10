@@ -29,6 +29,9 @@ public:
   DynamicBuffer(const DynamicBuffer& rhs) = delete;
   DynamicBuffer& operator=(const DynamicBuffer& rhs) = delete;
 
+  void zeroBuffer(VkCommandBuffer commandBuffer, uint32_t ringBufferIndex);
+  void zeroAllBuffers(VkCommandBuffer commandBuffer);
+
   DynamicBuffer(
       const Application& app,
       VkBufferUsageFlags usage,

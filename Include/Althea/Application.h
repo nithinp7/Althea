@@ -55,6 +55,7 @@ public:
   static PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
 
   Application(
+      const std::string& appTitle,
       const std::string& projectDirectory,
       const std::string& engineDirectory);
 

@@ -236,7 +236,7 @@ ActiveRenderPass RenderPass::begin(
     const Application& app,
     const VkCommandBuffer& commandBuffer,
     const FrameContext& frame,
-    VkFramebuffer frameBuffer) {
+    VkFramebuffer frameBuffer) const {
   return ActiveRenderPass(*this, commandBuffer, frame, frameBuffer);
 }
 

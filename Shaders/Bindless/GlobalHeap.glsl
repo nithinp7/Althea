@@ -44,6 +44,16 @@
     layout(std430, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
       writeonly buffer BODY NAME[]
 
+#define BUFFER_RW_PACKED(NAME,BODY) \
+    layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
+      buffer BODY NAME[]
+#define BUFFER_R_PACKED(NAME,BODY) \
+    layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
+      readonly buffer BODY NAME[]
+#define BUFFER_W_PACKED(NAME,BODY) \
+    layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
+      writeonly buffer BODY NAME[]
+
 #define UNIFORM_BUFFER(NAME,BODY) \
     layout(std430, set=BINDLESS_SET, binding=UNIFORM_HEAP_BINDING) \
       uniform BODY NAME[]

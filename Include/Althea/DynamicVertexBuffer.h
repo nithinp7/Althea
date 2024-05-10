@@ -15,15 +15,30 @@ class GlobalHeap;
 template <typename TVertex> class ALTHEA_API DynamicVertexBuffer {
 public:
   DynamicVertexBuffer() = default;
-  DynamicVertexBuffer(const Application& app, size_t vertexCount)
+  DynamicVertexBuffer(
+      const Application& app,
+      size_t vertexCount,
+      bool bRetainCpuCopy = false)
       : _vertexCount(vertexCount),
         _buffer(
             app,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            vertexCount * sizeof(TVertex)) {}
+            vertexCount * sizeof(TVertex)) {
+    if (bRetainCpuCopy) {
+      _vertices.resize(vertexCount);
+    }
+  }
 
   void registerToHeap(GlobalHeap& heap) { _buffer.registerToHeap(heap); }
+
+  void zeroBuffer(VkCommandBuffer commandBuffer, uint32_t ringBufferIndex) {
+    _buffer.zeroBuffer(commandBuffer, ringBufferIndex);
+  }
+
+  void zeroAllBuffers(VkCommandBuffer commandBuffer) {
+    _buffer.zeroAllBuffers(commandBuffer);
+  }
 
   BufferHandle getCurrentBufferHandle(uint32_t ringBufferIndex) const {
     return _buffer.getCurrentBufferHandle(ringBufferIndex);
@@ -31,7 +46,7 @@ public:
 
   void
   updateVertices(uint32_t ringBufferIndex, gsl::span<const TVertex> vertices) {
-    if (vertices.size() != this->_vertexCount) {
+    if (vertices.size() > this->_vertexCount) {
       throw std::runtime_error("Attempting to update DynamicVertexBuffer with "
                                "incorrect number of vertices.");
     }
@@ -48,6 +63,19 @@ public:
   }
 
   size_t getVertexCount() const { return this->_vertexCount; }
+
+  // Note: bRetainCpuCopy needs to be true to use these functions
+  TVertex& getVertex(uint32_t vertexIdx) { return _vertices[vertexIdx]; }
+  const TVertex& getVertex(uint32_t vertexIdx) const {
+    return _vertices[vertexIdx];
+  }
+  void setVertex(const TVertex& vert, uint32_t vertexIdx) {
+    _vertices[vertexIdx] = vert;
+  }
+  const std::vector<TVertex>& getVertices() const { return _vertices; }
+  void upload(uint32_t ringBufferIndex) {
+    updateVertices(ringBufferIndex, gsl::span(_vertices.data(), _vertexCount));
+  }
 
   const BufferAllocation& getAllocation() const {
     return this->_buffer.getAllocation();
@@ -67,5 +95,6 @@ public:
 private:
   size_t _vertexCount;
   DynamicBuffer _buffer;
+  std::vector<TVertex> _vertices;
 };
 } // namespace AltheaEngine

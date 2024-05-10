@@ -32,14 +32,17 @@ PFN_vkGetRayTracingShaderGroupHandlesKHR
     Application::vkGetRayTracingShaderGroupHandlesKHR;
 PFN_vkCreateRayTracingPipelinesKHR Application::vkCreateRayTracingPipelinesKHR;
 
+std::string GApplicationTitle = "";
 std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application(
+    const std::string& appTitle,
     const std::string& projectDir,
     const std::string& engineDir)
     : configParser(engineDir + "/Config/ConfigFile.txt") {
+  GApplicationTitle = appTitle;
   GProjectDirectory = projectDir;
   GEngineDirectory = engineDir;
 }
@@ -70,7 +73,7 @@ void Application::initWindow() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-  window = glfwCreateWindow(WIDTH, HEIGHT, "Althea Renderer", nullptr, nullptr);
+  window = glfwCreateWindow(WIDTH, HEIGHT, GApplicationTitle.c_str(), nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
 
   pInputManager = new InputManager(window);
@@ -501,6 +504,7 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.samplerAnisotropy &&
          deviceFeatures.features.fillModeNonSolid &&
          deviceFeatures.features.imageCubeArray &&
+         deviceFeatures.features.wideLines &&
          inlineBlockFeatures.inlineUniformBlock &&
          multiviewFeatures.multiview && accelFeature.accelerationStructure &&
          // accelFeature.accelerationStructureHostCommands &&
@@ -571,7 +575,8 @@ void Application::createLogicalDevice() {
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fillModeNonSolid = VK_TRUE;
   deviceFeatures.imageCubeArray = VK_TRUE;
-
+  deviceFeatures.wideLines = VK_TRUE;
+  
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
