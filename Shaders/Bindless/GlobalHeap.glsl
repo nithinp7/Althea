@@ -19,9 +19,6 @@
 #define DECL_IMAGE_HEAP(SIGNATURE, FORMAT) \
     layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
       SIGNATURE[]
-#define DECL_IMAGE_HEAP(SIGNATURE) \
-    layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING) \
-      SIGNATURE[]
 
 #define SAMPLER2D(NAME) \
     layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \
@@ -33,7 +30,7 @@
 
 #define IMAGE2D_RW(NAME,FORMAT) \
     layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
-      image2D NAME[]
+      uniform image2D NAME[]
 #define IMAGE2D_R(NAME,FORMAT) \
     layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
       readonly image2D NAME[]
