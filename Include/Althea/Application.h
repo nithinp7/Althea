@@ -226,6 +226,7 @@ public:
   const ConfigParser& getConfigParser() const { return configParser; }
 
   InputManager& getInputManager() { return *pInputManager; }
+  const InputManager& getInputManager() const { return *pInputManager; }
 
   void addDeletiontask(DeletionTask&& task) {
     deletionTasks.addDeletionTask(std::move(task));
