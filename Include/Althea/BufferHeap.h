@@ -62,6 +62,38 @@ public:
     }
   }
 
+  StructuredBufferHeap(
+      const Application& app,
+      uint32_t bufferCount,
+      uint32_t elemsPerBuffer) {
+    this->_size = bufferCount;
+    this->_capacity = bufferCount;
+
+    this->_bufferInfos.resize(bufferCount);
+    this->_buffers.reserve(bufferCount);
+
+    for (uint32_t i = 0; i < bufferCount; ++i) {
+      _buffers.emplace_back(app, elemsPerBuffer);
+      _initBufferInfo(
+          this->_buffers[i].getAllocation().getBuffer(),
+          0,
+          this->_buffers[i].getSize(),
+          i);
+    }
+  }
+
+  void zeroBuffer(VkCommandBuffer commandBuffer) {
+    for (auto& buffer : _buffers)
+      buffer.zeroBuffer(commandBuffer);
+  }
+
+  void registerToHeap(GlobalHeap& heap) {
+    for (auto& buffer : _buffers)
+      buffer.registerToHeap(heap);
+  }
+
+  BufferHandle getFirstBufferHandle() const { return _buffers[0].getHandle(); }
+
   const StructuredBuffer<TElement>& getBuffer(uint32_t bufferIdx) const {
     return this->_buffers[bufferIdx];
   }
@@ -73,6 +105,8 @@ public:
   const std::vector<StructuredBuffer<TElement>>& getBuffers() const {
     return this->_buffers;
   }
+
+  size_t getBufferCount() const { return _buffers.size(); }
 
   void upload(Application& app, VkCommandBuffer commandBuffer) {
     for (auto& buffer : this->_buffers)

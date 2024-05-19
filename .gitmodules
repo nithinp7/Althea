@@ -25,3 +25,6 @@
 [submodule "Extern/imgui"]
 	path = Extern/imgui
 	url = git@github.com:ocornut/imgui.git
+[submodule "Extern/tinyexr"]
+	path = Extern/tinyexr
+	url = https://github.com/syoyo/tinyexr
