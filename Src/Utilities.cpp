@@ -4,6 +4,7 @@
 #include <glm/common.hpp>
 #include <glm/glm.hpp>
 #include <stb_image.h>
+#include <tinyexr.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -137,5 +138,21 @@ void Utilities::saveHdri(
       height,
       4,
       reinterpret_cast<const float*>(data.data()));
+}
+
+/*static*/
+void Utilities::saveExr(
+    const std::string& path,
+    int width,
+    int height,
+    gsl::span<const std::byte> data) {
+  SaveEXR(
+      reinterpret_cast<const float*>(data.data()),
+      width,
+      height,
+      4,
+      0,
+      path.c_str(),
+      nullptr);
 }
 } // namespace AltheaEngine

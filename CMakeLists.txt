@@ -48,6 +48,10 @@ add_subdirectory(Extern/glfw)
 add_subdirectory(Extern/VulkanMemoryAllocator)
 add_subdirectory(Extern/shaderc)
 
+set(TINYEXR_BUILD_SAMPLE OFF)
+set(TINYEXR_USE_MINIZ OFF)
+add_subdirectory(Extern/tinyexr)
+
 add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
 set_target_properties(MikkTSpace PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Extern/MikkTSpace/mikktspace.h")
 
@@ -79,7 +83,8 @@ target_include_directories (Althea
       Extern/VulkanMemoryAllocator/include
       Extern/shaderc/libshaderc/include/shaderc
       Extern/hash-library
-      Extern/imgui)
+      Extern/imgui
+      Extern/tinyexr)
 
 target_compile_definitions(
     Althea
@@ -103,6 +108,7 @@ target_link_libraries (Althea PUBLIC VulkanMemoryAllocator)
 target_link_libraries (Althea PUBLIC shaderc)
 target_link_libraries (Althea PUBLIC hash_library)
 target_link_libraries (Althea PUBLIC imgui)
+target_link_libraries (Althea PUBLIC tinyexr)
 
 set(CESIUM_DEBUG_POSTFIX "d")
 set(CESIUM_RELEASE_POSTFIX "")

@@ -37,5 +37,10 @@ public:
       int width,
       int height,
       gsl::span<const std::byte> data);
+  static void saveExr(
+      const std::string& path,
+      int width,
+      int height,
+      gsl::span<const std::byte> data);
 };
 } // namespace AltheaEngine
