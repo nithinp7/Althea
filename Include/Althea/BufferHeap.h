@@ -101,10 +101,17 @@ public:
 
   void barrier(
       VkCommandBuffer commandBuffer,
+      VkAccessFlags srcAccessFlags,
+      VkPipelineStageFlags srcPipelineStageFlags,
       VkAccessFlags dstAccessFlags,
       VkPipelineStageFlags dstPipelineStageFlags) {
     for (const auto& buf : _buffers)
-      buf.barrier(commandBuffer, dstAccessFlags, dstPipelineStageFlags);
+      buf.barrier(
+          commandBuffer,
+          srcAccessFlags,
+          srcPipelineStageFlags,
+          dstAccessFlags,
+          dstPipelineStageFlags);
   }
 
   const StructuredBuffer<TElement>& getBuffer(uint32_t bufferIdx) const {

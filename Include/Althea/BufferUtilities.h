@@ -37,12 +37,5 @@ public:
       VkBuffer buffer,
       size_t offset,
       size_t size);
-  static void barrier(
-      VkCommandBuffer commandBuffer,
-      VkAccessFlags dstAcessFlags,
-      VkPipelineStageFlags dstStageFlags,
-      VkBuffer buffer,
-      size_t offset,
-      size_t size);
 };
 } // namespace AltheaEngine

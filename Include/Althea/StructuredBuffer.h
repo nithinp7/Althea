@@ -82,15 +82,30 @@ public:
 
   void barrier(
       VkCommandBuffer commandBuffer,
+      VkAccessFlags srcAccessFlags,
+      VkPipelineStageFlags srcPipelineStageFlags,
       VkAccessFlags dstAccessFlags,
       VkPipelineStageFlags dstPipelineStageFlags) const {
-    BufferUtilities::barrier(
+
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.buffer = _allocation.getBuffer();
+    barrier.offset = 0;
+    barrier.size = getSize();
+    barrier.srcAccessMask = srcAccessFlags;
+    barrier.dstAccessMask = dstAccessFlags;
+
+    vkCmdPipelineBarrier(
         commandBuffer,
-        dstAccessFlags,
+        srcPipelineStageFlags,
         dstPipelineStageFlags,
-        _allocation.getBuffer(),
         0,
-        getSize());
+        0,
+        nullptr,
+        1,
+        &barrier,
+        0,
+        nullptr);
   }
 
   void zeroBuffer(VkCommandBuffer commandBuffer) const {
