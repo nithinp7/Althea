@@ -58,6 +58,17 @@
     layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
       writeonly buffer BODY NAME[]
 
+#define BUFFER_HEAP(TYPE, NAME, START_HANDLE, COUNT_PER_BUFFER)       \
+    BUFFER_RW(_##NAME##Heap, _##NAME##_BUFFER{                        \
+      TYPE arr[];                                                     \
+    });                                                               \
+    uint _##NAME##StartHandle() { return START_HANDLE; }              \
+    uint _##NAME##CountPerBuffer() { return COUNT_PER_BUFFER; }       
+
+#define BUFFER_HEAP_GET(NAME, IDX)                                             \
+    _##NAME##Heap[_##NAME##StartHandle() + (IDX) / _##NAME##CountPerBuffer()]  \
+      .arr[(IDX) % _##NAME##CountPerBuffer()]
+
 #define UNIFORM_BUFFER(NAME,BODY) \
     layout(std430, set=BINDLESS_SET, binding=UNIFORM_HEAP_BINDING) \
       uniform BODY NAME[]

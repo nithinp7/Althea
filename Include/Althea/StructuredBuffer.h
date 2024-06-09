@@ -72,10 +72,31 @@ public:
          app.getCurrentFrameRingBufferIndex()});
   }
 
+  void rwBarrier(VkCommandBuffer commandBuffer) const {
+    BufferUtilities::rwBarrier(
+        commandBuffer,
+        _allocation.getBuffer(),
+        0,
+        getSize());
+  }
+
+  void barrier(
+      VkCommandBuffer commandBuffer,
+      VkAccessFlags dstAccessFlags,
+      VkPipelineStageFlags dstPipelineStageFlags) const {
+    BufferUtilities::barrier(
+        commandBuffer,
+        dstAccessFlags,
+        dstPipelineStageFlags,
+        _allocation.getBuffer(),
+        0,
+        getSize());
+  }
+
   void zeroBuffer(VkCommandBuffer commandBuffer) const {
     vkCmdFillBuffer(commandBuffer, _allocation.getBuffer(), 0, getSize(), 0);
   }
-  
+
   void download(std::vector<TElement>& out) const {
     throw std::runtime_error("NOT IMPLEMENTED");
 

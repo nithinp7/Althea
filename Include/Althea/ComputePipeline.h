@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Library.h"
-
 #include "PipelineLayout.h"
 #include "Shader.h"
 #include "UniqueVkHandle.h"
@@ -20,7 +19,8 @@ public:
    * @param path The project-relative path to the glsl compute shader.
    * @param defines Defines to inject before compilation
    */
-  void setComputeShader(const std::string& path, const ShaderDefines& defines = {});
+  void
+  setComputeShader(const std::string& path, const ShaderDefines& defines = {});
 
   /**
    * @brief The builder for creating a pipeline layout for this graphics
@@ -40,6 +40,24 @@ public:
   ComputePipeline(const Application& app, ComputePipelineBuilder&& builder);
 
   void bindPipeline(VkCommandBuffer commandBuffer) const;
+  void
+  bindDescriptorSet(VkCommandBuffer commandBuffer, VkDescriptorSet set) const;
+  void bindDescriptorSets(
+      VkCommandBuffer commandBuffer,
+      const VkDescriptorSet* sets,
+      uint32_t count) const;
+
+  template <typename TPush>
+  void
+  setPushConstants(VkCommandBuffer commandBuffer, const TPush& push) const {
+    vkCmdPushConstants(
+        commandBuffer,
+        getLayout(),
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        0,
+        sizeof(TPush),
+        &push);
+  }
 
   VkPipeline getPipeline() const { return this->_pipeline; }
 
@@ -86,6 +104,7 @@ public:
    * recompiled shaders if they exist.
    */
   void recreatePipeline(Application& app);
+
 private:
   struct ComputePipelineDeleter {
     void operator()(VkDevice device, VkPipeline pipeline);

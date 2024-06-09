@@ -94,6 +94,19 @@ public:
 
   BufferHandle getFirstBufferHandle() const { return _buffers[0].getHandle(); }
 
+  void rwBarrier(VkCommandBuffer commandBuffer) const {
+    for (const auto& buf : _buffers)
+      buf.rwBarrier(commandBuffer);
+  }
+
+  void barrier(
+      VkCommandBuffer commandBuffer,
+      VkAccessFlags dstAccessFlags,
+      VkPipelineStageFlags dstPipelineStageFlags) {
+    for (const auto& buf : _buffers)
+      buf.barrier(commandBuffer, dstAccessFlags, dstPipelineStageFlags);
+  }
+
   const StructuredBuffer<TElement>& getBuffer(uint32_t bufferIdx) const {
     return this->_buffers[bufferIdx];
   }

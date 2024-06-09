@@ -50,6 +50,27 @@ void ComputePipeline::bindPipeline(VkCommandBuffer commandBuffer) const {
       this->_pipeline);
 }
 
+void ComputePipeline::bindDescriptorSet(
+    VkCommandBuffer commandBuffer,
+    VkDescriptorSet set) const {
+  bindDescriptorSets(commandBuffer, &set, 1);
+}
+
+void ComputePipeline::bindDescriptorSets(
+    VkCommandBuffer commandBuffer,
+    const VkDescriptorSet* sets,
+    uint32_t count) const {
+  vkCmdBindDescriptorSets(
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_COMPUTE,
+      getLayout(),
+      0,
+      count,
+      sets,
+      0,
+      nullptr);
+}
+
 void ComputePipeline::ComputePipelineDeleter::operator()(
     VkDevice device,
     VkPipeline computePipeline) {

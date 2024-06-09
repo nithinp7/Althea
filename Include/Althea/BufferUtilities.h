@@ -3,8 +3,8 @@
 #include "Allocator.h"
 #include "Library.h"
 
-#include <vulkan/vulkan.h>
 #include <gsl/span>
+#include <vulkan/vulkan.h>
 
 #include <cstdint>
 #include <memory>
@@ -26,11 +26,23 @@ public:
       VkDeviceSize size,
       VkBufferUsageFlags usage,
       const VmaAllocationCreateInfo& allocInfo);
-  static BufferAllocation createStagingBuffer(
-      const Application& app,
-      size_t bufferSize);
+  static BufferAllocation
+  createStagingBuffer(const Application& app, size_t bufferSize);
   static BufferAllocation createStagingBuffer(
       const Application& app,
       gsl::span<const std::byte> srcBuffer);
+
+  static void rwBarrier(
+      VkCommandBuffer commandBuffer,
+      VkBuffer buffer,
+      size_t offset,
+      size_t size);
+  static void barrier(
+      VkCommandBuffer commandBuffer,
+      VkAccessFlags dstAcessFlags,
+      VkPipelineStageFlags dstStageFlags,
+      VkBuffer buffer,
+      size_t offset,
+      size_t size);
 };
 } // namespace AltheaEngine
