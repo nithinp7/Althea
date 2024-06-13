@@ -16,6 +16,12 @@ layout(set=0, binding=3) uniform sampler2D brdfLut;
 #define GLOBAL_UNIFORMS_BINDING 4
 #include <Global/GlobalUniforms.glsl>
 
+#define POINT_LIGHTS_SET 0
+#define POINT_LIGHTS_BINDING 5
+#include <PointLights.glsl>
+
+layout(set=0, binding=6) uniform samplerCubeArray shadowMapArray;
+
 // GBuffer textures
 layout(set=1, binding=0) uniform sampler2D gBufferPosition;
 layout(set=1, binding=1) uniform sampler2D gBufferNormal;
@@ -27,6 +33,7 @@ layout(set=1, binding=4) uniform sampler2D reflectionBuffer;
 
 #include <PBR/PBRMaterial.glsl>
 #include <SSAO.glsl>
+#include <SunSky.glsl>
 
 vec4 sampleReflection(float roughness) {
   return textureLod(reflectionBuffer, uv, 4.0 * roughness).rgba;
@@ -46,7 +53,8 @@ void main() {
   vec4 position = texture(gBufferPosition, uv).rgba;
   if (position.a == 0.0) {
     // Nothing in the GBuffer, draw the environment map
-    vec3 envMapSample = sampleEnvMap(direction);
+    // vec3 envMapSample = sampleEnvMap(direction);
+    vec3 envMapSample = sampleSky(globals.inverseView[3].xyz, normalize(direction));
 #ifndef SKIP_TONEMAP
     envMapSample = vec3(1.0) - exp(-envMapSample * globals.exposure);
 #endif
@@ -62,12 +70,12 @@ void main() {
   vec3 reflectedDirection = reflect(normalize(direction), normal);
   vec4 reflectedColor = sampleReflection(metallicRoughnessOcclusion.y);
   vec4 envReflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughnessOcclusion.y), 1.0);
-  if (reflectedColor.a < 0.01) {
-    reflectedColor.rgb = envReflectedColor.rgb;
-  } else {
-    reflectedColor.rgb = 
-        mix(envReflectedColor.rgb, reflectedColor.rgb / reflectedColor.a, reflectedColor.a);
-  }
+  // if (reflectedColor.a < 0.01) {
+  //   reflectedColor.rgb = envReflectedColor.rgb;
+  // } else {
+  //   reflectedColor.rgb = 
+  //       mix(envReflectedColor.rgb, reflectedColor.rgb / reflectedColor.a, reflectedColor.a);
+  // }
 
   vec3 irradianceColor = sampleIrrMap(normal);
 
@@ -75,8 +83,8 @@ void main() {
 
   vec3 material = 
       pbrMaterial(
+        position.xyz,
         normalize(direction),
-        globals.lightDir, 
         normal, 
         baseColor.rgb, 
         reflectedColor.rgb, 
