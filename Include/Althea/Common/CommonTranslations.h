@@ -1,4 +1,4 @@
-#ifdef NOT_SHADER
+#ifndef IS_SHADER
 #include <cstdint>
 #include <glm/glm.hpp>
 

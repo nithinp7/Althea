@@ -49,7 +49,7 @@ add_subdirectory(Extern/VulkanMemoryAllocator)
 add_subdirectory(Extern/shaderc)
 
 set(TINYEXR_BUILD_SAMPLE OFF)
-set(TINYEXR_USE_MINIZ OFF)
+#set(TINYEXR_USE_MINIZ OFF)
 add_subdirectory(Extern/tinyexr)
 
 add_library(MikkTSpace Extern/MikkTSpace/mikktspace.c)
