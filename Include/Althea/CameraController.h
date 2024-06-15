@@ -25,6 +25,8 @@ public:
   void setMinSpeed(float speed);
   void setMaxSpeed(float speed);
 
+  void setPosition(const glm::vec3& position);
+  void setRotationDegrees(float yawDegrees, float pitchDegrees);
 private:
   // Mouse updates, using normalized screen coordinates.
   void _updateMouse(double x, double y, bool cursorHidden);

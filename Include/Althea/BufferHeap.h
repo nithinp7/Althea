@@ -126,6 +126,11 @@ public:
     return this->_buffers;
   }
 
+  void setElement(const TElement& element, uint32_t i) {
+    size_t elemsPerBuffer = _buffers[0].getCount();
+    _buffers[i / elemsPerBuffer].setElement(element, i % elemsPerBuffer);
+  }
+
   size_t getBufferCount() const { return _buffers.size(); }
 
   void upload(Application& app, VkCommandBuffer commandBuffer) {

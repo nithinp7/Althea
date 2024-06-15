@@ -130,12 +130,20 @@ void CameraController::tick(float deltaTime) {
   this->_camera.setRotationDegrees(this->_yaw, newPitch);
 }
 
-void CameraController::setMinSpeed(float speed) {
-  this->_minSpeed = speed;
+void CameraController::setMinSpeed(float speed) { this->_minSpeed = speed; }
+
+void CameraController::setMaxSpeed(float speed) { this->_maxSpeed = speed; }
+
+void CameraController::setPosition(const glm::vec3& position) {
+  this->_camera.setPosition(position);
 }
 
-void CameraController::setMaxSpeed(float speed) {
-  this->_maxSpeed = speed;
+void CameraController::setRotationDegrees(
+    float yawDegrees,
+    float pitchDegrees) {
+  this->_camera.setRotationDegrees(yawDegrees, pitchDegrees);
+  this->_yaw = yawDegrees;
+  this->_targetYaw = yawDegrees;
 }
 
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {
