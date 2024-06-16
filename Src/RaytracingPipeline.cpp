@@ -223,6 +223,34 @@ std::string RayTracingPipeline::getShaderRecompileErrors() const {
   return errors;
 }
 
+void RayTracingPipeline::bindPipeline(VkCommandBuffer commandBuffer) const {
+  vkCmdBindPipeline(
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+      this->_pipeline);
+}
+
+void RayTracingPipeline::bindDescriptorSet(
+    VkCommandBuffer commandBuffer,
+    VkDescriptorSet set) const {
+  bindDescriptorSets(commandBuffer, &set, 1);
+}
+
+void RayTracingPipeline::bindDescriptorSets(
+    VkCommandBuffer commandBuffer,
+    const VkDescriptorSet* sets,
+    uint32_t count) const {
+  vkCmdBindDescriptorSets(
+      commandBuffer,
+      VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+      getLayout(),
+      0,
+      count,
+      sets,
+      0,
+      nullptr);
+}
+
 void RayTracingPipeline::traceRays(const VkExtent2D& extent, VkCommandBuffer commandBuffer) const {
   Application::vkCmdTraceRaysKHR(
       commandBuffer,

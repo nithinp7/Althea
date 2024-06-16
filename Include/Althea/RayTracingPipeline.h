@@ -38,6 +38,26 @@ public:
   RayTracingPipeline() = default;
   RayTracingPipeline(const Application& app, RayTracingPipelineBuilder&& builder);
 
+  void bindPipeline(VkCommandBuffer commandBuffer) const;
+  void
+  bindDescriptorSet(VkCommandBuffer commandBuffer, VkDescriptorSet set) const;
+  void bindDescriptorSets(
+      VkCommandBuffer commandBuffer,
+      const VkDescriptorSet* sets,
+      uint32_t count) const;
+
+  template <typename TPush>
+  void
+  setPushConstants(VkCommandBuffer commandBuffer, const TPush& push) const {
+    vkCmdPushConstants(
+        commandBuffer,
+        getLayout(),
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+        0,
+        sizeof(TPush),
+        &push);
+  }
+  
   void traceRays(const VkExtent2D& extent, VkCommandBuffer commandBuffer) const;
 
   VkPipelineLayout getLayout() const {
