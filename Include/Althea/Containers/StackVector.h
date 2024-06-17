@@ -21,6 +21,11 @@ public:
   iterator end() { return {&m_pData[m_count]}; }
   const_iterator end() const { return {&m_pData[m_count]}; }
 
+  _T* begin_ptr() { return {m_pData}; }
+  const _T* begin_ptr() const { return {m_pData}; }
+  _T* end_ptr() { return {&m_pData[m_count]}; }
+  const _T* end_ptr() const { return {&m_pData[m_count]}; }
+
   void push_back(const _T& e) {
     assert(m_count < m_capacity);
     new (&m_pData[m_count++]) _T(e);
@@ -31,9 +36,14 @@ public:
     new (&m_pData[m_count++]) _T(std::move(e));
   }
 
-  template <typename... Args> void emplace_back(Args... args) {
+  template <typename... Args> _T& emplace_back() {
     assert(m_count < m_capacity);
-    new (&m_pData[m_count++]) _T(std::forward<Args>(args));
+    return *(new (&m_pData[m_count++]) _T);
+  }
+
+  template <typename... Args> _T& emplace_back(Args... args) {
+    assert(m_count < m_capacity);
+    return *(new (&m_pData[m_count++]) _T(std::forward<Args>(args)));
   }
 
   void resize(size_t count) {
@@ -44,7 +54,7 @@ public:
     } else if (count > m_count) {
       assert(count <= m_capacity);
       for (size_t i = m_count; i < count; ++i)
-         new (&m_pData[i]) _T();
+        new (&m_pData[i]) _T();
     }
 
     m_count = count;
@@ -60,7 +70,7 @@ public:
     assert(i < m_count);
     m_pData[i++].~_T();
     for (; i < m_count; ++i) {
-      new (&m_pData[i-1]) _T(std::move(m_pData[i]));
+      new (&m_pData[i - 1]) _T(std::move(m_pData[i]));
       m_pData[i].~_T();
     }
     --m_count;
