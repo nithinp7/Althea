@@ -1,19 +1,23 @@
 #pragma once
 
 #include "Attachment.h"
+#include "BindlessHandle.h"
 #include "DescriptorSet.h"
 #include "FrameBuffer.h"
+#include "Framebuffer.h"
 #include "GraphicsPipeline.h"
 #include "ImageResource.h"
+#include "IntrusivePtr.h"
 #include "Library.h"
 #include "Material.h"
+#include "RenderPass.h"
 #include "ResourcesAssignment.h"
 #include "SingleTimeCommandBuffer.h"
-#include "BindlessHandle.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <memory>
 
 namespace AltheaEngine {
 class Application;
@@ -63,12 +67,11 @@ public:
 
   GBufferHandles getHandles() const {
     return {
-      this->_depthAHandle.index,
-      this->_depthBHandle.index,
-      this->_normalHandle.index,
-      this->_albedoHandle.index,
-      this->_metallicRoughnessOcclusionHandle.index
-    };
+        this->_depthAHandle.index,
+        this->_depthBHandle.index,
+        this->_normalHandle.index,
+        this->_albedoHandle.index,
+        this->_metallicRoughnessOcclusionHandle.index};
   }
 
 private:
@@ -87,5 +90,58 @@ private:
   std::vector<Attachment> _attachmentDescriptions;
   std::vector<VkImageView> _attachmentViewsA;
   std::vector<VkImageView> _attachmentViewsB;
+};
+
+class IGBufferSubpass : public virtual RefCounted {
+public:
+  IGBufferSubpass() = default;
+  virtual ~IGBufferSubpass() = default;
+
+  virtual void
+  registerGBufferSubpass(GraphicsPipelineBuilder& builder) const = 0;
+  virtual void beginGBufferSubpass(
+      const DrawContext& context,
+      BufferHandle globalResourcesHandle,
+      UniformHandle globalUniformsHandle) = 0;
+};
+
+class SceneToGBufferPassBuilder {
+  friend class SceneToGBufferPass;
+
+public:
+  void registerSubpass(const IntrusivePtr<IGBufferSubpass>& subpass) {
+    _subpasses.push_back(subpass);
+  }
+
+private:
+  std::vector<IntrusivePtr<IGBufferSubpass>> _subpasses;
+};
+
+class SceneToGBufferPass {
+public:
+  SceneToGBufferPass() = default;
+  SceneToGBufferPass(
+      const Application& app,
+      GBufferResources& gBuffer,
+      VkDescriptorSetLayout heap,
+      SceneToGBufferPassBuilder&& builder);
+
+  void begin(
+      const Application& app,
+      VkCommandBuffer commandBuffer,
+      const FrameContext& frame,
+      VkDescriptorSet heapSet,
+      BufferHandle globalResourcesHandle,
+      UniformHandle globalUniformsHandle);
+
+  void tryRecompileShaders(Application& app) { _pass.tryRecompile(app); }
+
+private:
+  SceneToGBufferPassBuilder _builder;
+
+  RenderPass _pass;
+  bool _phase = true;
+  FrameBuffer _fbA;
+  FrameBuffer _fbB;
 };
 } // namespace AltheaEngine

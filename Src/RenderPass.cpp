@@ -305,6 +305,14 @@ ActiveRenderPass& ActiveRenderPass::nextSubpass() {
   return *this;
 }
 
+ActiveRenderPass&
+ActiveRenderPass::setGlobalDescriptorSet(VkDescriptorSet set) {
+  this->_drawContext._globalDescriptorSetCount = 1;
+  this->_drawContext._descriptorSets[0] = set;
+
+  return *this;
+}
+
 ActiveRenderPass& ActiveRenderPass::setGlobalDescriptorSets(
     gsl::span<const VkDescriptorSet> sets) {
   if (sets.size() > 3) {

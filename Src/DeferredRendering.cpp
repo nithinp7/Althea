@@ -254,4 +254,67 @@ void GBufferResources::registerToHeap(GlobalHeap& heap) {
       this->_metallicRoughnessOcclusion.view,
       this->_metallicRoughnessOcclusion.sampler);
 }
+
+SceneToGBufferPass::SceneToGBufferPass(
+    const Application& app,
+    GBufferResources& gBuffer,
+    VkDescriptorSetLayout heap,
+    SceneToGBufferPassBuilder&& builder)
+    : _builder(std::move(builder)) {
+  VkClearValue colorClear;
+  colorClear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+
+  std::vector<Attachment> attachments = gBuffer.getAttachmentDescriptions();
+
+  std::vector<SubpassBuilder> subpassBuilders;
+  for (auto& subpass : _builder._subpasses) {
+    SubpassBuilder& subpassBuilder = subpassBuilders.emplace_back();
+    GBufferResources::setupAttachments(subpassBuilder);
+    subpassBuilder.pipelineBuilder.layoutBuilder.addDescriptorSet(heap);
+    subpass->registerGBufferSubpass(subpassBuilder.pipelineBuilder);
+  }
+
+  _pass = RenderPass(
+      app,
+      app.getSwapChainExtent(),
+      std::move(attachments),
+      std::move(subpassBuilders));
+
+  _fbA = FrameBuffer(
+      app,
+      _pass,
+      app.getSwapChainExtent(),
+      gBuffer.getAttachmentViewsA());
+  _fbB = FrameBuffer(
+      app,
+      _pass,
+      app.getSwapChainExtent(),
+      gBuffer.getAttachmentViewsB());
+}
+
+void SceneToGBufferPass::begin(
+    const Application& app,
+    VkCommandBuffer commandBuffer,
+    const FrameContext& frame,
+    VkDescriptorSet heapSet,
+    BufferHandle globalResourcesHandle,
+    UniformHandle globalUniformsHandle) {
+  {
+    ActiveRenderPass activePass =
+        _pass.begin(app, commandBuffer, frame, _phase ? _fbA : _fbB);
+
+    activePass.setGlobalDescriptorSet(heapSet);
+
+    for (auto& subpass : _builder._subpasses) {
+      subpass->beginGBufferSubpass(
+          activePass.getDrawContext(),
+          globalResourcesHandle,
+          globalUniformsHandle);
+      if (!activePass.isLastSubpass())
+        activePass.nextSubpass();
+    }
+
+    _phase = !_phase;
+  }
+}
 } // namespace AltheaEngine

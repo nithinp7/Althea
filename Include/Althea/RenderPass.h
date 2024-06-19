@@ -50,7 +50,7 @@ class ActiveRenderPass;
 class ALTHEA_API RenderPass {
 public:
   RenderPass() = default;
-  
+
   RenderPass(
       const Application& app,
       const VkExtent2D& extent,
@@ -64,12 +64,10 @@ public:
       const FrameContext& frame,
       VkFramebuffer frameBuffer) const;
 
-  operator VkRenderPass() const {
-    return this->_renderPass;
-  }
+  operator VkRenderPass() const { return this->_renderPass; }
 
   void tryRecompile(Application& app);
-  
+
   const std::vector<Subpass>& getSubpasses() const { return this->_subpasses; }
   std::vector<Subpass>& getSubpasses() { return this->_subpasses; }
 
@@ -114,10 +112,16 @@ public:
     return *this;
   }
 
+  ActiveRenderPass& setGlobalDescriptorSet(VkDescriptorSet set);
+
   ActiveRenderPass&
   setGlobalDescriptorSets(gsl::span<const VkDescriptorSet> sets);
 
   const DrawContext& getDrawContext() const { return this->_drawContext; }
+
+  bool isLastSubpass() const {
+    return this->_currentSubpass == this->_renderPass._subpasses.size() - 1;
+  }
 
 private:
   uint32_t _currentSubpass = 0;

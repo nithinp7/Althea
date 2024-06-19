@@ -41,7 +41,7 @@ public:
     return *(new (&m_pData[m_count++]) _T);
   }
 
-  template <typename... Args> _T& emplace_back(Args... args) {
+  template <typename... Args> _T& emplace_back(Args&&... args) {
     assert(m_count < m_capacity);
     return *(new (&m_pData[m_count++]) _T(std::forward<Args>(args)));
   }
