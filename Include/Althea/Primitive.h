@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ConstantBuffer.h"
 #include "DrawContext.h"
 #include "GlobalHeap.h"
 #include "IndexBuffer.h"
@@ -54,27 +55,26 @@ struct ALTHEA_API PrimitiveConstants {
   int32_t normalMapTextureCoordinateIndex{};
   int32_t metallicRoughnessTextureCoordinateIndex{};
   int32_t occlusionTextureCoordinateIndex{};
-  int32_t emissiveTextureCoordinateIndex{};
 
+  int32_t emissiveTextureCoordinateIndex{};
   float normalScale = 1.0f;
   float metallicFactor = 0.0f;
   float roughnessFactor = 1.0f;
+
   float occlusionStrength = 1.0f;
-
   float alphaCutoff = 0.5f;
-
   uint32_t baseTextureHandle;
   uint32_t normalTextureHandle;
+
   uint32_t metallicRoughnessTextureHandle;
   uint32_t occlusionTextureHandle;
   uint32_t emissiveTextureHandle;
-
   uint32_t vertexBufferHandle;
-  uint32_t indexBufferHandle;
 
+  uint32_t indexBufferHandle;
   uint32_t padding1;
   uint32_t padding2;
-  uint32_t padding3; 
+  uint32_t padding3;
 };
 
 struct ALTHEA_API TextureSlots {
@@ -89,10 +89,6 @@ struct ALTHEA_API TextureSlots {
 
 class ALTHEA_API Primitive {
 public:
-  // TODO: This is super hacky, need an actual, flexible way of managing
-  // bindless indices
-  static void resetPrimitiveIndexCount();
-
   static void buildPipeline(GraphicsPipelineBuilder& builder);
   static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
 
@@ -128,7 +124,12 @@ public:
     return this->_relativeTransform;
   }
 
-  int getPrimitiveIndex() const { return this->_primitiveIndex; }
+  void createConstantBuffer(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap);
+
+  BufferHandle getConstantBufferHandle() const { return _constantBuffer.getHandle(); }
 
 private:
   VkDevice _device;
@@ -137,9 +138,8 @@ private:
   glm::mat4 _relativeTransform;
   bool _flipFrontFace = false;
 
-  int _primitiveIndex;
-
   PrimitiveConstants _constants;
+  ConstantBuffer<PrimitiveConstants> _constantBuffer;
   TextureSlots _textureSlots;
 
   VertexBuffer<Vertex> _vertexBuffer;

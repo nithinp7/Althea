@@ -19,7 +19,7 @@ layout(location=1) out vec2 baseColorUV;
 
 layout(push_constant) uniform PushConstants {
   mat4 model;
-  uint primIdx;
+  uint primConstantsBuffer;
   uint lightIdx;
   uint globalResourcesHandle;
   uint pointLightBufferHandle;
@@ -36,8 +36,8 @@ void main() {
 
   // TODO: Maybe don't need this level of indirection...
   PrimitiveConstants primConstants = 
-      RESOURCE(primitiveConstants, resources.primitiveConstantsBuffer)
-        .primitiveConstantsArr[pushConstants.primIdx];
+      RESOURCE(primitiveConstants, pushConstants.primConstantsBuffer)
+        .primitiveConstantsArr[0];
   
   // Note the view matrix here is centered at the origin here for re-usability, we just subtract
   // the light position from the vertex position to compensate

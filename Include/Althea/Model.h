@@ -48,6 +48,10 @@ public:
     return this->_primitives;
   }
 
+  void createConstantBuffers(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap);
 private:
   CesiumGltf::Model _model;
   std::vector<Primitive> _primitives;

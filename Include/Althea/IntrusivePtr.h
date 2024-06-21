@@ -46,7 +46,7 @@ template <typename _T> class IntrusivePtr {
 public:
   IntrusivePtr() = default;
 
-  IntrusivePtr(_T* ptr) : m_ptr(ptr) {
+  explicit IntrusivePtr(_T* ptr) : m_ptr(ptr) {
     if (m_ptr)
       m_ptr->incRefCount();
   }

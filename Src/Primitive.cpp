@@ -19,12 +19,10 @@
 #include <string>
 
 namespace AltheaEngine {
-static int currentPrimitiveIndex = 0;
-
 namespace {
 struct PrimitivePushConstants {
   glm::mat4 model{};
-  int primitiveId{};
+  uint32_t constantBufferHandle{};
 };
 } // namespace
 static std::shared_ptr<Texture> createTexture(
@@ -82,18 +80,9 @@ void TextureSlots::fillEmptyWithDefaults() {
 }
 
 /*static*/
-void Primitive::resetPrimitiveIndexCount() { currentPrimitiveIndex = 0; }
-
-/*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder
       .setPrimitiveType(PrimitiveType::TRIANGLES)
-
-      // TODO:
-      // Make this binding --> attribute hierarchy more explicit e.g.,
-      // "addVertexInputBinding-->VertexInputBuilder" then
-      // then "VertexInputBuilder::addVertexAttribute(...)"
-      // then "VertexInputBuilder::finish() --> GraphicsPipelineBuilder&"
       .addVertexInputBinding<Vertex>()
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))
@@ -109,9 +98,6 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   }
 
   builder.enableDynamicFrontFace();
-
-  // Add push constants for updating model transform
-  // builder.layoutBuilder.addPushConstants<PrimitivePushConstants>();
 }
 
 /*static*/
@@ -275,8 +261,6 @@ Primitive::Primitive(
       _relativeTransform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material() {
-  this->_primitiveIndex = currentPrimitiveIndex++;
-
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;
@@ -652,6 +636,11 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 }
 
+void Primitive::createConstantBuffer(const Application& app, SingleTimeCommandBuffer& commandBuffer, GlobalHeap& heap) {
+  _constantBuffer = ConstantBuffer<PrimitiveConstants>(app, commandBuffer, _constants);
+  _constantBuffer.registerToHeap(heap);
+}
+
 void Primitive::draw(const DrawContext& context) const {
   context.setFrontFaceDynamic(
       this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
@@ -664,7 +653,7 @@ void Primitive::draw(const DrawContext& context) const {
   context.updatePushConstants(
       PrimitivePushConstants{
           this->_modelTransform * this->_relativeTransform,
-          this->_primitiveIndex},
+          _constantBuffer.getHandle().index},
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }

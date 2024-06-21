@@ -255,6 +255,15 @@ void Model::registerToHeap(GlobalHeap& heap) {
   }
 }
 
+void Model::createConstantBuffers(
+    const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
+    GlobalHeap& heap) {
+  for (Primitive& primitive : this->_primitives) {
+    primitive.createConstantBuffer(app, commandBuffer, heap);
+  }
+}
+
 void Model::setModelTransform(const glm::mat4& modelTransform) {
   for (Primitive& primitive : this->_primitives) {
     primitive.setModelTransform(modelTransform);

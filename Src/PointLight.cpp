@@ -13,7 +13,7 @@ namespace AltheaEngine {
 namespace {
 struct ShadowMapPushConstants {
   glm::mat4 model; // TODO: This should come from some sort of model buffer...
-  uint32_t primitiveIdx;
+  uint32_t primitiveConstantsHandle;
   uint32_t lightIdx;
   uint32_t globalResourcesHandle;
   uint32_t pointLightsHandle;
@@ -266,8 +266,7 @@ void PointLightCollection::drawShadowMaps(
     for (const Model& model : models) {
       for (const Primitive& primitive : model.getPrimitives()) {
         constants.model = primitive.computeWorldTransform();
-        constants.primitiveIdx =
-            static_cast<uint32_t>(primitive.getPrimitiveIndex());
+        constants.primitiveConstantsHandle = primitive.getConstantBufferHandle().index;
 
         pass.getDrawContext().setFrontFaceDynamic(primitive.getFrontFace());
         pass.getDrawContext().updatePushConstants(constants, 0);
