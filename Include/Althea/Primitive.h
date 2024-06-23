@@ -116,12 +116,8 @@ public:
 
   const AABB& getAABB() const { return this->_aabb; }
 
-  glm::mat4 computeWorldTransform() const {
-    return this->_modelTransform * this->_relativeTransform;
-  }
-
-  const glm::mat4& getRelativeTransform() const {
-    return this->_relativeTransform;
+  const glm::mat4& getTransform() const {
+    return this->_transform;
   }
 
   void createConstantBuffer(
@@ -129,13 +125,14 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       GlobalHeap& heap);
 
-  BufferHandle getConstantBufferHandle() const { return _constantBuffer.getHandle(); }
+  BufferHandle getConstantBufferHandle() const {
+    return _constantBuffer.getHandle();
+  }
 
 private:
   VkDevice _device;
 
-  glm::mat4 _modelTransform;
-  glm::mat4 _relativeTransform;
+  glm::mat4 _transform;
   bool _flipFrontFace = false;
 
   PrimitiveConstants _constants;
@@ -157,7 +154,7 @@ public:
       const glm::mat4& nodeTransform,
       DescriptorSetAllocator* pMaterialAllocator = nullptr);
 
-  void setModelTransform(const glm::mat4& model);
+  void setTransform(const glm::mat4& transform) { _transform = transform; }
   VkFrontFace getFrontFace() const {
     return this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                                 : VK_FRONT_FACE_COUNTER_CLOCKWISE;

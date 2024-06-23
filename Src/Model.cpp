@@ -192,7 +192,9 @@ Model::Model(
     }
   }
 
-  glm::mat4 transform(1.0f);
+  _modelTransform = glm::mat4(1.0f);
+
+  _nodes.resize(_model.nodes.size());
 
   // TODO: Create only one primitive for each mesh and position / instance
   // it as dictated by nodes.
@@ -207,9 +209,8 @@ Model::Model(
         this->_loadNode(
             app,
             commandBuffer,
-            this->_model,
-            this->_model.nodes[nodeId],
-            transform,
+            nodeId,
+            _modelTransform,
             materialAllocator);
       }
     }
@@ -220,9 +221,8 @@ Model::Model(
         this->_loadNode(
             app,
             commandBuffer,
-            this->_model,
-            this->_model.nodes[nodeId],
-            transform,
+            nodeId,
+            _modelTransform,
             materialAllocator);
       }
     }
@@ -230,9 +230,8 @@ Model::Model(
     this->_loadNode(
         app,
         commandBuffer,
-        this->_model,
-        this->_model.nodes[0],
-        transform,
+        0,
+        _modelTransform,
         materialAllocator);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
@@ -242,7 +241,7 @@ Model::Model(
             commandBuffer,
             this->_model,
             primitive,
-            transform,
+            _modelTransform,
             materialAllocator);
       }
     }
@@ -265,26 +264,118 @@ void Model::createConstantBuffers(
 }
 
 void Model::setModelTransform(const glm::mat4& modelTransform) {
-  for (Primitive& primitive : this->_primitives) {
-    primitive.setModelTransform(modelTransform);
+  _modelTransform = modelTransform;
+
+  if (this->_model.scene >= 0 &&
+      this->_model.scene < this->_model.scenes.size()) {
+    const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
+    for (int32_t nodeId : scene.nodes) {
+      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
+        this->_updateTransforms(nodeId, modelTransform);
+      }
+    }
+  } else if (this->_model.scenes.size()) {
+    const CesiumGltf::Scene& scene = this->_model.scenes[0];
+    for (int32_t nodeId : scene.nodes) {
+      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
+        this->_updateTransforms(nodeId, modelTransform);
+      }
+    }
+  } else if (this->_model.nodes.size()) {
+    this->_updateTransforms(0, modelTransform);
+  } else {
+    for (const Mesh& mesh : _meshes) {
+      for (int32_t primIdx = mesh.primitiveStartIdx;
+           primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
+           ++primIdx) {
+        this->_primitives[primIdx].setTransform(modelTransform);
+      }
+    }
   }
 }
 
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
 
 void Model::draw(const DrawContext& context) const {
-  for (const Primitive& primitive : this->_primitives) {
-    primitive.draw(context);
+  if (this->_model.scene >= 0 &&
+      this->_model.scene < this->_model.scenes.size()) {
+    const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
+    for (int32_t nodeId : scene.nodes) {
+      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
+        _drawNode(context, nodeId);
+      }
+    }
+  } else if (this->_model.scenes.size()) {
+    const CesiumGltf::Scene& scene = this->_model.scenes[0];
+    for (int32_t nodeId : scene.nodes) {
+      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
+        _drawNode(context, nodeId);
+      }
+    }
+  } else if (this->_model.nodes.size()) {
+    _drawNode(context, 0);
+  } else {
+    for (const Mesh& mesh : _meshes) {
+      for (int32_t primIdx = mesh.primitiveStartIdx;
+           primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
+           ++primIdx) {
+        _primitives[primIdx].draw(context);
+      }
+    }
+  }
+}
+
+void Model::_updateTransforms(
+    int32_t nodeIdx,
+    const glm::mat4& parentTransform) {
+  // TODO: previous transforms also needed for velocity buffer
+  const Node& node = _nodes[nodeIdx];
+  glm::mat4 transform = parentTransform * _nodes[nodeIdx].currentTransform;
+
+  if (node.meshIdx >= 0) {
+    const Mesh& mesh = _meshes[node.meshIdx];
+    for (uint32_t primIdx = mesh.primitiveStartIdx;
+         primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
+         ++primIdx) {
+      _primitives[primIdx].setTransform(transform);
+    }
+  }
+
+  for (int32_t childNodeId : _model.nodes[nodeIdx].children) {
+    if (childNodeId >= 0 && childNodeId < _nodes.size()) {
+      _updateTransforms(childNodeId, transform);
+    }
+  }
+}
+
+void Model::_drawNode(const DrawContext& context, int32_t nodeIdx) const {
+  // TODO: previous transforms also needed for velocity buffer
+  const Node& node = _nodes[nodeIdx];
+
+  if (node.meshIdx >= 0) {
+    const Mesh& mesh = _meshes[node.meshIdx];
+    for (uint32_t primIdx = mesh.primitiveStartIdx;
+         primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
+         ++primIdx) {
+      _primitives[primIdx].draw(context);
+    }
+  }
+
+  for (int32_t childNodeId : _model.nodes[nodeIdx].children) {
+    if (childNodeId >= 0 && childNodeId < _nodes.size()) {
+      this->_drawNode(context, childNodeId);
+    }
   }
 }
 
 void Model::_loadNode(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
-    const CesiumGltf::Model& model,
-    const CesiumGltf::Node& node,
-    const glm::mat4& transform,
+    int32_t nodeIdx,
+    const glm::mat4& parentTransform,
     DescriptorSetAllocator* materialAllocator) {
+  const CesiumGltf::Node& gltfNode = _model.nodes[nodeIdx];
+  Node& node = _nodes[nodeIdx];
   static constexpr std::array<double, 16> identityMatrix = {
       1.0,
       0.0,
@@ -303,9 +394,7 @@ void Model::_loadNode(
       0.0,
       1.0};
 
-  glm::mat4 nodeTransform = transform;
-
-  const std::vector<double>& matrix = node.matrix;
+  const std::vector<double>& matrix = gltfNode.matrix;
   bool isIdentityMatrix = false;
   if (matrix.size() == 16) {
     isIdentityMatrix =
@@ -313,7 +402,7 @@ void Model::_loadNode(
   }
 
   if (matrix.size() == 16 && !isIdentityMatrix) {
-    glm::mat4x4 nodeTransformGltf(
+    node.currentTransform = node.previousTransform = glm::mat4(
         glm::vec4(
             static_cast<float>(matrix[0]),
             static_cast<float>(matrix[1]),
@@ -334,40 +423,43 @@ void Model::_loadNode(
             static_cast<float>(matrix[13]),
             static_cast<float>(matrix[14]),
             static_cast<float>(matrix[15])));
-
-    nodeTransform = nodeTransform * nodeTransformGltf;
   } else {
     glm::mat4 translation(1.0);
-    if (node.translation.size() == 3) {
+    if (gltfNode.translation.size() == 3) {
       translation[3] = glm::vec4(
-          static_cast<float>(node.translation[0]),
-          static_cast<float>(node.translation[1]),
-          static_cast<float>(node.translation[2]),
+          static_cast<float>(gltfNode.translation[0]),
+          static_cast<float>(gltfNode.translation[1]),
+          static_cast<float>(gltfNode.translation[2]),
           1.0);
     }
 
     glm::quat rotationQuat(1.0, 0.0, 0.0, 0.0);
-    if (node.rotation.size() == 4) {
-      rotationQuat[0] = static_cast<float>(node.rotation[0]);
-      rotationQuat[1] = static_cast<float>(node.rotation[1]);
-      rotationQuat[2] = static_cast<float>(node.rotation[2]);
-      rotationQuat[3] = static_cast<float>(node.rotation[3]);
+    if (gltfNode.rotation.size() == 4) {
+      rotationQuat[0] = static_cast<float>(gltfNode.rotation[0]);
+      rotationQuat[1] = static_cast<float>(gltfNode.rotation[1]);
+      rotationQuat[2] = static_cast<float>(gltfNode.rotation[2]);
+      rotationQuat[3] = static_cast<float>(gltfNode.rotation[3]);
     }
 
     glm::mat4 scale(1.0);
-    if (node.scale.size() == 3) {
-      scale[0].x = static_cast<float>(node.scale[0]);
-      scale[1].y = static_cast<float>(node.scale[1]);
-      scale[2].z = static_cast<float>(node.scale[2]);
+    if (gltfNode.scale.size() == 3) {
+      scale[0].x = static_cast<float>(gltfNode.scale[0]);
+      scale[1].y = static_cast<float>(gltfNode.scale[1]);
+      scale[2].z = static_cast<float>(gltfNode.scale[2]);
     }
 
-    nodeTransform =
-        nodeTransform * translation * glm::mat4(rotationQuat) * scale;
+    node.currentTransform = node.previousTransform =
+        translation * glm::mat4(rotationQuat) * scale;
   }
 
-  if (node.mesh >= 0 && node.mesh < model.meshes.size()) {
-    const CesiumGltf::Mesh& mesh = model.meshes[node.mesh];
-    for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
+  glm::mat4 nodeTransform = parentTransform * node.previousTransform;
+
+  if (gltfNode.mesh >= 0 && gltfNode.mesh < _model.meshes.size()) {
+    const CesiumGltf::Mesh& gltfMesh = _model.meshes[gltfNode.mesh];
+    Mesh& mesh = _meshes.emplace_back();
+    mesh.primitiveStartIdx = this->_primitives.size();
+    mesh.primitiveCount = gltfMesh.primitives.size();
+    for (const CesiumGltf::MeshPrimitive& primitive : gltfMesh.primitives) {
       this->_primitives.emplace_back(
           app,
           commandBuffer,
@@ -378,16 +470,20 @@ void Model::_loadNode(
     }
   }
 
-  for (int32_t childNodeId : node.children) {
-    if (childNodeId >= 0 && childNodeId < model.nodes.size()) {
+  for (int32_t childNodeId : gltfNode.children) {
+    if (childNodeId >= 0 && childNodeId < _model.nodes.size()) {
       this->_loadNode(
           app,
           commandBuffer,
-          model,
-          model.nodes[childNodeId],
+          childNodeId,
           nodeTransform,
           materialAllocator);
     }
   }
+}
+
+void Model::startAnimation(int32_t idx, bool bLoop) {
+  _activeAnimation = idx;
+  _animationTime = 0.0f;
 }
 } // namespace AltheaEngine

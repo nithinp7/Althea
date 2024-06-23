@@ -265,7 +265,7 @@ void PointLightCollection::drawShadowMaps(
     // Draw models
     for (const Model& model : models) {
       for (const Primitive& primitive : model.getPrimitives()) {
-        constants.model = primitive.computeWorldTransform();
+        constants.model = primitive.getTransform();
         constants.primitiveConstantsHandle = primitive.getConstantBufferHandle().index;
 
         pass.getDrawContext().setFrontFaceDynamic(primitive.getFrontFace());

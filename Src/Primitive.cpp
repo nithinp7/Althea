@@ -257,8 +257,7 @@ Primitive::Primitive(
     const glm::mat4& nodeTransform,
     DescriptorSetAllocator* pMaterialAllocator)
     : _device(app.getDevice()),
-      _modelTransform(1.0f),
-      _relativeTransform(nodeTransform),
+      _transform(nodeTransform),
       _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
       _material() {
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
@@ -555,10 +554,6 @@ Primitive::Primitive(
   // If the material allocator is null, assume we are using bindless textures
 }
 
-void Primitive::setModelTransform(const glm::mat4& model) {
-  this->_modelTransform = model;
-}
-
 AABB Primitive::computeWorldAABB() const {
   const std::vector<Vertex>& vertices = this->_vertexBuffer.getVertices();
 
@@ -566,14 +561,12 @@ AABB Primitive::computeWorldAABB() const {
     throw std::runtime_error(
         "Attempting to compute world AABB with empty vertices");
 
-  glm::mat4 worldTransform = this->_modelTransform * this->_relativeTransform;
-
   AABB aabb;
   aabb.min = aabb.max =
-      glm::vec3(worldTransform * glm::vec4(vertices[0].position, 1.0f));
+      glm::vec3(_transform * glm::vec4(vertices[0].position, 1.0f));
 
   for (size_t i = 0; i < vertices.size(); ++i) {
-    glm::vec3 worldPos(worldTransform * glm::vec4(vertices[i].position, 1.0f));
+    glm::vec3 worldPos(_transform * glm::vec4(vertices[i].position, 1.0f));
     aabb.min = glm::min(aabb.min, worldPos);
     aabb.max = glm::max(aabb.max, worldPos);
   }
@@ -652,7 +645,7 @@ void Primitive::draw(const DrawContext& context) const {
   context.bindDescriptorSets();
   context.updatePushConstants(
       PrimitivePushConstants{
-          this->_modelTransform * this->_relativeTransform,
+          _transform,
           _constantBuffer.getHandle().index},
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);

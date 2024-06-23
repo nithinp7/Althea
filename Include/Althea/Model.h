@@ -3,10 +3,10 @@
 #include "ConfigParser.h"
 #include "DrawContext.h"
 #include "FrameContext.h"
+#include "GlobalHeap.h"
 #include "Library.h"
 #include "Primitive.h"
 #include "SingleTimeCommandBuffer.h"
-#include "GlobalHeap.h"
 
 #include <CesiumGltf/Model.h>
 #include <glm/glm.hpp>
@@ -21,6 +21,17 @@ namespace AltheaEngine {
 class Application;
 class GraphicsPipeline;
 class DescriptorSetAllocator;
+
+struct Node {
+  glm::mat4 previousTransform;
+  glm::mat4 currentTransform;
+  int32_t meshIdx;
+};
+
+struct Mesh {
+  uint32_t primitiveStartIdx;
+  uint32_t primitiveCount;
+};
 
 class ALTHEA_API Model {
 public:
@@ -38,30 +49,53 @@ public:
 
   void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;
+  size_t getAnimationCount() const;
+  const std::string& getAnimationName(int32_t i) const {
+    return _model.animations[i].name;
+  }
+  int32_t getAnimationIndex(const std::string& name) const {
+    for (int32_t i = 0; i < _model.animations.size(); ++i)
+      if (_model.animations[i].name == name)
+        return i;
+    return -1;
+  }
+
+  void startAnimation(int32_t idx, bool bLoop);
+  void stopAllAnimations() {
+    _activeAnimation = -1;
+    _animationTime = 0.0f;
+  }
+
   void draw(const DrawContext& context) const;
 
   const std::vector<Primitive>& getPrimitives() const {
     return this->_primitives;
   }
 
-  std::vector<Primitive>& getPrimitives() {
-    return this->_primitives;
-  }
+  std::vector<Primitive>& getPrimitives() { return this->_primitives; }
 
   void createConstantBuffers(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       GlobalHeap& heap);
+
 private:
   CesiumGltf::Model _model;
+  std::vector<Node> _nodes;
+  std::vector<Mesh> _meshes;
   std::vector<Primitive> _primitives;
+  
+  glm::mat4 _modelTransform;
+  int32_t _activeAnimation = -1;
+  float _animationTime = 0.0f;
 
+  void _updateTransforms(int32_t nodeIdx, const glm::mat4& transform);
+  void _drawNode(const DrawContext& context, int32_t nodeIdx) const;
   void _loadNode(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
-      const CesiumGltf::Model& model,
-      const CesiumGltf::Node& node,
-      const glm::mat4& transform,
+      int32_t nodeIdx,
+      const glm::mat4& parentTransform,
       DescriptorSetAllocator* pMaterialAllocator);
 };
 } // namespace AltheaEngine
