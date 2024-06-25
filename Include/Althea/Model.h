@@ -60,10 +60,12 @@ public:
     return -1;
   }
 
+  void updateAnimation(float deltaTime);
   void startAnimation(int32_t idx, bool bLoop);
   void stopAllAnimations() {
     _activeAnimation = -1;
     _animationTime = 0.0f;
+    _animationLooping = false;
   }
 
   void draw(const DrawContext& context) const;
@@ -88,7 +90,8 @@ private:
   glm::mat4 _modelTransform;
   int32_t _activeAnimation = -1;
   float _animationTime = 0.0f;
-
+  bool _animationLooping = false;
+  
   void _updateTransforms(int32_t nodeIdx, const glm::mat4& transform);
   void _drawNode(const DrawContext& context, int32_t nodeIdx) const;
   void _loadNode(

@@ -6,9 +6,11 @@
 #include "GraphicsPipeline.h"
 #include "TaskProcessor.h"
 #include "Utilities.h"
+#include "Containers/StackVector.h"
 
 #include <CesiumAsync/AsyncSystem.h>
 #include <CesiumGltfReader/GltfReader.h>
+#include <CesiumGltf/AccessorView.h>
 #include <glm/gtc/quaternion.hpp>
 #include <gsl/span>
 #include <vulkan/vulkan.h>
@@ -456,6 +458,7 @@ void Model::_loadNode(
 
   if (gltfNode.mesh >= 0 && gltfNode.mesh < _model.meshes.size()) {
     const CesiumGltf::Mesh& gltfMesh = _model.meshes[gltfNode.mesh];
+    node.meshIdx = _meshes.size();
     Mesh& mesh = _meshes.emplace_back();
     mesh.primitiveStartIdx = this->_primitives.size();
     mesh.primitiveCount = gltfMesh.primitives.size();
@@ -482,8 +485,86 @@ void Model::_loadNode(
   }
 }
 
+void Model::updateAnimation(float deltaTime) {
+  if (_activeAnimation < 0)
+    return;
+
+  struct NodeTransform {
+    glm::quat rotation{};
+    glm::vec3 translation{};
+    glm::vec3 scale = glm::vec3(1.0f);
+    bool targeted = false;
+  };
+  ALTHEA_STACK_VECTOR(nodeTransforms, NodeTransform, _nodes.size());
+  nodeTransforms.resize(_nodes.size());
+  
+  const CesiumGltf::Animation& animation = _model.animations[_activeAnimation];
+  for (const CesiumGltf::AnimationChannel& channel : animation.channels) {
+    const CesiumGltf::AnimationSampler& sampler = animation.samplers[channel.sampler];
+    CesiumGltf::AccessorView<float> timeSamples(_model, sampler.input);
+
+    if (_animationLooping && _animationTime > timeSamples[timeSamples.size() - 1])
+    {
+      _animationTime -= timeSamples[timeSamples.size() - 1];
+    }
+    
+    // TODO: track last used sample to avoid linear scan?
+    // TODO: implement other interpolators...
+    uint32_t sampleIdx = 0;
+    float u = 0.0f;
+    for (; sampleIdx < timeSamples.size() - 1; ++sampleIdx) {
+      float t0 = timeSamples[sampleIdx];
+      float t1 = timeSamples[sampleIdx + 1];
+      if (_animationTime >= t0 && _animationTime <= t1) {
+        u = (_animationTime - t0) / (t1 - t0);
+        break;
+      }
+    }
+
+    if (sampleIdx == timeSamples.size() - 1)
+      continue;
+
+    NodeTransform& transform = nodeTransforms[channel.target.node];
+    transform.targeted = true;
+    if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::translation)
+    {
+      CesiumGltf::AccessorView<glm::vec3> translations(_model, sampler.output);
+      transform.translation = glm::mix(translations[sampleIdx], translations[sampleIdx+1], u);
+    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::rotation)
+    {
+      CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
+      transform.rotation = glm::slerp(rotations[sampleIdx], rotations[sampleIdx+1], u);
+    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::scale)
+    {
+      CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
+      transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx+1], u);
+    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::weights)
+    {
+      // TODO: 
+    }
+  }
+
+  for (uint32_t i = 0; i < _nodes.size(); ++i) {
+    Node& node = _nodes[i];
+    node.previousTransform = node.currentTransform;
+
+    const NodeTransform& transform = nodeTransforms[i];
+    if (transform.targeted) {
+      node.currentTransform = glm::mat4(transform.rotation);
+      node.currentTransform[0] *= transform.scale.x;
+      node.currentTransform[1] *= transform.scale.y;
+      node.currentTransform[2] *= transform.scale.z;
+      node.currentTransform[3] = glm::vec4(transform.translation, 1.0f);
+    }
+  }
+
+  setModelTransform(_modelTransform);
+
+  _animationTime += deltaTime;
+}
 void Model::startAnimation(int32_t idx, bool bLoop) {
   _activeAnimation = idx;
   _animationTime = 0.0f;
+  _animationLooping = bLoop;
 }
 } // namespace AltheaEngine
