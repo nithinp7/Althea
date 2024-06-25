@@ -81,8 +81,7 @@ void TextureSlots::fillEmptyWithDefaults() {
 
 /*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
-  builder
-      .setPrimitiveType(PrimitiveType::TRIANGLES)
+  builder.setPrimitiveType(PrimitiveType::TRIANGLES)
       .addVertexInputBinding<Vertex>()
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, position))
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(Vertex, tangent))
@@ -629,8 +628,12 @@ void Primitive::registerToHeap(GlobalHeap& heap) {
   }
 }
 
-void Primitive::createConstantBuffer(const Application& app, SingleTimeCommandBuffer& commandBuffer, GlobalHeap& heap) {
-  _constantBuffer = ConstantBuffer<PrimitiveConstants>(app, commandBuffer, _constants);
+void Primitive::createConstantBuffer(
+    const Application& app,
+    SingleTimeCommandBuffer& commandBuffer,
+    GlobalHeap& heap) {
+  _constantBuffer =
+      ConstantBuffer<PrimitiveConstants>(app, commandBuffer, _constants);
   _constantBuffer.registerToHeap(heap);
 }
 
@@ -644,9 +647,7 @@ void Primitive::draw(const DrawContext& context) const {
   // else
   context.bindDescriptorSets();
   context.updatePushConstants(
-      PrimitivePushConstants{
-          _transform,
-          _constantBuffer.getHandle().index},
+      PrimitivePushConstants{_transform, _constantBuffer.getHandle().index},
       0);
   context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }

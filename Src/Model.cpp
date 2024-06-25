@@ -1,16 +1,16 @@
 #include "Model.h"
 
 #include "Application.h"
+#include "Containers/StackVector.h"
 #include "DescriptorSet.h"
 #include "FileAssetAccessor.h"
 #include "GraphicsPipeline.h"
 #include "TaskProcessor.h"
 #include "Utilities.h"
-#include "Containers/StackVector.h"
 
 #include <CesiumAsync/AsyncSystem.h>
-#include <CesiumGltfReader/GltfReader.h>
 #include <CesiumGltf/AccessorView.h>
+#include <CesiumGltfReader/GltfReader.h>
 #include <glm/gtc/quaternion.hpp>
 #include <gsl/span>
 #include <vulkan/vulkan.h>
@@ -229,12 +229,7 @@ Model::Model(
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_loadNode(
-        app,
-        commandBuffer,
-        0,
-        _modelTransform,
-        materialAllocator);
+    this->_loadNode(app, commandBuffer, 0, _modelTransform, materialAllocator);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
@@ -378,6 +373,7 @@ void Model::_loadNode(
     DescriptorSetAllocator* materialAllocator) {
   const CesiumGltf::Node& gltfNode = _model.nodes[nodeIdx];
   Node& node = _nodes[nodeIdx];
+
   static constexpr std::array<double, 16> identityMatrix = {
       1.0,
       0.0,
@@ -404,7 +400,7 @@ void Model::_loadNode(
   }
 
   if (matrix.size() == 16 && !isIdentityMatrix) {
-    node.currentTransform = node.previousTransform = glm::mat4(
+    node.currentTransform = glm::mat4(
         glm::vec4(
             static_cast<float>(matrix[0]),
             static_cast<float>(matrix[1]),
@@ -450,11 +446,10 @@ void Model::_loadNode(
       scale[2].z = static_cast<float>(gltfNode.scale[2]);
     }
 
-    node.currentTransform = node.previousTransform =
-        translation * glm::mat4(rotationQuat) * scale;
+    node.currentTransform = translation * glm::mat4(rotationQuat) * scale;
   }
 
-  glm::mat4 nodeTransform = parentTransform * node.previousTransform;
+  glm::mat4 nodeTransform = parentTransform * node.currentTransform;
 
   if (gltfNode.mesh >= 0 && gltfNode.mesh < _model.meshes.size()) {
     const CesiumGltf::Mesh& gltfMesh = _model.meshes[gltfNode.mesh];
@@ -497,17 +492,42 @@ void Model::updateAnimation(float deltaTime) {
   };
   ALTHEA_STACK_VECTOR(nodeTransforms, NodeTransform, _nodes.size());
   nodeTransforms.resize(_nodes.size());
-  
+  for (uint32_t i = 0; i < _nodes.size(); ++i) {
+    NodeTransform& transform = nodeTransforms[i];
+    const CesiumGltf::Node& gltfNode = _model.nodes[i];
+    glm::mat4 translation(1.0);
+    if (gltfNode.translation.size() == 3) {
+      transform.translation = glm::vec3(
+          static_cast<float>(gltfNode.translation[0]),
+          static_cast<float>(gltfNode.translation[1]),
+          static_cast<float>(gltfNode.translation[2]));
+    }
+
+    if (gltfNode.rotation.size() == 4) {
+      transform.rotation[0] = static_cast<float>(gltfNode.rotation[0]);
+      transform.rotation[1] = static_cast<float>(gltfNode.rotation[1]);
+      transform.rotation[2] = static_cast<float>(gltfNode.rotation[2]);
+      transform.rotation[3] = static_cast<float>(gltfNode.rotation[3]);
+    }
+
+    if (gltfNode.scale.size() == 3) {
+      transform.scale[0] = static_cast<float>(gltfNode.scale[0]);
+      transform.scale[1] = static_cast<float>(gltfNode.scale[1]);
+      transform.scale[2] = static_cast<float>(gltfNode.scale[2]);
+    }
+  }
+
   const CesiumGltf::Animation& animation = _model.animations[_activeAnimation];
   for (const CesiumGltf::AnimationChannel& channel : animation.channels) {
-    const CesiumGltf::AnimationSampler& sampler = animation.samplers[channel.sampler];
+    const CesiumGltf::AnimationSampler& sampler =
+        animation.samplers[channel.sampler];
     CesiumGltf::AccessorView<float> timeSamples(_model, sampler.input);
 
-    if (_animationLooping && _animationTime > timeSamples[timeSamples.size() - 1])
-    {
+    if (_animationLooping &&
+        _animationTime > timeSamples[timeSamples.size() - 1]) {
       _animationTime -= timeSamples[timeSamples.size() - 1];
     }
-    
+
     // TODO: track last used sample to avoid linear scan?
     // TODO: implement other interpolators...
     uint32_t sampleIdx = 0;
@@ -526,35 +546,40 @@ void Model::updateAnimation(float deltaTime) {
 
     NodeTransform& transform = nodeTransforms[channel.target.node];
     transform.targeted = true;
-    if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::translation)
-    {
+    if (channel.target.path ==
+        CesiumGltf::AnimationChannelTarget::Path::translation) {
       CesiumGltf::AccessorView<glm::vec3> translations(_model, sampler.output);
-      transform.translation = glm::mix(translations[sampleIdx], translations[sampleIdx+1], u);
-    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::rotation)
-    {
+      transform.translation =
+          glm::mix(translations[sampleIdx], translations[sampleIdx + 1], u);
+    } else if (
+        channel.target.path ==
+        CesiumGltf::AnimationChannelTarget::Path::rotation) {
       CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
-      transform.rotation = glm::slerp(rotations[sampleIdx], rotations[sampleIdx+1], u);
-    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::scale)
-    {
+      transform.rotation =
+          glm::slerp(rotations[sampleIdx], rotations[sampleIdx + 1], u);
+    } else if (
+        channel.target.path ==
+        CesiumGltf::AnimationChannelTarget::Path::scale) {
       CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
-      transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx+1], u);
-    } else if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::weights)
-    {
-      // TODO: 
+      transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx + 1], u);
+    } else if (
+        channel.target.path ==
+        CesiumGltf::AnimationChannelTarget::Path::weights) {
+      // TODO:
     }
   }
 
   for (uint32_t i = 0; i < _nodes.size(); ++i) {
     Node& node = _nodes[i];
-    node.previousTransform = node.currentTransform;
-
     const NodeTransform& transform = nodeTransforms[i];
     if (transform.targeted) {
-      node.currentTransform = glm::mat4(transform.rotation);
-      node.currentTransform[0] *= transform.scale.x;
-      node.currentTransform[1] *= transform.scale.y;
-      node.currentTransform[2] *= transform.scale.z;
-      node.currentTransform[3] = glm::vec4(transform.translation, 1.0f);
+      glm::mat4 relativeTransform(transform.rotation);
+      relativeTransform[0] *= transform.scale.x;
+      relativeTransform[1] *= transform.scale.y;
+      relativeTransform[2] *= transform.scale.z;
+      relativeTransform[3] = glm::vec4(transform.translation, 1.0f);
+
+      node.currentTransform = relativeTransform;
     }
   }
 

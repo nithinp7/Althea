@@ -23,14 +23,13 @@ class GraphicsPipeline;
 class DescriptorSetAllocator;
 
 struct Node {
-  glm::mat4 previousTransform;
-  glm::mat4 currentTransform;
-  int32_t meshIdx;
+  glm::mat4 currentTransform = glm::mat4(1.0f);
+  int32_t meshIdx = -1;
 };
 
 struct Mesh {
-  uint32_t primitiveStartIdx;
-  uint32_t primitiveCount;
+  uint32_t primitiveStartIdx = 0;
+  uint32_t primitiveCount = 0;
 };
 
 class ALTHEA_API Model {
@@ -86,12 +85,12 @@ private:
   std::vector<Node> _nodes;
   std::vector<Mesh> _meshes;
   std::vector<Primitive> _primitives;
-  
+
   glm::mat4 _modelTransform;
   int32_t _activeAnimation = -1;
   float _animationTime = 0.0f;
   bool _animationLooping = false;
-  
+
   void _updateTransforms(int32_t nodeIdx, const glm::mat4& transform);
   void _drawNode(const DrawContext& context, int32_t nodeIdx) const;
   void _loadNode(

@@ -19,12 +19,14 @@ Texture::Texture(
     const CesiumGltf::Model& model,
     const CesiumGltf::Texture& texture,
     bool srgb) {
-  if (texture.sampler < 0 || texture.sampler >= model.samplers.size() ||
-      texture.source < 0 || texture.source >= model.images.size()) {
+  if (texture.source < 0 || texture.source >= model.images.size()) {
     return;
   }
 
-  const CesiumGltf::Sampler& sampler = model.samplers[texture.sampler];
+  CesiumGltf::Sampler sampler{};
+  if (texture.sampler >= 0 && texture.sampler < model.samplers.size())
+    sampler = model.samplers[texture.sampler];
+
   const CesiumGltf::ImageCesium& image = model.images[texture.source].cesium;
 
   this->_initTexture(app, commandBuffer, image, sampler, srgb);
