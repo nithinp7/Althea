@@ -63,7 +63,7 @@ bool Utilities::checkFileExists(const std::string& filename) {
 /*static*/
 uint32_t Utilities::computeMipCount(uint32_t width, uint32_t height) {
   return 1 + static_cast<uint32_t>(
-                 glm::ceil(glm::log2((double)glm::max(width, height))));
+                 glm::floor(glm::log2((double)glm::max(width, height))));
 }
 
 /*static*/

@@ -43,12 +43,11 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       const std::string& path,
       DescriptorSetAllocator* pMaterialAllocator = nullptr);
-
   void registerToHeap(GlobalHeap& heap);
 
   void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;
-  size_t getAnimationCount() const;
+  size_t getAnimationCount() const { return _model.animations.size(); }
   const std::string& getAnimationName(int32_t i) const {
     return _model.animations[i].name;
   }
