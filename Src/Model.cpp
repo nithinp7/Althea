@@ -528,45 +528,127 @@ void Model::updateAnimation(float deltaTime) {
       _animationTime -= timeSamples[timeSamples.size() - 1];
     }
 
-    // TODO: track last used sample to avoid linear scan?
-    // TODO: implement other interpolators...
     uint32_t sampleIdx = 0;
-    float u = 0.0f;
+    float td = 0.0f;
+    float t = 0.0f;
+
+    // TODO: track last used sample to avoid linear scan?
     for (; sampleIdx < timeSamples.size() - 1; ++sampleIdx) {
       float t0 = timeSamples[sampleIdx];
       float t1 = timeSamples[sampleIdx + 1];
       if (_animationTime >= t0 && _animationTime <= t1) {
-        u = (_animationTime - t0) / (t1 - t0);
+        td = t1 - t0;
+        t = (_animationTime - t0) / td;
         break;
       }
     }
 
-    if (sampleIdx == timeSamples.size() - 1)
-      continue;
+    // TODO: Interpolate looping anims better...
 
+    // Follows the same notation as glTF 2.0 Spec - Appendix C: Animation
+    // Sampler Interpolation Modes
     NodeTransform& transform = nodeTransforms[channel.target.node];
-    transform.targeted = true;
-    if (channel.target.path ==
-        CesiumGltf::AnimationChannelTarget::Path::translation) {
-      CesiumGltf::AccessorView<glm::vec3> translations(_model, sampler.output);
-      transform.translation =
-          glm::mix(translations[sampleIdx], translations[sampleIdx + 1], u);
+    if (sampleIdx == (timeSamples.size() - 1) ||
+        sampler.interpolation ==
+            CesiumGltf::AnimationSampler::Interpolation::STEP) {
+      if (channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::translation) {
+        transform.translation = CesiumGltf::AccessorView<glm::vec3>(
+            _model,
+            sampler.output)[sampleIdx];
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::rotation) {
+        transform.rotation = CesiumGltf::AccessorView<glm::quat>(
+            _model,
+            sampler.output)[sampleIdx];
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::scale) {
+        transform.scale = CesiumGltf::AccessorView<glm::vec3>(
+            _model,
+            sampler.output)[sampleIdx];
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::weights) {
+        // TODO:
+      }
     } else if (
-        channel.target.path ==
-        CesiumGltf::AnimationChannelTarget::Path::rotation) {
-      CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
-      transform.rotation =
-          glm::slerp(rotations[sampleIdx], rotations[sampleIdx + 1], u);
-    } else if (
-        channel.target.path ==
-        CesiumGltf::AnimationChannelTarget::Path::scale) {
-      CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
-      transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx + 1], u);
-    } else if (
-        channel.target.path ==
-        CesiumGltf::AnimationChannelTarget::Path::weights) {
-      // TODO:
+        sampler.interpolation ==
+        CesiumGltf::AnimationSampler::Interpolation::LINEAR) {
+
+      if (channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::translation) {
+        CesiumGltf::AccessorView<glm::vec3> translations(
+            _model,
+            sampler.output);
+        transform.translation =
+            glm::mix(translations[sampleIdx], translations[sampleIdx + 1], t);
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::rotation) {
+        CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
+        transform.rotation =
+            glm::slerp(rotations[sampleIdx], rotations[sampleIdx + 1], t);
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::scale) {
+        CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
+        transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx + 1], t);
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::weights) {
+        // TODO:
+      }
+    } else {
+      // cubic spline interpolation
+      float t2 = t * t;
+      float t3 = t2 * t;
+
+      float A = (2.0f * t3 - 3.0f * t2 + 1.0f);
+      float B = td * (t3 - 2.0f * t2 + t);
+      float C = (-2.0f * t3 + 3 * t2);
+      float D = td * (t3 - t2);
+
+      if (channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::translation) {
+        CesiumGltf::AccessorView<glm::vec3> translations(
+            _model,
+            sampler.output);
+
+        glm::vec3 vk = translations[3 * sampleIdx + 1];
+        glm::vec3 bk = translations[3 * sampleIdx + 2];
+        glm::vec3 ak_1 = translations[3 * sampleIdx + 3];
+        glm::vec3 vk_1 = translations[3 * sampleIdx + 4];
+        transform.translation = A * vk + B * bk + C * vk_1 + D * ak_1; 
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::rotation) {
+        CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
+        
+        glm::quat vk = rotations[3 * sampleIdx + 1];
+        glm::quat bk = rotations[3 * sampleIdx + 2];
+        glm::quat ak_1 = rotations[3 * sampleIdx + 3];
+        glm::quat vk_1 = rotations[3 * sampleIdx + 4];
+        transform.rotation = glm::normalize(A * vk + B * bk + C * vk_1 + D * ak_1); 
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::scale) {
+        CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
+            
+        glm::vec3 vk = scales[3 * sampleIdx + 1];
+        glm::vec3 bk = scales[3 * sampleIdx + 2];
+        glm::vec3 ak_1 = scales[3 * sampleIdx + 3];
+        glm::vec3 vk_1 = scales[3 * sampleIdx + 4];
+        transform.scale = A * vk + B * bk + C * vk_1 + D * ak_1; 
+      } else if (
+          channel.target.path ==
+          CesiumGltf::AnimationChannelTarget::Path::weights) {
+        // TODO:
+      }
     }
+
+    transform.targeted = true;
   }
 
   for (uint32_t i = 0; i < _nodes.size(); ++i) {
