@@ -260,35 +260,42 @@ void Model::createConstantBuffers(
   }
 }
 
-void Model::setModelTransform(const glm::mat4& modelTransform) {
-  _modelTransform = modelTransform;
-
+void Model::recomputeTransforms() {
   if (this->_model.scene >= 0 &&
       this->_model.scene < this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_updateTransforms(nodeId, modelTransform);
+        this->_updateTransforms(nodeId, _modelTransform);
       }
     }
   } else if (this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[0];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_updateTransforms(nodeId, modelTransform);
+        this->_updateTransforms(nodeId, _modelTransform);
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_updateTransforms(0, modelTransform);
+    this->_updateTransforms(0, _modelTransform);
   } else {
     for (const Mesh& mesh : _meshes) {
       for (int32_t primIdx = mesh.primitiveStartIdx;
            primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
            ++primIdx) {
-        this->_primitives[primIdx].setTransform(modelTransform);
+        this->_primitives[primIdx].setTransform(_modelTransform);
       }
     }
   }
+}
+
+void Model::setModelTransform(const glm::mat4& modelTransform) {
+  _modelTransform = modelTransform;
+  recomputeTransforms();
+}
+
+void Model::setNodeRelativeTransform(uint32_t nodeIdx, const glm::mat4& transform) {
+  _nodes[nodeIdx].currentTransform = transform;
 }
 
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
@@ -478,200 +485,5 @@ void Model::_loadNode(
           materialAllocator);
     }
   }
-}
-
-void Model::updateAnimation(float deltaTime) {
-  if (_activeAnimation < 0)
-    return;
-
-  struct NodeTransform {
-    glm::quat rotation{};
-    glm::vec3 translation{};
-    glm::vec3 scale = glm::vec3(1.0f);
-    bool targeted = false;
-  };
-  ALTHEA_STACK_VECTOR(nodeTransforms, NodeTransform, _nodes.size());
-  nodeTransforms.resize(_nodes.size());
-  for (uint32_t i = 0; i < _nodes.size(); ++i) {
-    NodeTransform& transform = nodeTransforms[i];
-    const CesiumGltf::Node& gltfNode = _model.nodes[i];
-    glm::mat4 translation(1.0);
-    if (gltfNode.translation.size() == 3) {
-      transform.translation = glm::vec3(
-          static_cast<float>(gltfNode.translation[0]),
-          static_cast<float>(gltfNode.translation[1]),
-          static_cast<float>(gltfNode.translation[2]));
-    }
-
-    if (gltfNode.rotation.size() == 4) {
-      transform.rotation[0] = static_cast<float>(gltfNode.rotation[0]);
-      transform.rotation[1] = static_cast<float>(gltfNode.rotation[1]);
-      transform.rotation[2] = static_cast<float>(gltfNode.rotation[2]);
-      transform.rotation[3] = static_cast<float>(gltfNode.rotation[3]);
-    }
-
-    if (gltfNode.scale.size() == 3) {
-      transform.scale[0] = static_cast<float>(gltfNode.scale[0]);
-      transform.scale[1] = static_cast<float>(gltfNode.scale[1]);
-      transform.scale[2] = static_cast<float>(gltfNode.scale[2]);
-    }
-  }
-
-  const CesiumGltf::Animation& animation = _model.animations[_activeAnimation];
-  for (const CesiumGltf::AnimationChannel& channel : animation.channels) {
-    const CesiumGltf::AnimationSampler& sampler =
-        animation.samplers[channel.sampler];
-    CesiumGltf::AccessorView<float> timeSamples(_model, sampler.input);
-
-    if (_animationLooping &&
-        _animationTime > timeSamples[timeSamples.size() - 1]) {
-      _animationTime -= timeSamples[timeSamples.size() - 1];
-    }
-
-    uint32_t sampleIdx = 0;
-    float td = 0.0f;
-    float t = 0.0f;
-
-    // TODO: track last used sample to avoid linear scan?
-    for (; sampleIdx < timeSamples.size() - 1; ++sampleIdx) {
-      float t0 = timeSamples[sampleIdx];
-      float t1 = timeSamples[sampleIdx + 1];
-      if (_animationTime >= t0 && _animationTime <= t1) {
-        td = t1 - t0;
-        t = (_animationTime - t0) / td;
-        break;
-      }
-    }
-
-    // TODO: Interpolate looping anims better...
-
-    // Follows the same notation as glTF 2.0 Spec - Appendix C: Animation
-    // Sampler Interpolation Modes
-    NodeTransform& transform = nodeTransforms[channel.target.node];
-    if (sampleIdx == (timeSamples.size() - 1) ||
-        sampler.interpolation ==
-            CesiumGltf::AnimationSampler::Interpolation::STEP) {
-      if (channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::translation) {
-        transform.translation = CesiumGltf::AccessorView<glm::vec3>(
-            _model,
-            sampler.output)[sampleIdx];
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::rotation) {
-        transform.rotation = CesiumGltf::AccessorView<glm::quat>(
-            _model,
-            sampler.output)[sampleIdx];
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::scale) {
-        transform.scale = CesiumGltf::AccessorView<glm::vec3>(
-            _model,
-            sampler.output)[sampleIdx];
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::weights) {
-        // TODO:
-      }
-    } else if (
-        sampler.interpolation ==
-        CesiumGltf::AnimationSampler::Interpolation::LINEAR) {
-
-      if (channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::translation) {
-        CesiumGltf::AccessorView<glm::vec3> translations(
-            _model,
-            sampler.output);
-        transform.translation =
-            glm::mix(translations[sampleIdx], translations[sampleIdx + 1], t);
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::rotation) {
-        CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
-        transform.rotation =
-            glm::slerp(rotations[sampleIdx], rotations[sampleIdx + 1], t);
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::scale) {
-        CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
-        transform.scale = glm::mix(scales[sampleIdx], scales[sampleIdx + 1], t);
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::weights) {
-        // TODO:
-      }
-    } else {
-      // cubic spline interpolation
-      float t2 = t * t;
-      float t3 = t2 * t;
-
-      float A = (2.0f * t3 - 3.0f * t2 + 1.0f);
-      float B = td * (t3 - 2.0f * t2 + t);
-      float C = (-2.0f * t3 + 3 * t2);
-      float D = td * (t3 - t2);
-
-      if (channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::translation) {
-        CesiumGltf::AccessorView<glm::vec3> translations(
-            _model,
-            sampler.output);
-
-        glm::vec3 vk = translations[3 * sampleIdx + 1];
-        glm::vec3 bk = translations[3 * sampleIdx + 2];
-        glm::vec3 ak_1 = translations[3 * sampleIdx + 3];
-        glm::vec3 vk_1 = translations[3 * sampleIdx + 4];
-        transform.translation = A * vk + B * bk + C * vk_1 + D * ak_1; 
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::rotation) {
-        CesiumGltf::AccessorView<glm::quat> rotations(_model, sampler.output);
-        
-        glm::quat vk = rotations[3 * sampleIdx + 1];
-        glm::quat bk = rotations[3 * sampleIdx + 2];
-        glm::quat ak_1 = rotations[3 * sampleIdx + 3];
-        glm::quat vk_1 = rotations[3 * sampleIdx + 4];
-        transform.rotation = glm::normalize(A * vk + B * bk + C * vk_1 + D * ak_1); 
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::scale) {
-        CesiumGltf::AccessorView<glm::vec3> scales(_model, sampler.output);
-            
-        glm::vec3 vk = scales[3 * sampleIdx + 1];
-        glm::vec3 bk = scales[3 * sampleIdx + 2];
-        glm::vec3 ak_1 = scales[3 * sampleIdx + 3];
-        glm::vec3 vk_1 = scales[3 * sampleIdx + 4];
-        transform.scale = A * vk + B * bk + C * vk_1 + D * ak_1; 
-      } else if (
-          channel.target.path ==
-          CesiumGltf::AnimationChannelTarget::Path::weights) {
-        // TODO:
-      }
-    }
-
-    transform.targeted = true;
-  }
-
-  for (uint32_t i = 0; i < _nodes.size(); ++i) {
-    Node& node = _nodes[i];
-    const NodeTransform& transform = nodeTransforms[i];
-    if (transform.targeted) {
-      glm::mat4 relativeTransform(transform.rotation);
-      relativeTransform[0] *= transform.scale.x;
-      relativeTransform[1] *= transform.scale.y;
-      relativeTransform[2] *= transform.scale.z;
-      relativeTransform[3] = glm::vec4(transform.translation, 1.0f);
-
-      node.currentTransform = relativeTransform;
-    }
-  }
-
-  setModelTransform(_modelTransform);
-
-  _animationTime += deltaTime;
-}
-void Model::startAnimation(int32_t idx, bool bLoop) {
-  _activeAnimation = idx;
-  _animationTime = 0.0f;
-  _animationLooping = bLoop;
 }
 } // namespace AltheaEngine

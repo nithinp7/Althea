@@ -45,6 +45,8 @@ public:
       DescriptorSetAllocator* pMaterialAllocator = nullptr);
   void registerToHeap(GlobalHeap& heap);
 
+  void setNodeRelativeTransform(uint32_t nodeIdx, const glm::mat4& transform);
+  void recomputeTransforms();
   void setModelTransform(const glm::mat4& modelTransform);
   size_t getPrimitivesCount() const;
   size_t getAnimationCount() const { return _model.animations.size(); }
@@ -58,13 +60,7 @@ public:
     return -1;
   }
 
-  void updateAnimation(float deltaTime);
-  void startAnimation(int32_t idx, bool bLoop);
-  void stopAllAnimations() {
-    _activeAnimation = -1;
-    _animationTime = 0.0f;
-    _animationLooping = false;
-  }
+  const CesiumGltf::Model& getGltfModel() const { return _model; }
 
   void draw(const DrawContext& context) const;
 
@@ -86,10 +82,7 @@ private:
   std::vector<Primitive> _primitives;
 
   glm::mat4 _modelTransform;
-  int32_t _activeAnimation = -1;
-  float _animationTime = 0.0f;
-  bool _animationLooping = false;
-
+  
   void _updateTransforms(int32_t nodeIdx, const glm::mat4& transform);
   void _drawNode(const DrawContext& context, int32_t nodeIdx) const;
   void _loadNode(
