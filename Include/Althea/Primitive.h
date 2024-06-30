@@ -39,6 +39,8 @@ struct ALTHEA_API Vertex {
   glm::vec3 bitangent{};
   glm::vec3 normal{};
   glm::vec2 uvs[MAX_UV_COORDS]{};
+  glm::vec4 weights{};
+  glm::u16vec4 joints{};
 };
 
 struct ALTHEA_API AABB {
