@@ -5,7 +5,6 @@
 #include "GlobalHeap.h"
 #include "IndexBuffer.h"
 #include "Library.h"
-#include "Material.h"
 #include "SingleTimeCommandBuffer.h"
 #include "Texture.h"
 #include "VertexBuffer.h"
@@ -74,7 +73,7 @@ struct ALTHEA_API PrimitiveConstants {
   uint32_t vertexBufferHandle;
 
   uint32_t indexBufferHandle;
-  uint32_t padding1;
+  uint32_t isSkinned; // TODO: turn this into a flag bitmask
   uint32_t padding2;
   uint32_t padding3;
 };
@@ -92,9 +91,6 @@ struct ALTHEA_API TextureSlots {
 class ALTHEA_API Primitive {
 public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
-  static void buildMaterial(DescriptorSetLayoutBuilder& materialBuilder);
-
-  void registerToHeap(GlobalHeap& heap);
 
   const PrimitiveConstants& getConstants() const { return this->_constants; }
 
@@ -122,16 +118,17 @@ public:
     return this->_transform;
   }
 
-  void createConstantBuffer(
-      const Application& app,
-      SingleTimeCommandBuffer& commandBuffer,
-      GlobalHeap& heap);
-
   BufferHandle getConstantBufferHandle() const {
     return _constantBuffer.getHandle();
   }
 
 private:
+  void registerToHeap(GlobalHeap& heap);
+  void createConstantBuffer(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap);
+
   VkDevice _device;
 
   glm::mat4 _transform;
@@ -143,7 +140,6 @@ private:
 
   VertexBuffer<Vertex> _vertexBuffer;
   IndexBuffer _indexBuffer;
-  Material _material;
 
   AABB _aabb;
 
@@ -151,10 +147,10 @@ public:
   Primitive(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
-      const glm::mat4& nodeTransform,
-      DescriptorSetAllocator* pMaterialAllocator = nullptr);
+      const glm::mat4& nodeTransform);
 
   void setTransform(const glm::mat4& transform) { _transform = transform; }
   VkFrontFace getFrontFace() const {

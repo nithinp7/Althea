@@ -150,8 +150,8 @@ resolveExternalData(
 Model::Model(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
-    const std::string& path,
-    DescriptorSetAllocator* materialAllocator) {
+    GlobalHeap& heap,
+    const std::string& path) {
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
 
@@ -208,55 +208,30 @@ Model::Model(
     const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(
-            app,
-            commandBuffer,
-            nodeId,
-            _modelTransform,
-            materialAllocator);
+        this->_loadNode(app, commandBuffer, heap, nodeId, _modelTransform);
       }
     }
   } else if (this->_model.scenes.size()) {
     const CesiumGltf::Scene& scene = this->_model.scenes[0];
     for (int32_t nodeId : scene.nodes) {
       if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        this->_loadNode(
-            app,
-            commandBuffer,
-            nodeId,
-            _modelTransform,
-            materialAllocator);
+        this->_loadNode(app, commandBuffer, heap, nodeId, _modelTransform);
       }
     }
   } else if (this->_model.nodes.size()) {
-    this->_loadNode(app, commandBuffer, 0, _modelTransform, materialAllocator);
+    this->_loadNode(app, commandBuffer, heap, 0, _modelTransform);
   } else {
     for (const CesiumGltf::Mesh& mesh : this->_model.meshes) {
       for (const CesiumGltf::MeshPrimitive& primitive : mesh.primitives) {
         this->_primitives.emplace_back(
             app,
             commandBuffer,
+            heap,
             this->_model,
             primitive,
-            _modelTransform,
-            materialAllocator);
+            _modelTransform);
       }
     }
-  }
-}
-
-void Model::registerToHeap(GlobalHeap& heap) {
-  for (Primitive& primitive : this->_primitives) {
-    primitive.registerToHeap(heap);
-  }
-}
-
-void Model::createConstantBuffers(
-    const Application& app,
-    SingleTimeCommandBuffer& commandBuffer,
-    GlobalHeap& heap) {
-  for (Primitive& primitive : this->_primitives) {
-    primitive.createConstantBuffer(app, commandBuffer, heap);
   }
 }
 
@@ -294,7 +269,9 @@ void Model::setModelTransform(const glm::mat4& modelTransform) {
   recomputeTransforms();
 }
 
-void Model::setNodeRelativeTransform(uint32_t nodeIdx, const glm::mat4& transform) {
+void Model::setNodeRelativeTransform(
+    uint32_t nodeIdx,
+    const glm::mat4& transform) {
   _nodes[nodeIdx].currentTransform = transform;
 }
 
@@ -375,9 +352,9 @@ void Model::_drawNode(const DrawContext& context, int32_t nodeIdx) const {
 void Model::_loadNode(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
+    GlobalHeap& heap,
     int32_t nodeIdx,
-    const glm::mat4& parentTransform,
-    DescriptorSetAllocator* materialAllocator) {
+    const glm::mat4& parentTransform) {
   const CesiumGltf::Node& gltfNode = _model.nodes[nodeIdx];
   Node& node = _nodes[nodeIdx];
 
@@ -468,21 +445,16 @@ void Model::_loadNode(
       this->_primitives.emplace_back(
           app,
           commandBuffer,
+          heap,
           this->_model,
           primitive,
-          nodeTransform,
-          materialAllocator);
+          nodeTransform);
     }
   }
 
   for (int32_t childNodeId : gltfNode.children) {
     if (childNodeId >= 0 && childNodeId < _model.nodes.size()) {
-      this->_loadNode(
-          app,
-          commandBuffer,
-          childNodeId,
-          nodeTransform,
-          materialAllocator);
+      this->_loadNode(app, commandBuffer, heap, childNodeId, nodeTransform);
     }
   }
 }

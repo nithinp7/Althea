@@ -95,23 +95,14 @@ void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
         offsetof(Vertex, uvs[i]));
   }
 
-  builder.enableDynamicFrontFace();
-}
+  builder.addVertexAttribute(
+      VertexAttributeType::VEC4,
+      offsetof(Vertex, weights));
+  builder.addVertexAttribute(
+      VK_FORMAT_R16G16B16A16_UINT,
+      offsetof(Vertex, joints));
 
-/*static*/
-void Primitive::buildMaterial(DescriptorSetLayoutBuilder& materialBuilder) {
-  materialBuilder
-      .addConstantsBufferBinding<PrimitiveConstants>()
-      // Base color
-      .addTextureBinding()
-      // Normal map
-      .addTextureBinding()
-      // Metallic-Roughness
-      .addTextureBinding()
-      // Ambient Occlusion
-      .addTextureBinding()
-      // Emissive
-      .addTextureBinding();
+  builder.enableDynamicFrontFace();
 }
 
 namespace {
@@ -121,7 +112,8 @@ struct VertexBufferBuilder {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
 
-  bool failed = true;
+  bool isSkinned = false;
+  bool failed = false;
 
 private:
   typedef std::unordered_map<std::string, int32_t>::const_iterator
@@ -142,8 +134,10 @@ private:
   bool duplicateVertices;
 
   struct INVALID_TYPE {
-    template<typename T>
-    operator T() const { assert(false); return T(); }
+    template <typename T> operator T() const {
+      assert(false);
+      return T();
+    }
   };
 
 public:
@@ -246,8 +240,6 @@ public:
       initVerticesAndIndices<INVALID_TYPE>(model, primitive);
     }
     }
-
-    failed = false;
 
     if (!hasNormals) {
       GeometryUtilities::computeFlatNormals(vertices);
@@ -361,18 +353,31 @@ private:
         weightsAccessorIdx);
 
     if constexpr (std::is_same<TIndex, INVALID_TYPE>::value) {
+      // dummy indices
       indexCount = vertexCount;
       indices.resize(indexCount);
       for (uint32_t i = 0; i < indexCount; ++i)
         indices[i] = i;
     } else {
-      indexCount = indexAccessor.size();
-      indices.resize(indexCount);
-      for (uint32_t i = 0; i < indexCount; ++i)
-        indices[i] = indexAccessor[i];
+      if (duplicateVertices) {
+        // dummy indices
+        indexCount = indexAccessor.size();
+        indices.resize(indexCount);
+        for (uint32_t i = 0; i < indexCount; ++i)
+          indices[i] = i;
+      } else {
+        // copy indices
+        indexCount = indexAccessor.size();
+        indices.resize(indexCount);
+        for (uint32_t i = 0; i < indexCount; ++i)
+          indices[i] = indexAccessor[i];
+      }
     }
 
     uint32_t newVertCount = duplicateVertices ? indexCount : vertexCount;
+
+    isSkinned = !std::is_same<TJoints, INVALID_TYPE>::value &&
+                !std::is_same<TWeights, INVALID_TYPE>::value;
 
     vertices.resize(newVertCount);
 
@@ -422,14 +427,13 @@ private:
 Primitive::Primitive(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
+    GlobalHeap& heap,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
-    const glm::mat4& nodeTransform,
-    DescriptorSetAllocator* pMaterialAllocator)
+    const glm::mat4& nodeTransform)
     : _device(app.getDevice()),
       _transform(nodeTransform),
-      _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f),
-      _material() {
+      _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f) {
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;
@@ -538,6 +542,8 @@ Primitive::Primitive(
 
     vertices = std::move(vbBuilder.vertices);
     indices = std::move(vbBuilder.indices);
+
+    _constants.isSkinned = vbBuilder.isSkinned;
   }
 
   // Compute AABB
@@ -555,18 +561,8 @@ Primitive::Primitive(
   this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
   this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
 
-  if (pMaterialAllocator) {
-    this->_material = Material(app, *pMaterialAllocator);
-    this->_material.assign()
-        .bindInlineConstants(this->_constants)
-        .bindTexture(*this->_textureSlots.pBaseTexture)
-        .bindTexture(*this->_textureSlots.pNormalMapTexture)
-        .bindTexture(*this->_textureSlots.pMetallicRoughnessTexture)
-        .bindTexture(*this->_textureSlots.pOcclusionTexture)
-        .bindTexture(*this->_textureSlots.pEmissiveTexture);
-  }
-
-  // If the material allocator is null, assume we are using bindless textures
+  registerToHeap(heap);
+  createConstantBuffer(app, commandBuffer, heap);
 }
 
 AABB Primitive::computeWorldAABB() const {

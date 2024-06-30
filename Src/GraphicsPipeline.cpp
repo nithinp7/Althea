@@ -397,12 +397,6 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
     VertexAttributeType attributeType,
     uint32_t offset) {
 
-  // Check that this attribute corresponds to an actual vertex input binding.
-  if (this->_vertexInputBindings.empty()) {
-    throw std::runtime_error("Attempting to add vertex attribute without any "
-                             "vertex input bindings.");
-  }
-
   VkFormat format;
   switch (attributeType) {
   case VertexAttributeType::UINT:
@@ -425,6 +419,17 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexAttribute(
     break;
   };
 
+  return addVertexAttribute(format, offset);
+}
+
+GraphicsPipelineBuilder&
+GraphicsPipelineBuilder::addVertexAttribute(VkFormat format, uint32_t offset) {
+
+  // Check that this attribute corresponds to an actual vertex input binding.
+  if (this->_vertexInputBindings.empty()) {
+    throw std::runtime_error("Attempting to add vertex attribute without any "
+                             "vertex input bindings.");
+  }
   uint32_t attributeId =
       static_cast<uint32_t>(this->_attributeDescriptions.size());
   VkVertexInputAttributeDescription& attribute =

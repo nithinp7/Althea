@@ -86,6 +86,9 @@ public:
   GraphicsPipelineBuilder&
   addVertexAttribute(VertexAttributeType attributeType, uint32_t offset);
 
+  GraphicsPipelineBuilder&
+  addVertexAttribute(VkFormat format, uint32_t offset);
+
   /**
    * @brief Set the primitive type for this pipeline.
    *

@@ -41,9 +41,8 @@ public:
   Model(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
-      const std::string& path,
-      DescriptorSetAllocator* pMaterialAllocator = nullptr);
-  void registerToHeap(GlobalHeap& heap);
+      GlobalHeap& heap,
+      const std::string& path);
 
   void setNodeRelativeTransform(uint32_t nodeIdx, const glm::mat4& transform);
   void recomputeTransforms();
@@ -70,11 +69,6 @@ public:
 
   std::vector<Primitive>& getPrimitives() { return this->_primitives; }
 
-  void createConstantBuffers(
-      const Application& app,
-      SingleTimeCommandBuffer& commandBuffer,
-      GlobalHeap& heap);
-
 private:
   CesiumGltf::Model _model;
   std::vector<Node> _nodes;
@@ -82,14 +76,14 @@ private:
   std::vector<Primitive> _primitives;
 
   glm::mat4 _modelTransform;
-  
+
   void _updateTransforms(int32_t nodeIdx, const glm::mat4& transform);
   void _drawNode(const DrawContext& context, int32_t nodeIdx) const;
   void _loadNode(
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap,
       int32_t nodeIdx,
-      const glm::mat4& parentTransform,
-      DescriptorSetAllocator* pMaterialAllocator);
+      const glm::mat4& parentTransform);
 };
 } // namespace AltheaEngine
