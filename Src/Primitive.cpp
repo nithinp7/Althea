@@ -21,8 +21,8 @@
 namespace AltheaEngine {
 namespace {
 struct PrimitivePushConstants {
-  glm::mat4 model{};
   uint32_t constantBufferHandle{};
+  uint32_t matrixBufferHandle{};
 };
 } // namespace
 static std::shared_ptr<Texture> createTexture(
@@ -297,7 +297,7 @@ private:
     int32_t weightsType = 0;
     int32_t weightsAccessorIdx = -1;
 
-    AttributeIterator weightsIt = primitive.attributes.find("JOINTS_0");
+    AttributeIterator weightsIt = primitive.attributes.find("WEIGHTS_0");
     if (weightsIt != primitive.attributes.end() && weightsIt->second >= 0 &&
         weightsIt->second < model.accessors.size()) {
       weightsAccessorIdx = weightsIt->second;
@@ -430,10 +430,26 @@ Primitive::Primitive(
     GlobalHeap& heap,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
-    const glm::mat4& nodeTransform)
+    BufferHandle jointMapHandle,
+    uint32_t nodeIdx)
     : _device(app.getDevice()),
-      _transform(nodeTransform),
-      _flipFrontFace(glm::determinant(glm::mat3(nodeTransform)) < 0.0f) {
+      // TODO: 
+      // glm::determinant(glm::mat3(nodeTransform)) < 0.0f
+      _flipFrontFace(false) {
+  
+  _constants.jointMapHandle = jointMapHandle.index;
+  _constants.nodeIdx = nodeIdx;
+
+  // fill some non-zero defaults
+  
+  _constants.baseColorFactor = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+
+  _constants.normalScale = 1.0f;
+  _constants.roughnessFactor = 1.0f;
+
+  _constants.occlusionStrength = 1.0f;
+  _constants.alphaCutoff = 0.5f;
+
   const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
 
   std::vector<Vertex> vertices;
@@ -572,12 +588,15 @@ AABB Primitive::computeWorldAABB() const {
     throw std::runtime_error(
         "Attempting to compute world AABB with empty vertices");
 
+  // TODO: BROKEN
+  glm::mat4 transform(1.0f);
+
   AABB aabb;
   aabb.min = aabb.max =
-      glm::vec3(_transform * glm::vec4(vertices[0].position, 1.0f));
+      glm::vec3(transform * glm::vec4(vertices[0].position, 1.0f));
 
   for (size_t i = 0; i < vertices.size(); ++i) {
-    glm::vec3 worldPos(_transform * glm::vec4(vertices[i].position, 1.0f));
+    glm::vec3 worldPos(transform * glm::vec4(vertices[i].position, 1.0f));
     aabb.min = glm::min(aabb.min, worldPos);
     aabb.max = glm::max(aabb.max, worldPos);
   }
@@ -647,20 +666,5 @@ void Primitive::createConstantBuffer(
   _constantBuffer =
       ConstantBuffer<PrimitiveConstants>(app, commandBuffer, _constants);
   _constantBuffer.registerToHeap(heap);
-}
-
-void Primitive::draw(const DrawContext& context) const {
-  context.setFrontFaceDynamic(
-      this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
-                           : VK_FRONT_FACE_COUNTER_CLOCKWISE);
-  // TODO: This no longer works for non-bindless
-  // if (this->_material)
-  //   context.bindDescriptorSets(this->_material);
-  // else
-  context.bindDescriptorSets();
-  context.updatePushConstants(
-      PrimitivePushConstants{_transform, _constantBuffer.getHandle().index},
-      0);
-  context.drawIndexed(this->_vertexBuffer, this->_indexBuffer);
 }
 } // namespace AltheaEngine

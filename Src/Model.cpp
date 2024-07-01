@@ -195,11 +195,31 @@ Model::Model(
   }
 
   _modelTransform = glm::mat4(1.0f);
-
   _nodes.resize(_model.nodes.size());
 
-  // TODO: Create only one primitive for each mesh and position / instance
-  // it as dictated by nodes.
+  for (const CesiumGltf::Skin& gltfSkin : _model.skins) {
+    // joint maps are used to lookup node indices in order to fetch
+    // transforms
+    Skin& skin = _skins.emplace_back();
+    skin.jointMap = StructuredBuffer<uint32_t>(app, gltfSkin.joints.size());
+    for (uint32_t jointIdx = 0; jointIdx < gltfSkin.joints.size(); ++jointIdx) {
+      skin.jointMap.setElement(gltfSkin.joints[jointIdx], jointIdx);
+    }
+    skin.jointMap.upload(app, commandBuffer);
+    skin.jointMap.registerToHeap(heap);
+
+    // setup inverse bind matrices if applicable
+    if (gltfSkin.inverseBindMatrices >= 0) {
+      CesiumGltf::AccessorView<glm::mat4> inverseBindMatrices(
+          _model,
+          gltfSkin.inverseBindMatrices);
+      for (uint32_t jointIdx = 0; jointIdx < gltfSkin.joints.size();
+           ++jointIdx) {
+        _nodes[gltfSkin.joints[jointIdx]].inverseBindPose =
+            inverseBindMatrices[jointIdx];
+      }
+    }
+  }
 
   // Sensible estimate of number of primitives that will be in the model
   this->_primitives.reserve(this->_model.meshes.size());
@@ -229,9 +249,20 @@ Model::Model(
             heap,
             this->_model,
             primitive,
-            _modelTransform);
+            BufferHandle(),
+            0);
       }
     }
+  }
+
+  // init transforms buffer
+  _nodeTransforms =
+      DynamicVertexBuffer<glm::mat4>(app, glm::max(_nodes.size(), 1ull), true);
+  _nodeTransforms.registerToHeap(heap);
+  recomputeTransforms();
+  for (uint32_t ringBufferIdx = 0; ringBufferIdx < MAX_FRAMES_IN_FLIGHT;
+       ++ringBufferIdx) {
+    _nodeTransforms.upload(ringBufferIdx);
   }
 }
 
@@ -253,20 +284,15 @@ void Model::recomputeTransforms() {
     }
   } else if (this->_model.nodes.size()) {
     this->_updateTransforms(0, _modelTransform);
-  } else {
-    for (const Mesh& mesh : _meshes) {
-      for (int32_t primIdx = mesh.primitiveStartIdx;
-           primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
-           ++primIdx) {
-        this->_primitives[primIdx].setTransform(_modelTransform);
-      }
-    }
+  }
+
+  if (_nodes.size() == 0) {
+    _nodeTransforms.setVertex(_modelTransform, 0);
   }
 }
 
 void Model::setModelTransform(const glm::mat4& modelTransform) {
   _modelTransform = modelTransform;
-  recomputeTransforms();
 }
 
 void Model::setNodeRelativeTransform(
@@ -277,35 +303,6 @@ void Model::setNodeRelativeTransform(
 
 size_t Model::getPrimitivesCount() const { return this->_primitives.size(); }
 
-void Model::draw(const DrawContext& context) const {
-  if (this->_model.scene >= 0 &&
-      this->_model.scene < this->_model.scenes.size()) {
-    const CesiumGltf::Scene& scene = this->_model.scenes[this->_model.scene];
-    for (int32_t nodeId : scene.nodes) {
-      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        _drawNode(context, nodeId);
-      }
-    }
-  } else if (this->_model.scenes.size()) {
-    const CesiumGltf::Scene& scene = this->_model.scenes[0];
-    for (int32_t nodeId : scene.nodes) {
-      if (nodeId >= 0 && nodeId < this->_model.nodes.size()) {
-        _drawNode(context, nodeId);
-      }
-    }
-  } else if (this->_model.nodes.size()) {
-    _drawNode(context, 0);
-  } else {
-    for (const Mesh& mesh : _meshes) {
-      for (int32_t primIdx = mesh.primitiveStartIdx;
-           primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
-           ++primIdx) {
-        _primitives[primIdx].draw(context);
-      }
-    }
-  }
-}
-
 void Model::_updateTransforms(
     int32_t nodeIdx,
     const glm::mat4& parentTransform) {
@@ -313,38 +310,11 @@ void Model::_updateTransforms(
   const Node& node = _nodes[nodeIdx];
   glm::mat4 transform = parentTransform * _nodes[nodeIdx].currentTransform;
 
-  if (node.meshIdx >= 0) {
-    const Mesh& mesh = _meshes[node.meshIdx];
-    for (uint32_t primIdx = mesh.primitiveStartIdx;
-         primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
-         ++primIdx) {
-      _primitives[primIdx].setTransform(transform);
-    }
-  }
+  _nodeTransforms.setVertex(transform * node.inverseBindPose, nodeIdx);
 
   for (int32_t childNodeId : _model.nodes[nodeIdx].children) {
     if (childNodeId >= 0 && childNodeId < _nodes.size()) {
       _updateTransforms(childNodeId, transform);
-    }
-  }
-}
-
-void Model::_drawNode(const DrawContext& context, int32_t nodeIdx) const {
-  // TODO: previous transforms also needed for velocity buffer
-  const Node& node = _nodes[nodeIdx];
-
-  if (node.meshIdx >= 0) {
-    const Mesh& mesh = _meshes[node.meshIdx];
-    for (uint32_t primIdx = mesh.primitiveStartIdx;
-         primIdx < (mesh.primitiveStartIdx + mesh.primitiveCount);
-         ++primIdx) {
-      _primitives[primIdx].draw(context);
-    }
-  }
-
-  for (int32_t childNodeId : _model.nodes[nodeIdx].children) {
-    if (childNodeId >= 0 && childNodeId < _nodes.size()) {
-      this->_drawNode(context, childNodeId);
     }
   }
 }
@@ -448,7 +418,9 @@ void Model::_loadNode(
           heap,
           this->_model,
           primitive,
-          nodeTransform);
+          gltfNode.skin >= 0 ? getSkinJointMapHandle(gltfNode.skin)
+                             : BufferHandle(),
+          nodeIdx);
     }
   }
 

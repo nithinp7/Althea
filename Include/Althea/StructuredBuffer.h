@@ -72,6 +72,23 @@ public:
          app.getCurrentFrameRingBufferIndex()});
   }
 
+  void upload(const Application& app, SingleTimeCommandBuffer& commandBuffer) const {
+    size_t size = this->getSize();
+    gsl::span<const std::byte> view(
+        reinterpret_cast<const std::byte*>(this->_structureArray.data()),
+        size);
+
+    VkBuffer stagingBuffer = commandBuffer.createStagingBuffer(app, view);
+
+    BufferUtilities::copyBuffer(
+        commandBuffer,
+        stagingBuffer,
+        0,
+        this->_allocation.getBuffer(),
+        0,
+        size);
+  }
+
   void rwBarrier(VkCommandBuffer commandBuffer) const {
     BufferUtilities::rwBarrier(
         commandBuffer,

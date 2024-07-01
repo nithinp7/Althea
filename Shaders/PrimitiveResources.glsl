@@ -1,37 +1,8 @@
-#ifndef _PRIMITIVECONSTANTS_
-#define _PRIMITIVECONSTANTS_
+#ifndef _PRIMITIVERESOURCES_
+#define _PRIMITIVERESOURCES_
 
-struct PrimitiveConstants {
-  vec4 baseColorFactor;
-  vec4 emissiveFactor;
-
-  int baseTextureCoordinateIndex;
-  int normalMapTextureCoordinateIndex;
-  int metallicRoughnessTextureCoordinateIndex;
-  int occlusionTextureCoordinateIndex;
-  int emissiveTextureCoordinateIndex;
-
-  float normalScale;
-  float metallicFactor;
-  float roughnessFactor;
-  float occlusionStrength;
-
-  float alphaCutoff;
-
-  uint baseTextureHandle;
-  uint normalTextureHandle;
-  uint metallicRoughnessTextureHandle;
-  uint occlusionTextureHandle;
-  uint emissiveTextureHandle;
-
-  uint vertexBufferHandle;
-  uint indexBufferHandle;
-
-  uint padding1;
-  uint padding2;
-  uint padding3;
-};
-
+#define IS_SHADER
+#include <../Include/Althea/Common/GltfCommon.h>
 
 SAMPLER2D(primTexHeap);
 
@@ -54,14 +25,6 @@ BUFFER_R(primitiveConstants, PrimitiveConstantsResource{
 #define emissiveTexture(primIdx) \
     primTexHeap[getPrimitive(primIdx).emissiveTextureHandle]
 
-struct Vertex {
-  vec3 position;
-  vec3 tangent;
-  vec3 bitangent;
-  vec3 normal;
-  vec2 uvs[4];
-};
-
 // Raw bindless heap stuff so we can use a scalar layout...
 #extension GL_EXT_scalar_block_layout : enable
 layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) readonly buffer VBResource{
@@ -78,4 +41,16 @@ BUFFER_R(indexBufferHeap, IBResource{
 #define getIndex(primIdx, idx) \
     indexBufferHeap[getPrimitive(primIdx).indexBufferHandle].indices[idx]
 
-#endif // _PRIMITIVECONSTANTS_
+BUFFER_R(matrixHeap, MatrixBuffer{
+  mat4 matrices[];
+});
+#define getMatrix(bufferIdx, matrixIdx) \
+    matrixHeap[bufferIdx].matrices[matrixIdx]
+
+BUFFER_R(jointMapHeap, JointMapBuffer{
+  uint jointToNode[];
+});
+#define getNodeIdxFromJointIdx(jointMapHandle, jointIdx) \
+    jointMapHeap[jointMapHandle].jointToNode[jointIdx];
+
+#endif // _PRIMITIVERESOURCES_

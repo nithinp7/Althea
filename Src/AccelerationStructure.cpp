@@ -241,7 +241,7 @@ AccelerationStructure::AccelerationStructure(
 
       VkAccelerationStructureInstanceKHR& tlasInstance =
           instances.emplace_back();
-      glm::mat4 primTransform = prim.getTransform();
+      const glm::mat4& primTransform = model.getTransformsBuffer().getVertex(prim.getNodeIdx());
 
       tlasInstance.transform.matrix[0][0] = primTransform[0][0];
       tlasInstance.transform.matrix[1][0] = primTransform[0][1];
