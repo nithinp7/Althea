@@ -1,34 +1,20 @@
 #version 450
 
-layout(location=0) out vec3 worldPosOut;
-layout(location=1) out vec3 colorOut;
+layout(location=0) in vec3 inWorldPos;
+layout(location=1) in uint inColor;
 
-// TODO: Move these to an include
-struct DebugLineVertex {
-  vec3 worldPos;
-  uint color;
-};
+layout(location=0) out vec3 outNormal;
+layout(location=1) out vec3 outColor;
 
-#extension GL_EXT_nonuniform_qualifier : enable
-
-layout(std430, set=0, location=DEBUG_BUFFER_BINDING) buffer DBG_LINE_HEAP {
-  DebugLineVertex vertices[];
-} debugLineHeap[];
-
-layout(push_constant) uniform PushConstants {
-  uint bufferIdx;
-  uint primOffs;
-} pushConstants;
+#include "DebugDraw.glsl"
 
 void main() {
-  DebugLineVertex vertex = 
-      debugLineHeap[pushConstants.bufferIdx]
-      .vertices[2 * primOffs + gl_VertexIndex];
+  gl_Position = globals.projection * globals.view * vec4(inWorldPos, 1.0);
 
-  worldPosOut = vertex.worldPos;
-  colorOut = 
+  outNormal = normalize(globals.view[3].xyz - inWorldPos);
+  outColor = 
       vec3(
-        (vertex.color >> 16) & 0xFF, 
-        (vertex.color >> 8) & 0xFF, 
-        vertex.color & 0xFF) / 255.0
+        (inColor >> 16) & 0xFF, 
+        (inColor >> 8) & 0xFF, 
+        inColor & 0xFF) / 255.0;
 }
