@@ -33,8 +33,8 @@ void PhysicsSystem::tick(float deltaTime) {
       CollisionResult result{};
       if (Collisions::checkIntersection(c, m_registeredCapsules[j], result)) {
         m_dbgDrawLines->addLine(
-            result.intersectionPoint,
-            result.intersectionPoint + result.minSepTranslation,
+            result.intersectionPoint - 0.5f * result.minSepTranslation,
+            result.intersectionPoint + 0.5f * result.minSepTranslation,
             colorGreen);
         bFoundCollision = true;
         break;

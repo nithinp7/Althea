@@ -40,11 +40,13 @@ bool Collisions::checkIntersection(
   float r2 = r * r;
   
   if (dist2 < r2) {
-    float dist = sqrt(dist2);
-    float pen = r - dist;
+    diff /= sqrt(dist2);
 
-    result.intersectionPoint = 0.5f * (closestPoint_ab + closestPoint_cd);
-    result.minSepTranslation = pen * diff / dist;
+    glm::vec3 closestPointSurface_C0 = closestPoint_ab + diff * C0.radius;
+    glm::vec3 closestPointSurface_C1 = closestPoint_cd - diff * C1.radius;
+    
+    result.minSepTranslation = closestPointSurface_C1 - closestPointSurface_C0;
+    result.intersectionPoint = 0.5f * (closestPointSurface_C0 + closestPointSurface_C1);
 
     return true; 
   }
