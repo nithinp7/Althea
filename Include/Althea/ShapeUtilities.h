@@ -19,12 +19,14 @@ public:
       VertexBuffer<glm::vec3>& vertexBuffer,
       IndexBuffer& indexBuffer,
       uint32_t resolution,
-      float radius = 1.0f);
+      float radius = 1.0f,
+      bool wireframe = false);
   static void createCylinder(
       Application& app,
       VkCommandBuffer commandBuffer, 
       VertexBuffer<glm::vec3>& vertexBuffer,
       IndexBuffer& indexBuffer,
-      uint32_t resolution);
+      uint32_t resolution,
+      bool wireframe = false);
 };
 } // namespace AltheaEngine

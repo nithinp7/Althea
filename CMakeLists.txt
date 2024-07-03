@@ -25,7 +25,7 @@ function(glob_files out_var_name regexes)
     set(${ARGV0} "${files}" PARENT_SCOPE)
 endfunction()
 
-glob_files(SRC_FILES_LIST "Src/*.cpp" "Src/Debug/*.cpp" )
+glob_files(SRC_FILES_LIST "Src/*.cpp" "Src/Debug/*.cpp" "Src/Physics/*.cpp")
 
 add_library(Althea ${SRC_FILES_LIST})
 include_directories(

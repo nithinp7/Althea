@@ -42,4 +42,43 @@ private:
   DynamicVertexBuffer<DebugVert> m_lines;
   uint32_t m_lineCount = 0;
 };
+
+class DebugDrawCapsules : public IGBufferSubpass {
+public:
+  DebugDrawCapsules() = default;
+  DebugDrawCapsules(Application& app, VkCommandBuffer commandBuffer, uint32_t maxCapacity = 1000);
+
+  // IGBufferSubpass impl
+  void registerGBufferSubpass(GraphicsPipelineBuilder& builder) const override;
+  void beginGBufferSubpass(
+      const DrawContext& context,
+      BufferHandle globalResourcesHandle,
+      UniformHandle globalUniformsHandle) override;
+
+  void reset() { m_count = 0; }
+  bool addCapsule(const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color) {
+    if (m_count < m_capsules.getVertexCount()) {
+      m_capsules.setVertex({a, b, radius, color}, m_count++);
+      return true;
+    }
+    return false;
+  }
+
+private:
+  struct Mesh {
+    VertexBuffer<glm::vec3> verts;
+    IndexBuffer indices;
+  };
+  Mesh m_sphere;
+  Mesh m_cylinder;
+
+  struct CapsuleInst {
+    glm::vec3 a;
+    glm::vec3 b;
+    float radius;
+    uint32_t color;
+  };
+  DynamicVertexBuffer<CapsuleInst> m_capsules;
+  uint32_t m_count = 0;
+};
 } // namespace AltheaEngine

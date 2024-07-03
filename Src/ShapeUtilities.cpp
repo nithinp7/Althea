@@ -18,7 +18,8 @@ void ShapeUtilities::createSphere(
     VertexBuffer<glm::vec3>& vertexBuffer,
     IndexBuffer& indexBuffer,
     uint32_t resolution,
-    float radius) {
+    float radius,
+    bool wireframe) {
   constexpr float maxPitch = 0.499f * glm::pi<float>();
 
   auto sphereUvIndexToVertIndex = [resolution](uint32_t i, uint32_t j) {
@@ -44,26 +45,51 @@ void ShapeUtilities::createSphere(
       float cosPhi = cos(phi);
       float sinPhi = sin(phi);
 
-      vertices.emplace_back(radius * cosPhi * cosTheta, radius * sinPhi, radius * -cosPhi * sinTheta);
+      vertices.emplace_back(
+          radius * cosPhi * cosTheta,
+          radius * sinPhi,
+          radius * -cosPhi * sinTheta);
 
       if (j < resolution / 2 - 1) {
-        indices.push_back(sphereUvIndexToVertIndex(i, j));
-        indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
-        indices.push_back(sphereUvIndexToVertIndex(i + 1, j + 1));
+        if (wireframe) {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
 
-        indices.push_back(sphereUvIndexToVertIndex(i, j));
-        indices.push_back(sphereUvIndexToVertIndex(i + 1, j + 1));
-        indices.push_back(sphereUvIndexToVertIndex(i, j + 1));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j + 1));
+        } else {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j + 1));
+
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j + 1));
+          indices.push_back(sphereUvIndexToVertIndex(i, j + 1));
+        }
       } else {
-        indices.push_back(sphereUvIndexToVertIndex(i, j));
-        indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
-        indices.push_back(cylinderVertsCount);
+        if (wireframe) {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(cylinderVertsCount);
+        } else {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(cylinderVertsCount);
+        }
       }
 
       if (j == 0) {
-        indices.push_back(sphereUvIndexToVertIndex(i, j));
-        indices.push_back(cylinderVertsCount + 1);
-        indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+        if (wireframe) {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(cylinderVertsCount + 1);
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+        } else {
+          indices.push_back(sphereUvIndexToVertIndex(i, j));
+          indices.push_back(cylinderVertsCount + 1);
+          indices.push_back(sphereUvIndexToVertIndex(i + 1, j));
+        }
       }
     }
   }
@@ -83,7 +109,8 @@ void ShapeUtilities::createCylinder(
     VkCommandBuffer commandBuffer,
     VertexBuffer<glm::vec3>& vertexBuffer,
     IndexBuffer& indexBuffer,
-    uint32_t resolution) {
+    uint32_t resolution,
+    bool wireframe) {
   // resolution count of points along circumference on each cap,
   // plus another point at the center of each cap.
   uint32_t vertexCount = resolution * 2 + 2;
@@ -93,7 +120,7 @@ void ShapeUtilities::createCylinder(
   // resolution count of triangles on each cap,
   // 2 * resolution count of triangles on sides connecting caps.
   uint32_t triangleCount = 3 * resolution;
-  uint32_t indexCount = 3 * triangleCount; 
+  uint32_t indexCount = 3 * triangleCount;
   std::vector<uint32_t> indices;
   indices.reserve(indexCount);
 
@@ -118,31 +145,53 @@ void ShapeUtilities::createCylinder(
     // next point on cap 1
     uint32_t p11 = p01 + 1;
 
-    // TODO: Make sure these are counter-clockwise...
     // triangle on cap 0
-    indices.push_back(capCenter0Index);
-    indices.push_back(p01);
-    indices.push_back(p00);
+    if (wireframe) {
+      indices.push_back(capCenter0Index);
+      indices.push_back(p01);
+      indices.push_back(p01);
+      indices.push_back(p00);
+    } else {
+      indices.push_back(capCenter0Index);
+      indices.push_back(p01);
+      indices.push_back(p00);
+    }
 
     // triangle on cap 1
-    indices.push_back(capCenter1Index);
-    indices.push_back(p10);
-    indices.push_back(p11);
+    if (wireframe) {
+      indices.push_back(capCenter1Index);
+      indices.push_back(p10);
+      indices.push_back(p10);
+      indices.push_back(p11);
+    } else {
+      indices.push_back(capCenter1Index);
+      indices.push_back(p10);
+      indices.push_back(p11);
+    }
 
     // two triangles from quad on cylinder side
-    indices.push_back(p00);
-    indices.push_back(p11);
-    indices.push_back(p10);
+    if (wireframe) {
+      indices.push_back(p00);
+      indices.push_back(p10);
 
-    indices.push_back(p00);
-    indices.push_back(p01);
-    indices.push_back(p11);
+      indices.push_back(p10);
+      indices.push_back(p11);
+    } else {
+      indices.push_back(p00);
+      indices.push_back(p11);
+      indices.push_back(p10);
+
+      indices.push_back(p00);
+      indices.push_back(p01);
+      indices.push_back(p11);
+    }
   }
 
   vertices.emplace_back(0.0f, 0.0f, 0.0f);
   vertices.emplace_back(0.0f, 0.0f, 1.0f);
 
   indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
-  vertexBuffer = VertexBuffer<glm::vec3>(app, commandBuffer, std::move(vertices));
+  vertexBuffer =
+      VertexBuffer<glm::vec3>(app, commandBuffer, std::move(vertices));
 }
 } // namespace AltheaEngine
