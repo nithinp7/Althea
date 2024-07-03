@@ -131,7 +131,7 @@ void ShapeUtilities::createCylinder(
     float theta = i * 2.0f * glm::pi<float>() / resolution;
     float cosTheta = cos(theta);
     float sinTheta = sin(theta);
-    vertices.emplace_back(cosTheta, sinTheta, -1.0f);
+    vertices.emplace_back(cosTheta, sinTheta, 0.0f);
     vertices.emplace_back(cosTheta, sinTheta, 1.0f);
 
     // point on cap 0

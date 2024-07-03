@@ -27,14 +27,18 @@ void main() {
   } else if (isPhaseCylinder) {
     // generate local crs
     vec3 diff = inB - inA;
-    // todo handle degeneracy here
-    vec3 perp = normalize(cross(diff, vec3(0.0, 1.0, 0.0)));
+    vec3 perp = cross(diff, vec3(0.0, 1.0, 0.0));
+    float perpDistSq = dot(perp, perp);
+    if (perpDistSq < 0.001)
+      perp = normalize(cross(diff, vec3(1.0, 0.0, 0.0)));
+    else 
+      perp /= sqrt(perpDistSq);
     vec3 perp2 = normalize(cross(diff, perp));
 
     worldPos = 
         inRadius * inVertPos.x * perp + 
         inRadius * inVertPos.y * perp2 +
-        mix(inA, inB, 0.5 - 0.5 * inVertPos.z);
+        mix(inA, inB, inVertPos.z);
   }
 
   gl_Position = globals.projection * globals.view * vec4(worldPos, 1.0);
@@ -42,7 +46,7 @@ void main() {
   outNormal = normalize(globals.view[3].xyz - worldPos);
   outColor = 
       vec3(
+        (inColor >> 24) & 0xFF, 
         (inColor >> 16) & 0xFF, 
-        (inColor >> 8) & 0xFF, 
-        inColor & 0xFF) / 255.0;
+        (inColor >> 8) & 0xFF) / 255.0;
 }

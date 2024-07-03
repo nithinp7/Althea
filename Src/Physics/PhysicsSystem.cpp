@@ -20,8 +20,33 @@ void PhysicsSystem::tick(float deltaTime) {
   m_dbgDrawCapsules->reset();
 
   uint32_t colorRed = 0xff0000ff;
-  for (const Capsule& c : m_registeredCapsules)
-    m_dbgDrawCapsules->addCapsule(c.a, c.b, c.radius, colorRed);
+  uint32_t colorGreen = 0x00ff00ff;
+  uint32_t colorBlue = 0x0000ffff;
+  for (uint32_t i = 0; i < m_registeredCapsules.size(); ++i) {
+    const Capsule& c = m_registeredCapsules[i];
+
+    bool bFoundCollision = false;
+    for (uint32_t j = 0; j < m_registeredCapsules.size(); ++j) {
+      if (i == j)
+        continue;
+
+      CollisionResult result{};
+      if (Collisions::checkIntersection(c, m_registeredCapsules[j], result)) {
+        m_dbgDrawLines->addLine(
+            result.intersectionPoint,
+            result.intersectionPoint + result.minSepTranslation,
+            colorGreen);
+        bFoundCollision = true;
+        break;
+      }
+    }
+
+    m_dbgDrawCapsules->addCapsule(
+        c.a,
+        c.b,
+        c.radius,
+        bFoundCollision ? colorRed : colorBlue);
+  }
 }
 
 uint32_t PhysicsSystem::registerCapsuleCollider(

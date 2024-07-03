@@ -27,7 +27,7 @@ public:
       GlobalHeap& heap);
 
   void tick(float deltaTime);
-  
+
   uint32_t
   registerCapsuleCollider(const glm::vec3& a, const glm::vec3& b, float radius);
 
@@ -37,6 +37,12 @@ public:
       const glm::vec3& a,
       const glm::vec3& b,
       float radius);
+
+  const Capsule& getCapsule(uint32_t idx) const {
+    return m_registeredCapsules[idx];
+  }
+
+  uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
 
 private:
   std::vector<Capsule> m_registeredCapsules;

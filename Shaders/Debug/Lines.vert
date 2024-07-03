@@ -14,7 +14,7 @@ void main() {
   outNormal = normalize(globals.view[3].xyz - inWorldPos);
   outColor = 
       vec3(
+        (inColor >> 24) & 0xFF, 
         (inColor >> 16) & 0xFF, 
-        (inColor >> 8) & 0xFF, 
-        inColor & 0xFF) / 255.0;
+        (inColor >> 8) & 0xFF) / 255.0;
 }

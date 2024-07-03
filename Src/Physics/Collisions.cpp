@@ -32,7 +32,7 @@ bool Collisions::checkIntersection(
   float v = glm::clamp(x.y, 0.0f, 1.0f);
 
   glm::vec3 closestPoint_ab = glm::mix(C0.a, C0.b, u);
-  glm::vec3 closestPoint_cd = glm::mix(C0.a, C1.b, v);
+  glm::vec3 closestPoint_cd = glm::mix(C1.a, C1.b, v);
 
   glm::vec3 diff = closestPoint_cd - closestPoint_ab;
   float dist2 = glm::dot(diff, diff);
