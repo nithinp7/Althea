@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RigidBody.h"
+
 #include <Althea/Debug/DebugDraw.h>
 #include <Althea/DeferredRendering.h>
 #include <Althea/GlobalHeap.h>
@@ -16,6 +18,12 @@ class Application;
 
 namespace AltheaPhysics {
 
+struct PhysicsWorldSettings {
+  float gravity = 0.5f;
+  float restitution = 0.0f;
+  float floorHeight = -8.0f;
+};
+
 class PhysicsSystem {
 public:
   PhysicsSystem() = default;
@@ -28,27 +36,55 @@ public:
 
   void tick(float deltaTime);
 
-  uint32_t
+  ColliderHandle
   registerCapsuleCollider(const glm::vec3& a, const glm::vec3& b, float radius);
 
-  void updateCapsule(uint32_t idx, const glm::vec3& a, const glm::vec3& b);
+  RigidBodyHandle
+  registerRigidBody(const glm::vec3& translation, const glm::quat& rotation);
+
+  void bindCapsuleToRigidBody(ColliderHandle c, RigidBodyHandle rb);
+
+  void updateCapsule(ColliderHandle h, const glm::vec3& a, const glm::vec3& b);
   void updateCapsule(
-      uint32_t idx,
+      ColliderHandle h,
       const glm::vec3& a,
       const glm::vec3& b,
       float radius);
+
+  void bakeRigidBody(RigidBodyHandle h);
+  
+  glm::vec3 getVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc) const;
+  void applyImpulseAtLocation(RigidBodyHandle h, const glm::vec3& loc, const glm::vec3& impulse);
+
+  uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
 
   const Capsule& getCapsule(uint32_t idx) const {
     return m_registeredCapsules[idx];
   }
 
-  uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
+  uint32_t getRigidBodyCount() const { return m_rigidBodies.size(); }
+
+  const RigidBody& getRigidBody(uint32_t idx) const {
+    return m_rigidBodies[idx];
+  }
+
+  const RigidBodyState& getRigidBodyState(uint32_t idx) const {
+    return m_rigidBodyStates[idx];
+  }
+
+  PhysicsWorldSettings& getSettings() { return m_settings; }
+  const PhysicsWorldSettings& getSettings() const { return m_settings; }
 
 private:
   std::vector<Capsule> m_registeredCapsules;
 
+  std::vector<RigidBody> m_rigidBodies;
+  std::vector<RigidBodyState> m_rigidBodyStates;
+  
   IntrusivePtr<DebugDrawLines> m_dbgDrawLines;
   IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsules;
+
+  PhysicsWorldSettings m_settings{};
 };
 } // namespace AltheaPhysics
 } // namespace AltheaEngine
