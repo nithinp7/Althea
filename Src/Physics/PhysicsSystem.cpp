@@ -21,14 +21,21 @@ void PhysicsSystem::tick(float deltaTime) {
     const RigidBody& rb = m_rigidBodies[rbIdx];
     RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
+    state.linearVelocity *= m_settings.linearDamping;
+    state.angularVelocity *= m_settings.angularDamping;
+
     state.linearVelocity +=
         glm::vec3(0.0f, -m_settings.gravity, 0.0f) * deltaTime;
     state.translation += state.linearVelocity * deltaTime;
 
-    float dAngle = glm::length(state.angularVelocity) * deltaTime;
-    glm::quat dQ = glm::angleAxis(dAngle, state.angularVelocity);
-    state.rotation *= dQ;
-    state.rotation = glm::normalize(state.rotation);
+    float DAngleDt = glm::length(state.angularVelocity);
+    if (DAngleDt > 0.001f) {
+      glm::quat dQ = glm::angleAxis(
+          DAngleDt * deltaTime,
+          state.angularVelocity / DAngleDt);
+      state.rotation = dQ * state.rotation;
+      state.rotation = glm::normalize(state.rotation);
+    }
 
     for (const BoundCapsule& boundCollider : rb.capsules) {
       Capsule& c = m_registeredCapsules[boundCollider.handle.colliderIdx];
@@ -38,39 +45,86 @@ void PhysicsSystem::tick(float deltaTime) {
   }
 
   // floor collisions
-  for (uint32_t rbIdx = 0; rbIdx < m_rigidBodies.size(); ++rbIdx) {
-    const RigidBody& rb = m_rigidBodies[rbIdx];
-    RigidBodyState& state = m_rigidBodyStates[rbIdx];
+  for (uint32_t siIter = 0; siIter < m_settings.SI_iters; ++siIter) {
+    for (uint32_t rbIdx = 0; rbIdx < m_rigidBodies.size(); ++rbIdx) {
+      const RigidBody& rb = m_rigidBodies[rbIdx];
+      RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
-    for (const BoundCapsule& boundCollider : rb.capsules) {
-      // TODO: Move this to Collisions
-      const Capsule& c = m_registeredCapsules[boundCollider.handle.colliderIdx];
-      glm::vec3 loc{};
-      uint32_t collisions = 0;
-      if (c.a.y - c.radius < m_settings.floorHeight) {
-        loc += c.a;
-        loc.y -= c.radius;
-        ++collisions;
+      glm::vec3 dVLin(0.0f);
+      glm::vec3 dVAng(0.0f);
+
+      for (const BoundCapsule& boundCollider : rb.capsules) {
+        // TODO: Move this to Collisions
+        const Capsule& c =
+            m_registeredCapsules[boundCollider.handle.colliderIdx];
+        glm::vec3 loc{};
+        uint32_t collisions = 0;
+        float minY = m_settings.floorHeight;
+        if (c.a.y - c.radius < m_settings.floorHeight) {
+          loc += c.a;
+          loc.y -= c.radius;
+          minY = glm::min(minY, c.a.y - c.radius);
+          ++collisions;
+        }
+        if (c.b.y - c.radius < m_settings.floorHeight) {
+          loc += c.b;
+          loc.y -= c.radius;
+          minY = glm::min(minY, c.b.y - c.radius);
+          ++collisions;
+        }
+        if (!collisions) {
+          continue;
+        }
+
+        loc /= collisions;
+
+        state.translation.y +=
+            0.1f * glm::max(m_settings.floorHeight - minY, 0.0f);
+
+        glm::vec3 n(0.0f, 1.0f, 0.0f);
+        glm::vec3 r = loc - state.translation;
+
+        // TODO: Look into how this works (Erin Catto: Sequential Impulses)
+        glm::quat qc = glm::conjugate(state.rotation);
+
+        float kn =
+            rb.invMass + glm::dot(
+                             rb.invMoi * (qc * glm::cross(glm::cross(r, n), r)),
+                             qc * n);
+
+        glm::vec3 vLoc = getVelocityAtLocation({rbIdx}, loc);
+        float vDotN = glm::dot(vLoc, n);
+
+        float vBias =
+            m_settings.SI_bias / deltaTime *
+            glm::max(m_settings.floorHeight + c.radius - loc.y, 0.0f);
+        float Pn =
+            (vBias - m_settings.restitution * glm::min(vDotN, 0.0f)) / kn;
+        glm::vec3 normalImpulse = Pn * n;
+
+        glm::vec3 frictionImpulse(0.0f);
+        glm::vec3 vPerp = vLoc - n * vDotN;
+        float vPerpMag = glm::length(vPerp);
+        if (vPerpMag > 0.001f) {
+          glm::vec3 T = vPerp / vPerpMag;
+          float Pt = glm::clamp(
+              -vPerpMag / kn,
+              -m_settings.frictionCoeff * Pn,
+              m_settings.frictionCoeff * Pn);
+          frictionImpulse = Pt * T;
+        }
+
+        computeImpulseVelocityAtLocation(
+            {rbIdx},
+            loc,
+            normalImpulse + frictionImpulse,
+            dVLin,
+            dVAng);
+        // applyImpulseAtLocation({rbIdx}, loc, normalImpulse + frictionImpulse);
       }
-      if (c.b.y - c.radius < m_settings.floorHeight) {
-        loc += c.b;
-        loc.y -= c.radius;
-        ++collisions;
-      }
-      if (!collisions) {
-        continue;
-      }
 
-      state.translation.y +=
-          m_settings.floorHeight + c.radius - glm::min(c.a.y, c.b.y);
-
-      loc /= collisions;
-
-      glm::vec3 n(0.0f, 1.0f, 0.0f);
-      glm::vec3 vLoc = getVelocityAtLocation({rbIdx}, loc);
-      glm::vec3 vProj = n * glm::min(glm::dot(vLoc, n), 0.0f);
-      glm::vec3 impulse = -(1.0f + m_settings.restitution) * vProj;
-      applyImpulseAtLocation({rbIdx}, loc, 0.1f * impulse);
+      state.linearVelocity += dVLin;
+      state.angularVelocity += dVAng;
     }
   }
 
@@ -142,7 +196,7 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
   RigidBodyState& state = m_rigidBodyStates[h.idx];
 
   // TODO: generalize...
-  float pointMass = 1.0f;
+  float pointMass = 0.1f;
 
   // rebase capsules to new center of mass
   glm::vec3 com(0.0f);
@@ -196,18 +250,34 @@ glm::vec3 PhysicsSystem::getVelocityAtLocation(
   return state.linearVelocity + glm::cross(state.angularVelocity, r);
 }
 
+void PhysicsSystem::computeImpulseVelocityAtLocation(
+    RigidBodyHandle h,
+    const glm::vec3& loc,
+    const glm::vec3& impulse,
+    glm::vec3& dVLin,
+    glm::vec3& dVAng) {
+  const RigidBody& rb = m_rigidBodies[h.idx];
+  const RigidBodyState& state = m_rigidBodyStates[h.idx];
+
+  glm::vec3 r = loc - state.translation;
+  float rMagSq = glm::dot(r, r);
+  dVLin += rb.invMass * r * glm::dot(impulse, r) / rMagSq;
+  glm::quat qc = glm::conjugate(state.rotation);
+  dVAng += state.rotation * (rb.invMoi * (qc * glm::cross(r, impulse)));
+}
+
 void PhysicsSystem::applyImpulseAtLocation(
     RigidBodyHandle h,
     const glm::vec3& loc,
     const glm::vec3& impulse) {
-  const RigidBody& rb = m_rigidBodies[h.idx];
-  RigidBodyState& state = m_rigidBodyStates[h.idx];
 
-  glm::vec3 r = loc - state.translation;
-  float rMagSq = glm::dot(r, r);
-  state.linearVelocity += rb.invMass * r * glm::dot(impulse, r) / rMagSq;
-  state.angularVelocity +=
-      rb.invMoi * (glm::conjugate(state.rotation) * glm::cross(r, impulse));
+  RigidBodyState& state = m_rigidBodyStates[h.idx];
+  computeImpulseVelocityAtLocation(
+      h,
+      loc,
+      impulse,
+      state.linearVelocity,
+      state.angularVelocity);
 }
 
 void PhysicsSystem::updateCapsule(

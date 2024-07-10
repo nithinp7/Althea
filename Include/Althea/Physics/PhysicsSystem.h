@@ -19,9 +19,15 @@ class Application;
 namespace AltheaPhysics {
 
 struct PhysicsWorldSettings {
-  float gravity = 0.5f;
-  float restitution = 0.0f;
+  float gravity = 20.0f;
+  float restitution = 0.8f;
+  float frictionCoeff = 0.8f;
+  float angularDamping = 0.95f;
+  float linearDamping = 0.98f;
   float floorHeight = -8.0f;
+
+  float SI_bias = 0.0f;
+  int SI_iters = 1;
 };
 
 class PhysicsSystem {
@@ -54,6 +60,7 @@ public:
   void bakeRigidBody(RigidBodyHandle h);
   
   glm::vec3 getVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc) const;
+  void computeImpulseVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc, const glm::vec3& impulse, glm::vec3& dVLin, glm::vec3& dVAng);
   void applyImpulseAtLocation(RigidBodyHandle h, const glm::vec3& loc, const glm::vec3& impulse);
 
   uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
