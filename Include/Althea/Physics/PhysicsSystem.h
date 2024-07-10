@@ -27,7 +27,7 @@ struct PhysicsWorldSettings {
   float floorHeight = -8.0f;
 
   float SI_bias = 0.0f;
-  int SI_iters = 1;
+  int SI_iters = 4;
 };
 
 class PhysicsSystem {

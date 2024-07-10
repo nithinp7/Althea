@@ -15,11 +15,26 @@ PhysicsSystem::PhysicsSystem(
   gBufferPassBuilder.registerSubpass(m_dbgDrawCapsules);
 }
 
+#define XPBD
+
 void PhysicsSystem::tick(float deltaTime) {
   // update rigid bodies
+
   for (uint32_t rbIdx = 0; rbIdx < m_rigidBodies.size(); ++rbIdx) {
     const RigidBody& rb = m_rigidBodies[rbIdx];
     RigidBodyState& state = m_rigidBodyStates[rbIdx];
+
+#ifdef XPBD
+    state.linearVelocity =
+        (state.translation - state.prevTranslation) / deltaTime;
+    state.prevTranslation = state.translation;
+
+    glm::quat dQ =
+        glm::normalize(glm::conjugate(state.prevRotation) * state.rotation);
+    state.angularVelocity =
+        state.prevRotation * (glm::angle(dQ) / deltaTime * glm::axis(dQ));
+    state.prevRotation = state.rotation;
+#endif
 
     state.linearVelocity *= m_settings.linearDamping;
     state.angularVelocity *= m_settings.angularDamping;
@@ -78,9 +93,33 @@ void PhysicsSystem::tick(float deltaTime) {
 
         loc /= collisions;
 
-        state.translation.y +=
-            0.1f * glm::max(m_settings.floorHeight - minY, 0.0f);
+        float pen = glm::max(m_settings.floorHeight - loc.y, 0.0f);
 
+#ifdef XPBD
+        if (pen == 0.0f)
+          continue;
+
+        glm::vec3 n(0.0f, 1.0f, 0.0f);
+        glm::vec3 r = loc - state.translation;
+
+        glm::quat qc = glm::conjugate(state.rotation);
+
+        glm::vec3 rxn = qc * glm::cross(r, n);
+        
+        // effective mass at r
+        float w = rb.invMass + glm::dot(rxn, rb.invMoi * rxn);
+        
+        float stiffness = 1.0f * deltaTime;
+        glm::vec3 P = stiffness * pen / w * n;
+
+        float rMagSq = glm::dot(r, r);
+        state.translation += rb.invMass * r * glm::dot(P, r) / rMagSq;
+
+        // linearized rotation update
+        state.rotation += 0.5f * glm::quat(0.0f, rb.invMoi * glm::cross(r, P)) * state.rotation;
+        state.rotation = glm::normalize(state.rotation);
+#else
+        state.translation.y += 0.1f * pen;
         glm::vec3 n(0.0f, 1.0f, 0.0f);
         glm::vec3 r = loc - state.translation;
 
@@ -95,9 +134,8 @@ void PhysicsSystem::tick(float deltaTime) {
         glm::vec3 vLoc = getVelocityAtLocation({rbIdx}, loc);
         float vDotN = glm::dot(vLoc, n);
 
-        float vBias =
-            m_settings.SI_bias / deltaTime *
-            glm::max(m_settings.floorHeight + c.radius - loc.y, 0.0f);
+        float vBias = m_settings.SI_bias / deltaTime *
+                      glm::max(m_settings.floorHeight + c.radius - loc.y, 0.0f);
         float Pn =
             (vBias - m_settings.restitution * glm::min(vDotN, 0.0f)) / kn;
         glm::vec3 normalImpulse = Pn * n;
@@ -120,6 +158,7 @@ void PhysicsSystem::tick(float deltaTime) {
             normalImpulse + frictionImpulse,
             dVLin,
             dVAng);
+#endif
         // applyImpulseAtLocation({rbIdx}, loc, normalImpulse + frictionImpulse);
       }
 
@@ -177,8 +216,8 @@ RigidBodyHandle PhysicsSystem::registerRigidBody(
   RigidBodyHandle h{(uint32_t)m_rigidBodies.size()};
   m_rigidBodies.emplace_back();
   RigidBodyState& initState = m_rigidBodyStates.emplace_back();
-  initState.translation = translation;
-  initState.rotation = rotation;
+  initState.translation = initState.prevTranslation = translation;
+  initState.rotation = initState.prevRotation = rotation;
   return h;
 }
 
@@ -217,6 +256,7 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
   }
 
   state.translation += com;
+  state.prevTranslation = state.translation;
 
   // recompute moment of inertia
   glm::mat3 moi(0.0f);

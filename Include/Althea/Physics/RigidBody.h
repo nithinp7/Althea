@@ -28,7 +28,9 @@ struct RigidBodyHandle {
 
 struct RigidBodyState {
   glm::vec3 translation{};
+  glm::vec3 prevTranslation{};
   glm::quat rotation{};
+  glm::quat prevRotation{};
   glm::vec3 linearVelocity{};
   glm::vec3 angularVelocity{};
 };
