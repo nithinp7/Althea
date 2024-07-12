@@ -43,7 +43,7 @@ void main() {
 
   gl_Position = globals.projection * globals.view * vec4(worldPos, 1.0);
 
-  outNormal = normalize(globals.view[3].xyz - worldPos);
+  outNormal = normalize(globals.inverseView[3].xyz - worldPos);
   outColor = 
       vec3(
         (inColor >> 24) & 0xFF, 

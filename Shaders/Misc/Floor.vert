@@ -28,7 +28,7 @@ void main() {
 
   outNormal = vec3(0.0, 1.0, 0.0);
   outColor = vec3(1.0, 0.0, 0.0);
-  outMetallicRoughnessDebug = vec3(0.0, 0.3, 0.0);
+  outMetallicRoughnessDebug = vec3(0.0, 0.1, 0.0);
 
   gl_Position = globals.projection * globals.view * vec4(outPosition, 1.0);
 }

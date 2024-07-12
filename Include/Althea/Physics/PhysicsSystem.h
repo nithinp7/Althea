@@ -22,15 +22,15 @@ struct PhysicsWorldSettings {
   float gravity = 20.0f;
   float restitution = 0.8f;
   float frictionCoeff = 0.8f;
-  float angularDamping = 0.95f;
-  float linearDamping = 0.98f;
+  float angularDamping = 0.99f;
+  float linearDamping = 0.999f;
   float floorHeight = -8.0f;
 
   float maxSpeed = 50.0f;
   float maxAngularSpeed = 4.0f;
 
   float SI_bias = 0.0f;
-  int SI_iters = 4;
+  int SI_iters = 1;
 };
 
 class PhysicsSystem {

@@ -11,7 +11,7 @@ layout(location=1) out vec3 outColor;
 void main() {
   gl_Position = globals.projection * globals.view * vec4(inWorldPos, 1.0);
 
-  outNormal = normalize(globals.view[3].xyz - inWorldPos);
+  outNormal = normalize(globals.inverseView[3].xyz - inWorldPos);
   outColor = 
       vec3(
         (inColor >> 24) & 0xFF, 

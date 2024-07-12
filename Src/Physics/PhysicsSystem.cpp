@@ -36,9 +36,8 @@ void PhysicsSystem::tick(float deltaTime) {
     state.prevRotation = state.rotation;
 #endif
 
-    
-    // state.linearVelocity *= m_settings.linearDamping;
-    // state.angularVelocity *= m_settings.angularDamping;
+    state.linearVelocity *= m_settings.linearDamping;
+    state.angularVelocity *= m_settings.angularDamping;
 
     state.linearVelocity +=
         glm::vec3(0.0f, -m_settings.gravity, 0.0f) * deltaTime;
@@ -59,7 +58,8 @@ void PhysicsSystem::tick(float deltaTime) {
       glm::quat dQ = glm::angleAxis(
           angularSpeed * deltaTime,
           state.angularVelocity / angularSpeed);
-      state.rotation = dQ * state.rotation;
+      state.rotation = glm::normalize(state.rotation);
+      state.rotation = dQ * glm::normalize(state.rotation);
       state.rotation = glm::normalize(state.rotation);
     }
 
@@ -120,12 +120,13 @@ void PhysicsSystem::tick(float deltaTime) {
         // effective mass at r
         float w = rb.invMass + glm::dot(rxn, rb.invMoi * rxn);
         
-        float stiffness = 1.0f * deltaTime;
+        float stiffness = 1.0f;// * deltaTime;
         glm::vec3 P = stiffness * pen / w * n;
 
         float rMagSq = glm::dot(r, r);
-        state.translation += rb.invMass * r * glm::dot(P, r) / rMagSq;
-
+        // state.translation += rb.invMass * r * glm::dot(P, r) / rMagSq;
+        state.translation += rb.invMass * P;
+        
         // linearized rotation update
         state.rotation += 0.5f * glm::quat(0.0f, rb.invMoi * glm::cross(r, P)) * state.rotation;
         state.rotation = glm::normalize(state.rotation);

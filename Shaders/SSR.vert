@@ -17,12 +17,7 @@ void main() {
   screenUV = screenPos;
   vec4 pos = vec4(screenPos * 2.0f - 1.0f, 0.0f, 1.0f);
 
-#ifdef CUBEMAP_MULTIVIEW
-  direction = 
-      mat3(globals.inverseViews[gl_ViewIndex]) * (globals.inverseProjection * pos).xyz;
-#else
   direction = mat3(globals.inverseView) * (globals.inverseProjection * pos).xyz;
-#endif
 
   gl_Position = pos;
 }
