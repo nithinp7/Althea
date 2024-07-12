@@ -26,6 +26,9 @@ struct PhysicsWorldSettings {
   float linearDamping = 0.98f;
   float floorHeight = -8.0f;
 
+  float maxSpeed = 50.0f;
+  float maxAngularSpeed = 4.0f;
+
   float SI_bias = 0.0f;
   int SI_iters = 4;
 };

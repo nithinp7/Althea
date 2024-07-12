@@ -36,18 +36,29 @@ void PhysicsSystem::tick(float deltaTime) {
     state.prevRotation = state.rotation;
 #endif
 
-    state.linearVelocity *= m_settings.linearDamping;
-    state.angularVelocity *= m_settings.angularDamping;
+    
+    // state.linearVelocity *= m_settings.linearDamping;
+    // state.angularVelocity *= m_settings.angularDamping;
 
     state.linearVelocity +=
         glm::vec3(0.0f, -m_settings.gravity, 0.0f) * deltaTime;
+    float speed = glm::length(state.linearVelocity);
+    if (speed > m_settings.maxSpeed) {
+      state.linearVelocity *= m_settings.maxSpeed / speed;
+    }
+    
     state.translation += state.linearVelocity * deltaTime;
 
-    float DAngleDt = glm::length(state.angularVelocity);
-    if (DAngleDt > 0.001f) {
+    float angularSpeed = glm::length(state.angularVelocity);
+    if (angularSpeed > 0.001f) {
+      if (angularSpeed > m_settings.maxAngularSpeed) {
+        state.angularVelocity *= m_settings.maxAngularSpeed / angularSpeed;
+        angularSpeed = m_settings.maxAngularSpeed;
+      }
+
       glm::quat dQ = glm::angleAxis(
-          DAngleDt * deltaTime,
-          state.angularVelocity / DAngleDt);
+          angularSpeed * deltaTime,
+          state.angularVelocity / angularSpeed);
       state.rotation = dQ * state.rotation;
       state.rotation = glm::normalize(state.rotation);
     }
