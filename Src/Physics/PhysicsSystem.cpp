@@ -18,6 +18,15 @@ PhysicsSystem::PhysicsSystem(
 #define XPBD
 
 void PhysicsSystem::tick(float deltaTime) {
+  m_dbgDrawLines->reset();
+  m_dbgDrawCapsules->reset();
+
+  uint32_t colorRed = 0xff0000ff;
+  uint32_t colorOrange = 0xdd8822ff;
+  uint32_t colorGreen = 0x00ff00ff;
+  uint32_t colorBlue = 0x0000ffff;
+  uint32_t colorCyan = 0x00aaffff;
+
   // update rigid bodies
 
   for (uint32_t rbIdx = 0; rbIdx < m_rigidBodies.size(); ++rbIdx) {
@@ -29,15 +38,22 @@ void PhysicsSystem::tick(float deltaTime) {
         (state.translation - state.prevTranslation) / deltaTime;
     state.prevTranslation = state.translation;
 
-    glm::quat dQ =
-        glm::normalize(glm::conjugate(state.prevRotation) * state.rotation);
-    state.angularVelocity =
-        state.prevRotation * (glm::angle(dQ) / deltaTime * glm::axis(dQ));
+    glm::quat dQ = state.rotation *
+                   glm::inverse(state.prevRotation); //(state.prevRotation);
+    state.angularVelocity = 2.0f / deltaTime * glm::vec3(dQ.x, dQ.y, dQ.z);
+    if (dQ.w < 0.0f)
+      state.angularVelocity = -state.angularVelocity;
+    // ???
+    state.angularVelocity +=
+        deltaTime * rb.invMoi *
+        (/*torque ext */ -glm::cross(
+            state.angularVelocity,
+            glm::inverse(rb.invMoi) * state.angularVelocity));
     state.prevRotation = state.rotation;
 #endif
 
-    state.linearVelocity *= m_settings.linearDamping;
-    state.angularVelocity *= m_settings.angularDamping;
+    // state.linearVelocity *= m_settings.linearDamping;
+    // state.angularVelocity *= m_settings.angularDamping;
 
     state.linearVelocity +=
         glm::vec3(0.0f, -m_settings.gravity, 0.0f) * deltaTime;
@@ -45,9 +61,10 @@ void PhysicsSystem::tick(float deltaTime) {
     if (speed > m_settings.maxSpeed) {
       state.linearVelocity *= m_settings.maxSpeed / speed;
     }
-    
+
     state.translation += state.linearVelocity * deltaTime;
 
+    // TODO :apply angular torque
     float angularSpeed = glm::length(state.angularVelocity);
     if (angularSpeed > 0.001f) {
       if (angularSpeed > m_settings.maxAngularSpeed) {
@@ -55,11 +72,17 @@ void PhysicsSystem::tick(float deltaTime) {
         angularSpeed = m_settings.maxAngularSpeed;
       }
 
-      glm::quat dQ = glm::angleAxis(
-          angularSpeed * deltaTime,
-          state.angularVelocity / angularSpeed);
-      state.rotation = glm::normalize(state.rotation);
-      state.rotation = dQ * glm::normalize(state.rotation);
+      // glm::quat dQ = glm::angleAxis(
+      //     angularSpeed * deltaTime,
+      //     state.angularVelocity / angularSpeed);
+      // state.rotation = glm::normalize(state.rotation);
+      // state.rotation = dQ * glm::normalize(state.rotation);
+      m_dbgDrawLines->addLine(
+          state.translation,
+          state.translation + state.angularVelocity,
+          colorCyan);
+      state.rotation += deltaTime * 0.5f *
+                        glm::quat(0.0f, state.angularVelocity) * state.rotation;
       state.rotation = glm::normalize(state.rotation);
     }
 
@@ -76,13 +99,15 @@ void PhysicsSystem::tick(float deltaTime) {
       const RigidBody& rb = m_rigidBodies[rbIdx];
       RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
-      glm::vec3 dVLin(0.0f);
-      glm::vec3 dVAng(0.0f);
-
       for (const BoundCapsule& boundCollider : rb.capsules) {
         // TODO: Move this to Collisions
-        const Capsule& c =
-            m_registeredCapsules[boundCollider.handle.colliderIdx];
+        // TODO: Need a better way to update position of colliders after
+        // constraint solver steps... const Capsule& c =
+        //     m_registeredCapsules[boundCollider.handle.colliderIdx];
+        Capsule c = boundCollider.bindPose;
+        c.a = state.rotation * c.a + state.translation;
+        c.b = state.rotation * c.b + state.translation;
+
         glm::vec3 loc{};
         uint32_t collisions = 0;
         float minY = m_settings.floorHeight;
@@ -107,29 +132,45 @@ void PhysicsSystem::tick(float deltaTime) {
         float pen = glm::max(m_settings.floorHeight - loc.y, 0.0f);
 
 #ifdef XPBD
-        if (pen == 0.0f)
-          continue;
+        // if (pen < 0.0001f)
+        //   continue;
 
         glm::vec3 n(0.0f, 1.0f, 0.0f);
         glm::vec3 r = loc - state.translation;
+        m_dbgDrawLines->addLine(loc, state.translation, colorOrange);
 
-        glm::quat qc = glm::conjugate(state.rotation);
+        glm::quat qc = glm::inverse(state.rotation);
 
-        glm::vec3 rxn = qc * glm::cross(r, n);
-        
+        glm::vec3 rxn = glm::cross(qc * r, qc * n);
+
         // effective mass at r
         float w = rb.invMass + glm::dot(rxn, rb.invMoi * rxn);
-        
-        float stiffness = 1.0f;// * deltaTime;
+        // w = abs(w);
+        assert(w >= 0.001f);
+
+        float stiffness = 1.0f; // 0.5f; // * deltaTime;
         glm::vec3 P = stiffness * pen / w * n;
 
         float rMagSq = glm::dot(r, r);
         // state.translation += rb.invMass * r * glm::dot(P, r) / rMagSq;
         state.translation += rb.invMass * P;
-        
+        // /*TODO: REMOVE*/ state.prevTranslation = state.translation;
+
         // linearized rotation update
-        state.rotation += 0.5f * glm::quat(0.0f, rb.invMoi * glm::cross(r, P)) * state.rotation;
+        glm::vec3 rxP = glm::cross(qc * r, qc * P);
+        m_dbgDrawLines->addLine(loc, loc + state.rotation * rxP, colorGreen);
+        m_dbgDrawLines->addLine(loc, loc + P, colorCyan);
+
+        // state.rotation += 0.5f *
+        //                   glm::quat(0.0f, 0.01f * glm::cross(r, P) *
+        //                   rb.invMass) * // state.rotation * (rb.invMoi *
+        //                   rxP)) * state.rotation;
+        state.rotation +=
+            0.5f * glm::quat(0.0f, rb.invMoi * rxP) * state.rotation;
+        // 0.5f * glm::quat(0.0f, rb.invMoi * glm::cross(r, P)) *
+        // state.rotation;
         state.rotation = glm::normalize(state.rotation);
+        // /*TODO: REMOVE*/ state.prevRotation = state.rotation;
 #else
         state.translation.y += 0.1f * pen;
         glm::vec3 n(0.0f, 1.0f, 0.0f);
@@ -173,35 +214,36 @@ void PhysicsSystem::tick(float deltaTime) {
 #endif
         // applyImpulseAtLocation({rbIdx}, loc, normalImpulse + frictionImpulse);
       }
+    }
+  }
 
-      state.linearVelocity += dVLin;
-      state.angularVelocity += dVAng;
+  for (uint32_t i = 0; i < m_rigidBodies.size(); ++i) {
+    const RigidBody& rb = m_rigidBodies[i];
+    RigidBodyState& state = m_rigidBodyStates[i];
+    for (const BoundCapsule& boundCollider : rb.capsules) {
+      Capsule& c = m_registeredCapsules[boundCollider.handle.colliderIdx];
+      c.a = state.rotation * boundCollider.bindPose.a + state.translation;
+      c.b = state.rotation * boundCollider.bindPose.b + state.translation;
     }
   }
 
   // update visualization
 
-  m_dbgDrawLines->reset();
-  m_dbgDrawCapsules->reset();
-
-  uint32_t colorRed = 0xff0000ff;
-  uint32_t colorGreen = 0x00ff00ff;
-  uint32_t colorBlue = 0x0000ffff;
   for (uint32_t i = 0; i < m_registeredCapsules.size(); ++i) {
     const Capsule& c = m_registeredCapsules[i];
 
     bool bFoundCollision = false;
-    for (uint32_t j = i + 1; j < m_registeredCapsules.size(); ++j) {
-      CollisionResult result{};
-      if (Collisions::checkIntersection(c, m_registeredCapsules[j], result)) {
-        m_dbgDrawLines->addLine(
-            result.intersectionPoint - 0.5f * result.minSepTranslation,
-            result.intersectionPoint + 0.5f * result.minSepTranslation,
-            colorGreen);
-        bFoundCollision = true;
-        break;
-      }
-    }
+    // for (uint32_t j = i + 1; j < m_registeredCapsules.size(); ++j) {
+    //   CollisionResult result{};
+    //   if (Collisions::checkIntersection(c, m_registeredCapsules[j], result)) {
+    //     m_dbgDrawLines->addLine(
+    //         result.intersectionPoint - 0.5f * result.minSepTranslation,
+    //         result.intersectionPoint + 0.5f * result.minSepTranslation,
+    //         colorGreen);
+    //     bFoundCollision = true;
+    //     break;
+    //   }
+    // }
 
     m_dbgDrawCapsules->addCapsule(
         c.a,
@@ -246,22 +288,31 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
   RigidBody& rb = m_rigidBodies[h.idx];
   RigidBodyState& state = m_rigidBodyStates[h.idx];
 
-  // TODO: generalize...
-  float pointMass = 0.1f;
-
-  // rebase capsules to new center of mass
+  float mass = 0.0f;
+  glm::mat3 moi(0.0f);
   glm::vec3 com(0.0f);
-  float mSum = 0.0f;
+
+  // TODO: paramaterize
+  float density = 0.1f;
+
+  auto compCapsuleMass = [&](const Capsule& c) {
+    return density * 2.0f * glm::pi<float>() * c.radius *
+           glm::length(c.a - c.b);
+  };
+
   for (const BoundCapsule& c : rb.capsules) {
-    com += pointMass * c.bindPose.a;
-    com += pointMass * c.bindPose.b;
-    mSum += 2.0f * pointMass;
+    glm::vec3 center = 0.5f * (c.bindPose.a + c.bindPose.b);
+    float m = compCapsuleMass(c.bindPose);
+    com += center * m;
+    mass += m;
   }
-  if (mSum > 0.0f) {
-    rb.invMass = 1.0f / mSum;
+
+  if (mass > 0.0f) {
+    rb.invMass = 1.0f / mass;
     com *= rb.invMass;
   }
 
+  // rebase capsules to new center of mass
   for (BoundCapsule& c : rb.capsules) {
     c.bindPose.a -= com;
     c.bindPose.b -= com;
@@ -271,24 +322,56 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
   state.prevTranslation = state.translation;
 
   // recompute moment of inertia
-  glm::mat3 moi(0.0f);
-  auto buildMoi = [&](const glm::vec3& p) {
-    moi[0][0] += pointMass * (p.y * p.y + p.z * p.z);
-    moi[1][0] -= pointMass * p.x * p.y;
-    moi[2][0] -= pointMass * p.x * p.z;
+  // (treats capsules as cylinders...)
+  for (const BoundCapsule& capsule : rb.capsules) {
+    float m = compCapsuleMass(capsule.bindPose);
+    glm::vec3 C = 0.5f * (capsule.bindPose.a + capsule.bindPose.b);
+    glm::vec3 L = capsule.bindPose.b - capsule.bindPose.a;
+    float l2 = glm::dot(L, L);
+    float l = sqrt(l2);
+    float r = capsule.bindPose.radius;
+    float r2 = r * r;
 
-    moi[0][1] -= pointMass * p.x * p.y;
-    moi[1][1] += pointMass * (p.x * p.x + p.z * p.z);
-    moi[2][1] -= pointMass * p.y * p.z;
+    // local capsule to rigid body space rotation
+    glm::mat3 R;
+    {
+      R[0] = L / l;
+      R[1] = glm::cross(glm::vec3(0.0, 1.0, 0.0), R[0]);
+      float R1Mag = glm::length(R[1]);
+      if (R1Mag > 0.001f)
+        R[1] /= R1Mag;
+      else
+        R[1] = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), R[0]));
+      R[2] = glm::cross(R[0], R[1]);
+    }
 
-    moi[0][2] -= pointMass * p.x * p.z;
-    moi[1][2] -= pointMass * p.y * p.z;
-    moi[2][2] += pointMass * (p.x * p.x + p.y * p.y);
-  };
+    // partial moment of inertia
+    glm::mat3 I(0.0f);
+    {
+      // local moment of inertia
+      I[0][0] = 0.5f * m * r2;
+      I[1][1] = I[2][2] = m * (l2 + 3.0f * r2) / 12.0f;
 
-  for (const BoundCapsule& c : rb.capsules) {
-    buildMoi(c.bindPose.a);
-    buildMoi(c.bindPose.b);
+      // rigid body space (tensor rotation)
+      I = R * I * glm::transpose(R);
+
+      // parallel axis theorem
+      glm::vec3 D = -C;
+      float DMag2 = glm::dot(D, D);
+      for (int i = 0; i < 3; ++i) {
+        I[i][i] += m * (DMag2 - D[i] * D[i]);
+        for (int j = 0; j < 3; ++j) {
+          if (i == j)
+            continue;
+          float f = m * (-D[i] * D[j]);
+          I[i][j] += f;
+          I[j][i] += f;
+        }
+      }
+    }
+
+    // superposition
+    moi += I;
   }
 
   rb.invMoi = glm::inverse(moi);
