@@ -42,12 +42,12 @@ void PhysicsSystem::tick(float deltaTime) {
     state.translation += state.linearVelocity * deltaTime;
 
     state.prevRotation = state.rotation;
-    // TODO: ???
-    //state.angularVelocity +=
-    //    deltaTime * rb.invMoi *
-    //    (/*torque ext */ -glm::cross(
-    //        state.angularVelocity,
-    //        rb.moi * state.angularVelocity));
+    // TODO: what is this???
+    state.angularVelocity +=
+        deltaTime * rb.invMoi *
+        (/*torque ext */ -glm::cross(
+            state.angularVelocity,
+            rb.moi * state.angularVelocity));
 
     float angularSpeed = glm::length(state.angularVelocity);
     if (angularSpeed > 0.0001f) {
@@ -132,16 +132,6 @@ void PhysicsSystem::tick(float deltaTime) {
           col.rRB = qc * r;
           col.rStatic = glm::vec3(loc.x, m_settings.floorHeight, loc.z);
 
-          // glm::vec3 v =
-          //    state.linearVelocity + glm::cross(state.angularVelocity, r);
-          //// TODO: parameterize
-          // float restitution = 0.0f;
-          // float friction = 0.0f;
-          // col.targetVel = glm::vec3(
-          //    (1.0f - friction) * v.x,
-          //    glm::max(v.y, -restitution * v.y),
-          //    (1.0f - friction) * v.z);
-
           glm::vec3 rxn = glm::cross(col.rRB, qc * col.nStatic);
 
           // effective mass at r
@@ -153,7 +143,6 @@ void PhysicsSystem::tick(float deltaTime) {
           state.translation += rb.invMass * P;
 
           // linearized rotation update
-          //glm::vec3 rxP = glm::cross(col.rRB, qc * P);
           glm::vec3 rxP = glm::cross(col.rRB, qc * P);
           state.rotation +=
               0.5f * glm::quat(0.0f, state.rotation * (rb.invMoi * rxP)) * state.rotation;
@@ -264,9 +253,6 @@ void PhysicsSystem::tick(float deltaTime) {
         glm::vec3 rxp = glm::cross(col.rRB, qc * p);
         glm::vec3 dw = state.rotation * (rb.invMoi * rxp);
         state.angularVelocity += dw;
-
-        /*if (glm::length(state.angularVelocity) > 10.0f)
-          __debugbreak();*/
 
         // debug draw lines
         {
@@ -406,9 +392,6 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
       // local moment of inertia
       I[0][0] = 0.5f * m * r2;
       I[1][1] = I[2][2] = m * (l2 + 3.0f * r2) / 12.0f;
-
-      // TODO: Fix
-      I[0][0] = I[1][1] = I[2][2] = m * r2;
 
       // rigid body space (tensor rotation)
       I = R * I * glm::transpose(R);
