@@ -19,18 +19,21 @@ class Application;
 namespace AltheaPhysics {
 
 struct PhysicsWorldSettings {
-  float gravity = 20.0f;
+  float gravity = 10.0f;
   float restitution = 0.8f;
   float frictionCoeff = 0.8f;
-  float angularDamping = 0.99f;
-  float linearDamping = 0.999f;
+  float angularDamping = 2.0f;
+  float linearDamping = 2.0;
   float floorHeight = -8.0f;
 
   float maxSpeed = 50.0f;
-  float maxAngularSpeed = 4.0f;
+  float maxAngularSpeed = 1.0f;
 
   float SI_bias = 0.0f;
   int SI_iters = 1;
+
+  // DEBUG STUFF
+  bool enableVelocityUpdate = true;
 };
 
 class PhysicsSystem {
@@ -61,10 +64,19 @@ public:
       float radius);
 
   void bakeRigidBody(RigidBodyHandle h);
-  
-  glm::vec3 getVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc) const;
-  void computeImpulseVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc, const glm::vec3& impulse, glm::vec3& dVLin, glm::vec3& dVAng);
-  void applyImpulseAtLocation(RigidBodyHandle h, const glm::vec3& loc, const glm::vec3& impulse);
+
+  glm::vec3
+  getVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc) const;
+  void computeImpulseVelocityAtLocation(
+      RigidBodyHandle h,
+      const glm::vec3& loc,
+      const glm::vec3& impulse,
+      glm::vec3& dVLin,
+      glm::vec3& dVAng);
+  void applyImpulseAtLocation(
+      RigidBodyHandle h,
+      const glm::vec3& loc,
+      const glm::vec3& impulse);
 
   uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
 
@@ -85,12 +97,13 @@ public:
   PhysicsWorldSettings& getSettings() { return m_settings; }
   const PhysicsWorldSettings& getSettings() const { return m_settings; }
 
+  void forceUpdateCapsules();
 private:
   std::vector<Capsule> m_registeredCapsules;
 
   std::vector<RigidBody> m_rigidBodies;
   std::vector<RigidBodyState> m_rigidBodyStates;
-  
+
   IntrusivePtr<DebugDrawLines> m_dbgDrawLines;
   IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsules;
 

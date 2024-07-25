@@ -3,6 +3,7 @@
 #include "SimpleIterator.h"
 
 #include <cstdint>
+#include <cassert>
 
 namespace AltheaEngine {
 template <typename _T> class StackVector {

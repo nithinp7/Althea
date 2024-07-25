@@ -17,6 +17,7 @@ struct BoundCapsule {
 };
 
 struct RigidBody {
+  glm::mat3 moi;
   glm::mat3 invMoi;
   float invMass;
   std::vector<BoundCapsule> capsules;
