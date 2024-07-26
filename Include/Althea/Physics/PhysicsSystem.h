@@ -2,6 +2,8 @@
 
 #include "RigidBody.h"
 
+#include <Althea/Containers/StackVector.h>
+#include <Althea/Containers/StridedView.h>
 #include <Althea/Debug/DebugDraw.h>
 #include <Althea/DeferredRendering.h>
 #include <Althea/GlobalHeap.h>
@@ -34,6 +36,7 @@ struct PhysicsWorldSettings {
 
   // DEBUG STUFF
   bool enableVelocityUpdate = true;
+  bool debugDrawCapsules = true;
 };
 
 class PhysicsSystem {
@@ -99,6 +102,27 @@ public:
 
   void forceUpdateCapsules();
 private:
+  void xpbd_applyForces(float deltaTime);
+
+  struct StaticCollision {
+    glm::vec3 nStatic;
+    float C;
+    glm::vec3 rStatic;
+    glm::vec3 rRB;
+    uint32_t rigidBodyIdx;
+  };
+
+  struct DynamicCollision {
+
+  };
+  void xpbd_findCollisions(StackVector<StaticCollision>& staticCollisions, StackVector<DynamicCollision>& dynamicCollisions);
+  void xpbd_solveCollisionPositions(StridedView<StaticCollision> staticCollisions, StridedView<DynamicCollision> dynamicCollisions);
+
+  void xpbd_predictVelocities(float deltaTime);
+  void xpbd_solveCollisionVelocities(float deltaTime, StridedView<StaticCollision> staticCollisions, StridedView<DynamicCollision> dynamicCollisions);
+
+  void debugDrawCapsules();
+
   std::vector<Capsule> m_registeredCapsules;
 
   std::vector<RigidBody> m_rigidBodies;

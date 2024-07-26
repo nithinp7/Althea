@@ -33,7 +33,9 @@ struct RigidBodyState {
   glm::quat rotation{};
   glm::quat prevRotation{};
   glm::vec3 linearVelocity{};
+  glm::vec3 prevLinearVelocity{};
   glm::vec3 angularVelocity{};
+  glm::vec3 prevAngularVelocity{};
 };
 } // namespace AltheaPhysics
 } // namespace AltheaEngine
