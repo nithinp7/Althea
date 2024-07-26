@@ -130,6 +130,40 @@ void PhysicsSystem::xpbd_findCollisions() {
       }
     }
   }
+
+  // TODO: Spatial acceleration structures...
+  for (uint32_t ia = 0; ia < m_registeredCapsules.size(); ++ia) {
+    uint32_t rigidBodyAIdx = m_capsuleOwners[ia];
+    if (rigidBodyAIdx == ~0)
+      continue;
+
+    for (uint32_t ib = ia + 1; ib < m_registeredCapsules.size(); ++ib) {
+      uint32_t rigidBodyBIdx = m_capsuleOwners[ib];
+      if (rigidBodyBIdx == ~0 || rigidBodyAIdx == rigidBodyBIdx)
+        continue;
+
+      const Capsule& a = m_registeredCapsules[ia];
+      const Capsule& b = m_registeredCapsules[ib];
+
+      CollisionResult result;
+      if (Collisions::checkIntersection(a, b, result)) {
+        const RigidBodyState& stateA = m_rigidBodyStates[rigidBodyAIdx];
+        const RigidBodyState& stateB = m_rigidBodyStates[rigidBodyBIdx];
+
+        glm::quat qac = glm::inverse(stateA.rotation);
+        glm::quat qbc = glm::inverse(stateB.rotation);
+
+        DynamicCollision& col = m_dynamicCollisions.emplace_back();
+        col.rbAIdx = rigidBodyAIdx;
+        col.rbBIdx = rigidBodyBIdx;
+        col.rA = qac * (result.intersectionPoint -
+                        0.5f * result.minSepTranslation - stateA.translation);
+        col.rB = qbc * (result.intersectionPoint +
+                        0.5f * result.minSepTranslation - stateB.translation);
+        col.n = glm::normalize(result.minSepTranslation);
+      }
+    }
+  }
 }
 
 void PhysicsSystem::xpbd_solveCollisionPositions() {
@@ -159,9 +193,56 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
     state.rotation += 0.5f *
                       glm::quat(0.0f, state.rotation * (rb.invMoi * rxP)) *
                       state.rotation;
-
-    // TODO: needed?
     state.rotation = glm::normalize(state.rotation);
+  }
+
+  if (m_settings.enableDynamicCollisions) {
+    for (DynamicCollision& col : m_dynamicCollisions) {
+      const RigidBody& rbA = m_rigidBodies[col.rbAIdx];
+      RigidBodyState& stateA = m_rigidBodyStates[col.rbAIdx];
+      const RigidBody& rbB = m_rigidBodies[col.rbBIdx];
+      RigidBodyState& stateB = m_rigidBodyStates[col.rbBIdx];
+
+      glm::vec3 a = stateA.translation + stateA.rotation * col.rA;
+      glm::vec3 b = stateB.translation + stateB.rotation * col.rB;
+      float C = glm::dot(b - a, col.n);
+      if (C < 0.0f)
+        continue;
+
+      glm::quat qac = glm::inverse(stateA.rotation);
+      glm::quat qbc = glm::inverse(stateB.rotation);
+
+      glm::vec3 na = qac * col.n;
+      glm::vec3 nb = qac * col.n;
+
+      glm::vec3 rxn_a = glm::cross(col.rA, na);
+      glm::vec3 rxn_b = glm::cross(col.rB, nb);
+
+      // effective mass at r
+      float wa = rbA.invMass + glm::dot(rxn_a, rbA.invMoi * rxn_a);
+      float wb = rbB.invMass + glm::dot(rxn_b, rbB.invMoi * rxn_b);
+
+      float dLambda = C / (wa + wb);
+      glm::vec3 P = dLambda * col.n;
+
+      // TODO: may need to flip signs...
+      stateA.translation += P * rbA.invMass;
+      stateB.translation -= P * rbB.invMass;
+
+      // linearized rotation update
+      glm::vec3 rxP_a = glm::cross(col.rA, qac * P);
+      glm::vec3 rxP_b = glm::cross(col.rB, qbc * P);
+      
+      stateA.rotation += 0.5f *
+        glm::quat(0.0f, stateA.rotation * (rbA.invMoi * rxP_a)) *
+        stateA.rotation;
+      stateA.rotation = glm::normalize(stateA.rotation);
+
+      stateB.rotation -= 0.5f *
+        glm::quat(0.0f, stateB.rotation * (rbB.invMoi * rxP_b)) *
+        stateB.rotation;
+      stateB.rotation = glm::normalize(stateB.rotation);
+    }
   }
 }
 
@@ -286,6 +367,18 @@ void PhysicsSystem::debugDraw(float deltaTime) {
           loc + state.linearVelocity * deltaTime,
           COLOR_GREEN);
     }
+
+    for (const DynamicCollision& col : m_dynamicCollisions) {
+      const RigidBodyState& stateA = m_rigidBodyStates[col.rbAIdx];
+      const RigidBodyState& stateB = m_rigidBodyStates[col.rbBIdx];
+
+      glm::vec3 a = stateA.translation + stateA.rotation * col.rA;
+      glm::vec3 b = stateB.translation + stateB.rotation * col.rB;
+      m_dbgDrawLines->addLine(
+          a,
+          b,
+          glm::dot(b - a, col.n) < 0.0f ? COLOR_GREEN : COLOR_RED);
+    }
   }
 }
 
@@ -297,6 +390,7 @@ ColliderHandle PhysicsSystem::registerCapsuleCollider(
   handle.colliderIdx = m_registeredCapsules.size();
   handle.colliderType = ColliderType::CAPSULE;
   m_registeredCapsules.push_back({a, b, radius});
+  m_capsuleOwners.push_back(~0);
   return handle;
 }
 
@@ -318,6 +412,7 @@ void PhysicsSystem::bindCapsuleToRigidBody(
 
   RigidBody& rigidBody = m_rigidBodies[rb.idx];
   rigidBody.capsules.push_back({c, m_registeredCapsules[c.colliderIdx]});
+  m_capsuleOwners[c.colliderIdx] = rb.idx;
 }
 
 void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {

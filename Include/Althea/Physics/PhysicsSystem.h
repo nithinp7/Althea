@@ -36,6 +36,7 @@ struct PhysicsWorldSettings {
 
   // DEBUG STUFF
   bool enableVelocityUpdate = true;
+  bool enableDynamicCollisions = true;
   bool debugDrawCapsules = true;
   bool debugDrawVelocities = true;
   bool debugDrawCollisions = true;
@@ -117,6 +118,7 @@ private:
   void debugDraw(float deltaTime);
 
   std::vector<Capsule> m_registeredCapsules;
+  std::vector<uint32_t> m_capsuleOwners;
 
   std::vector<RigidBody> m_rigidBodies;
   std::vector<RigidBodyState> m_rigidBodyStates;
