@@ -28,8 +28,9 @@ These are a few projects built using Althea.
 ### [Stable Fluids](https://github.com/nithinp7/StableFluids)
 
 Stable Fluids is a 2D incompressible fluid simulation based on "Stable Fluids" by Jos Stam.
+
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MandelbrotFlames.gif" w=600px>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Fluid.gif" w=900px>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MandelbrotFluid.gif" w=500px>
 
 ### [Pies for Althea](https://github.com/nithinp7/PiesForAlthea)
 
