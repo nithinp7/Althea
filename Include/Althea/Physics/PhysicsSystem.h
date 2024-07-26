@@ -31,12 +31,14 @@ struct PhysicsWorldSettings {
   float maxSpeed = 50.0f;
   float maxAngularSpeed = 1.0f;
 
-  float SI_bias = 0.0f;
-  int SI_iters = 1;
+  int timeSubsteps = 1;
+  int positionIterations = 1;
 
   // DEBUG STUFF
   bool enableVelocityUpdate = true;
   bool debugDrawCapsules = true;
+  bool debugDrawVelocities = true;
+  bool debugDrawCollisions = true;
 };
 
 class PhysicsSystem {
@@ -68,19 +70,6 @@ public:
 
   void bakeRigidBody(RigidBodyHandle h);
 
-  glm::vec3
-  getVelocityAtLocation(RigidBodyHandle h, const glm::vec3& loc) const;
-  void computeImpulseVelocityAtLocation(
-      RigidBodyHandle h,
-      const glm::vec3& loc,
-      const glm::vec3& impulse,
-      glm::vec3& dVLin,
-      glm::vec3& dVAng);
-  void applyImpulseAtLocation(
-      RigidBodyHandle h,
-      const glm::vec3& loc,
-      const glm::vec3& impulse);
-
   uint32_t getCapsuleCount() const { return m_registeredCapsules.size(); }
 
   const Capsule& getCapsule(uint32_t idx) const {
@@ -101,32 +90,39 @@ public:
   const PhysicsWorldSettings& getSettings() const { return m_settings; }
 
   void forceUpdateCapsules();
+
 private:
-  void xpbd_applyForces(float deltaTime);
+  void xpbd_integrateState(float h);
 
   struct StaticCollision {
     glm::vec3 nStatic;
-    float C;
     glm::vec3 rStatic;
     glm::vec3 rRB;
     uint32_t rigidBodyIdx;
   };
 
   struct DynamicCollision {
-
+    glm::vec3 n;
+    glm::vec3 rA;
+    uint32_t rbAIdx;
+    glm::vec3 rB;
+    uint32_t rbBIdx;
   };
-  void xpbd_findCollisions(StackVector<StaticCollision>& staticCollisions, StackVector<DynamicCollision>& dynamicCollisions);
-  void xpbd_solveCollisionPositions(StridedView<StaticCollision> staticCollisions, StridedView<DynamicCollision> dynamicCollisions);
+  void xpbd_findCollisions();
+  void xpbd_solveCollisionPositions();
 
-  void xpbd_predictVelocities(float deltaTime);
-  void xpbd_solveCollisionVelocities(float deltaTime, StridedView<StaticCollision> staticCollisions, StridedView<DynamicCollision> dynamicCollisions);
+  void xpbd_predictVelocities(float h);
+  void xpbd_solveCollisionVelocities(float h);
 
-  void debugDrawCapsules();
+  void debugDraw(float deltaTime);
 
   std::vector<Capsule> m_registeredCapsules;
 
   std::vector<RigidBody> m_rigidBodies;
   std::vector<RigidBodyState> m_rigidBodyStates;
+
+  std::vector<StaticCollision> m_staticCollisions;
+  std::vector<DynamicCollision> m_dynamicCollisions;
 
   IntrusivePtr<DebugDrawLines> m_dbgDrawLines;
   IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsules;
