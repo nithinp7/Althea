@@ -53,32 +53,50 @@ void DebugDrawLines::beginGBufferSubpass(
 DebugDrawCapsules::DebugDrawCapsules(
     Application& app,
     VkCommandBuffer commandBuffer,
-    uint32_t capacity) {
+    uint32_t capacity,
+    bool wireframe)
+    : m_bWireframe(wireframe) {
   m_capsules = DynamicVertexBuffer<CapsuleInst>(app, capacity, true);
   ShapeUtilities::createSphere(
       app,
       commandBuffer,
       m_sphere.verts,
       m_sphere.indices,
-      8,
+      wireframe ? 8 : 24,
       1.0f,
-      true);
+      wireframe);
   ShapeUtilities::createCylinder(
       app,
       commandBuffer,
       m_cylinder.verts,
       m_cylinder.indices,
-      10,
-      true);
+      wireframe ? 10 : 24,
+      wireframe);
 }
 
 // IGBufferSubpass impl
 void DebugDrawCapsules::registerGBufferSubpass(
     GraphicsPipelineBuilder& builder) const {
 
-  builder.setPrimitiveType(PrimitiveType::LINES)
-      .setLineWidth(2.5f)
-      .addVertexInputBinding<CapsuleInst>(VK_VERTEX_INPUT_RATE_INSTANCE)
+  ShaderDefines defs{};
+  if (m_bWireframe) {
+    defs.emplace("WIREFRAME", "");
+    builder.setPrimitiveType(PrimitiveType::LINES).setLineWidth(2.0f);
+  }
+
+  builder.addVertexInputBinding<CapsuleInst>(VK_VERTEX_INPUT_RATE_INSTANCE)
+      .addVertexAttribute(
+          VertexAttributeType::VEC4,
+          offsetof(CapsuleInst, model))
+      .addVertexAttribute(
+          VertexAttributeType::VEC4,
+          offsetof(CapsuleInst, model) + 16)
+      .addVertexAttribute(
+          VertexAttributeType::VEC4,
+          offsetof(CapsuleInst, model) + 32)
+      .addVertexAttribute(
+          VertexAttributeType::VEC4,
+          offsetof(CapsuleInst, model) + 48)
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(CapsuleInst, a))
       .addVertexAttribute(VertexAttributeType::VEC3, offsetof(CapsuleInst, b))
       .addVertexAttribute(
@@ -90,8 +108,8 @@ void DebugDrawCapsules::registerGBufferSubpass(
       .addVertexInputBinding<glm::vec3>(VK_VERTEX_INPUT_RATE_VERTEX)
       .addVertexAttribute(VertexAttributeType::VEC3, 0)
 
-      .addVertexShader(GEngineDirectory + "/Shaders/Debug/Capsule.vert")
-      .addFragmentShader(GEngineDirectory + "/Shaders/Debug/Capsule.frag")
+      .addVertexShader(GEngineDirectory + "/Shaders/Debug/Capsule.vert", defs)
+      .addFragmentShader(GEngineDirectory + "/Shaders/Debug/Capsule.frag", defs)
 
       .layoutBuilder //
       .addPushConstants<DebugDrawPush>(VK_SHADER_STAGE_ALL);
@@ -129,7 +147,7 @@ void DebugDrawCapsules::beginGBufferSubpass(
     // phase sphere B
     constants.extras0 = 1;
     context.updatePushConstants(constants, 0);
-    
+
     context.drawIndexed(m_sphere.indices.getIndexCount(), m_count);
 
     // phase cylinder

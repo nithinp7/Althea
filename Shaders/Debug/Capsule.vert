@@ -1,16 +1,18 @@
 #version 450
 
 // inst data
-layout(location=0) in vec3 inA;
-layout(location=1) in vec3 inB;
-layout(location=2) in float inRadius;
-layout(location=3) in uint inColor;
+layout(location=0) in mat4 inModel;
+layout(location=4) in vec3 inA;
+layout(location=5) in vec3 inB;
+layout(location=6) in float inRadius;
+layout(location=7) in uint inColor;
 
 // vert data
-layout(location=4) in vec3 inVertPos;
+layout(location=8) in vec3 inVertPos;
 
-layout(location=0) out vec3 outNormal;
-layout(location=1) out vec3 outColor;
+layout(location=0) out vec3 outPosition;
+layout(location=1) out vec3 outNormal;
+layout(location=2) out vec3 outColor;
 
 #include "DebugDraw.glsl"
 
@@ -19,11 +21,11 @@ layout(location=1) out vec3 outColor;
 #define isPhaseCylinder (pushConstants.extras0 == 2)
 
 void main() {
-  vec3 worldPos = vec3(0.0);
+  vec3 restPose = vec3(0.0);
   if (isPhaseSphereA) {
-    worldPos = inA + inVertPos * inRadius;
+    restPose = inA + inVertPos * inRadius;
   } else if (isPhaseSphereB) {
-    worldPos = inB + inVertPos * inRadius;
+    restPose = inB + inVertPos * inRadius;
   } else if (isPhaseCylinder) {
     // generate local crs
     vec3 diff = inB - inA;
@@ -35,15 +37,21 @@ void main() {
       perp /= sqrt(perpDistSq);
     vec3 perp2 = normalize(cross(diff, perp));
 
-    worldPos = 
+    restPose = 
         inRadius * inVertPos.x * perp + 
         inRadius * inVertPos.y * perp2 +
         mix(inA, inB, inVertPos.z);
   }
 
-  gl_Position = globals.projection * globals.view * vec4(worldPos, 1.0);
+  vec4 worldPos = inModel * vec4(restPose, 1.0);
+  gl_Position = globals.projection * globals.view * worldPos;
 
-  outNormal = normalize(globals.inverseView[3].xyz - worldPos);
+  outPosition = worldPos.xyz;
+#ifdef WIREFRAME
+  outNormal = normalize(globals.inverseView[3].xyz - worldPos.xyz);
+#else
+  outNormal = vec3(0.0);
+#endif
   outColor = 
       vec3(
         (inColor >> 24) & 0xFF, 

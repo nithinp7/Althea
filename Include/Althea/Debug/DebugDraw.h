@@ -46,7 +46,7 @@ private:
 class DebugDrawCapsules : public IGBufferSubpass {
 public:
   DebugDrawCapsules() = default;
-  DebugDrawCapsules(Application& app, VkCommandBuffer commandBuffer, uint32_t maxCapacity = 1000);
+  DebugDrawCapsules(Application& app, VkCommandBuffer commandBuffer, uint32_t maxCapacity, bool wireFrame);
 
   // IGBufferSubpass impl
   void registerGBufferSubpass(GraphicsPipelineBuilder& builder) const override;
@@ -58,7 +58,15 @@ public:
   void reset() { m_count = 0; }
   bool addCapsule(const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color) {
     if (m_count < m_capsules.getVertexCount()) {
-      m_capsules.setVertex({a, b, radius, color}, m_count++);
+      m_capsules.setVertex({glm::mat4(1.0f), a, b, radius, color}, m_count++);
+      return true;
+    }
+    return false;
+  }
+
+  bool addCapsule(const glm::mat4& model, const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color) {
+    if (m_count < m_capsules.getVertexCount()) {
+      m_capsules.setVertex({ model, a, b, radius, color }, m_count++);
       return true;
     }
     return false;
@@ -72,7 +80,10 @@ private:
   Mesh m_sphere;
   Mesh m_cylinder;
 
+  bool m_bWireframe;
+
   struct CapsuleInst {
+    glm::mat4 model;
     glm::vec3 a;
     glm::vec3 b;
     float radius;
