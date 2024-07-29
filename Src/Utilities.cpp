@@ -12,6 +12,7 @@
 
 #define CHANNEL_NUM 3
 
+#include <cstdlib>
 #include <fstream>
 
 namespace AltheaEngine {
@@ -155,4 +156,43 @@ void Utilities::saveExr(
       path.c_str(),
       nullptr);
 }
+
+std::vector<uint32_t> Utilities::randSeedStack;
+uint32_t Utilities::randSeed = 0;
+
+/*static*/
+void Utilities::pushRandSeed(uint32_t seed) {
+  randSeedStack.push_back(randSeed);
+  randSeed = seed;
+}
+
+/*static*/
+uint32_t Utilities::getRandSeed() { return randSeed; }
+
+/*static*/
+float Utilities::randf(uint32_t s) { return (float)rand(s) / RAND_MAX; }
+
+/*static*/
+float Utilities::randf() { return (float)rand() / RAND_MAX; }
+
+/*static*/
+int Utilities::rand(uint32_t s) {
+  std::srand(s);
+  return std::rand();
+}
+
+/*static*/
+int Utilities::rand() {
+  std::srand(randSeed);
+  randSeed = randSeed * 214013 + 2531011;
+  return std::rand();
+
+}
+
+/*static*/
+void Utilities::popRandSeed() {
+  randSeed = randSeedStack.back();
+  randSeedStack.pop_back();
+}
+
 } // namespace AltheaEngine

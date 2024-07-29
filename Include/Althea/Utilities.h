@@ -42,5 +42,16 @@ public:
       int width,
       int height,
       gsl::span<const std::byte> data);
+
+  static void pushRandSeed(uint32_t seed);
+  static uint32_t getRandSeed();
+  static float randf(uint32_t s);
+  static float randf();
+  static int rand(uint32_t s);
+  static int rand();
+  static void popRandSeed();
+private:
+  static std::vector<uint32_t> randSeedStack;
+  static uint32_t randSeed;
 };
 } // namespace AltheaEngine

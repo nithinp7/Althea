@@ -36,6 +36,8 @@ std::string GApplicationTitle = "";
 std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
+InputManager* GInputManager = nullptr;
+
 // TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application(
     const std::string& appTitle,
@@ -76,8 +78,8 @@ void Application::initWindow() {
   window = glfwCreateWindow(WIDTH, HEIGHT, GApplicationTitle.c_str(), nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
 
-  pInputManager = new InputManager(window);
-  pInputManager->addKeyBinding(
+  GInputManager = new InputManager(window);
+  GInputManager->addKeyBinding(
       {GLFW_KEY_ESCAPE, GLFW_PRESS, 0},
       std::bind([](Application* app) { app->shouldClose = true; }, this));
 
@@ -218,8 +220,8 @@ void Application::cleanup() {
   vkDestroySurfaceKHR(instance, surface, nullptr);
   vkDestroyInstance(instance, nullptr);
 
-  delete pInputManager;
-  pInputManager = nullptr;
+  delete GInputManager;
+  GInputManager = nullptr;
 
   glfwDestroyWindow(window);
   glfwTerminate();

@@ -35,6 +35,8 @@ class IGameInstance;
 extern std::string GProjectDirectory;
 extern std::string GEngineDirectory;
 
+extern InputManager* GInputManager;
+
 // TODO: Standardize the conventions in this class ALTHEA_API with the rest of
 // the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
@@ -130,7 +132,6 @@ private:
 
   ConfigParser configParser;
 
-  InputManager* pInputManager;
   bool shouldClose = false;
 
   void initWindow();
@@ -225,8 +226,8 @@ public:
 
   const ConfigParser& getConfigParser() const { return configParser; }
 
-  InputManager& getInputManager() { return *pInputManager; }
-  const InputManager& getInputManager() const { return *pInputManager; }
+  InputManager& getInputManager() { return *GInputManager; }
+  const InputManager& getInputManager() const { return *GInputManager; }
 
   void addDeletiontask(DeletionTask&& task) {
     deletionTasks.addDeletionTask(std::move(task));
