@@ -101,6 +101,12 @@ target_compile_definitions(
         SHADERC_SKIP_COPYRIGHT_CHECK
 )
 
+if (MSVC)
+  target_compile_options(Althea PRIVATE /MP)
+  target_link_options(Althea PRIVATE $<$<CONFIG:Debug>:/INCREMENTAL>)
+  target_compile_options(Althea PRIVATE $<$<CONFIG:Debug>:/ZI>)
+endif()
+
 target_link_libraries (Althea PUBLIC ${Vulkan_LIBRARIES})
 target_link_libraries (Althea PUBLIC glfw)
 target_link_libraries (Althea PUBLIC MikkTSpace)
