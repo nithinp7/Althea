@@ -1,6 +1,8 @@
 #include <Althea/Application.h>
 #include <Althea/Containers/StackVector.h>
 #include <Althea/Physics/PhysicsSystem.h>
+#include <Althea/Utilities.h>
+#include <glm/gtx/quaternion.hpp>
 
 #define COLOR_RED 0xff0000ff
 #define COLOR_ORANGE 0xdd8822ff
@@ -17,12 +19,20 @@ PhysicsSystem::PhysicsSystem(
     SceneToGBufferPassBuilder& gBufferPassBuilder,
     GlobalHeap& heap)
     : m_dbgDrawLines(makeIntrusive<DebugDrawLines>(app)),
-      m_dbgDrawCapsules(makeIntrusive<DebugDrawCapsules>(app, commandBuffer)) {
+      m_dbgDrawCapsules(
+          makeIntrusive<DebugDrawCapsules>(app, commandBuffer, 1000, false)),
+      m_dbgDrawCapsulesWireframe(
+          makeIntrusive<DebugDrawCapsules>(app, commandBuffer, 1000, true)) {
   gBufferPassBuilder.registerSubpass(m_dbgDrawLines);
   gBufferPassBuilder.registerSubpass(m_dbgDrawCapsules);
+  gBufferPassBuilder.registerSubpass(m_dbgDrawCapsulesWireframe);
 }
 
 void PhysicsSystem::tick(float deltaTime) {
+  m_dbgDrawLines->reset();
+  m_dbgDrawCapsules->reset();
+  m_dbgDrawCapsulesWireframe->reset();
+
   float h = deltaTime / m_settings.timeSubsteps;
 
   xpbd_findCollisions();
@@ -44,7 +54,7 @@ void PhysicsSystem::tick(float deltaTime) {
 
   forceUpdateCapsules();
 
-  debugDraw(deltaTime);
+  forceDebugDraw(deltaTime);
 }
 
 void PhysicsSystem::xpbd_integrateState(float h) {
@@ -52,7 +62,7 @@ void PhysicsSystem::xpbd_integrateState(float h) {
     const RigidBody& rb = m_rigidBodies[rbIdx];
     RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
-    state.prevLinearVelocity = state.linearVelocity;
+    // state.prevLinearVelocity = state.linearVelocity;
     state.linearVelocity += glm::vec3(0.0f, -m_settings.gravity, 0.0f) * h;
     /*float speed = glm::length(state.linearVelocity);
     if (speed > m_settings.maxSpeed) {
@@ -63,7 +73,7 @@ void PhysicsSystem::xpbd_integrateState(float h) {
 
     state.prevRotation = state.rotation;
 
-    state.prevAngularVelocity = state.angularVelocity;
+    // state.prevAngularVelocity = state.angularVelocity;
     state.angularVelocity += h * rb.invMoi *
                              (/*torque ext */ -glm::cross(
                                  state.angularVelocity,
@@ -127,6 +137,8 @@ void PhysicsSystem::xpbd_findCollisions() {
         col.nStatic = glm::vec3(0.0f, 1.0f, 0.0f);
         col.rRB = qc * r;
         col.rStatic = glm::vec3(loc.x, m_settings.floorHeight, loc.z);
+        col.lambdaN = 0.0f;
+        col.lambdaT = 0.0f;
       }
     }
   }
@@ -146,7 +158,9 @@ void PhysicsSystem::xpbd_findCollisions() {
       const Capsule& b = m_registeredCapsules[ib];
 
       CollisionResult result;
-      if (Collisions::checkIntersection(a, b, result)) {
+      if (Collisions::checkIntersection(a, b, result) &&
+          glm::dot(result.minSepTranslation, result.minSepTranslation) >
+              0.0001f) {
         const RigidBodyState& stateA = m_rigidBodyStates[rigidBodyAIdx];
         const RigidBodyState& stateB = m_rigidBodyStates[rigidBodyBIdx];
 
@@ -161,6 +175,8 @@ void PhysicsSystem::xpbd_findCollisions() {
         col.rB = qbc * (result.intersectionPoint +
                         0.5f * result.minSepTranslation - stateB.translation);
         col.n = glm::normalize(result.minSepTranslation);
+        col.lambdaN = 0.0f;
+        col.lambdaT = 0.0f;
       }
     }
   }
@@ -180,11 +196,21 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
 
     glm::vec3 loc = state.translation + state.rotation * col.rRB;
     float C = glm::dot(col.rStatic - loc, col.nStatic);
-    if (C < 0.0f)
+    if (C <= 0.0f)
       continue;
 
-    float dLambda = C / w;
-    glm::vec3 P = dLambda * col.nStatic;
+    float dLambdaN = C / w;
+    glm::vec3 P = dLambdaN * col.nStatic;
+    col.lambdaN += dLambdaN;
+
+    glm::vec3 prevLoc = state.prevTranslation + state.prevRotation * col.rRB;
+    glm::vec3 locV = loc - prevLoc;
+    glm::vec3 Pt = locV - glm::dot(locV, col.nStatic) * col.nStatic;
+    float dLambdaT = glm::length(Pt);
+    float mu_s = 0.0f;// m_settings.staticFriction;
+    /*if (dLambdaT < mu_s * dLambdaN)
+      P -= Pt;*/
+    col.lambdaT += dLambdaT;
 
     state.translation += rb.invMass * P;
 
@@ -222,8 +248,11 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
       float wa = rbA.invMass + glm::dot(rxn_a, rbA.invMoi * rxn_a);
       float wb = rbB.invMass + glm::dot(rxn_b, rbB.invMoi * rxn_b);
 
-      float dLambda = C / (wa + wb);
-      glm::vec3 P = dLambda * col.n;
+      float dLambdaN = C / (wa + wb);
+      glm::vec3 P = dLambdaN * col.n;
+      col.lambdaN += dLambdaN;
+
+      // TODO: lambdaT + friction...
 
       // TODO: may need to flip signs...
       stateA.translation += P * rbA.invMass;
@@ -232,15 +261,15 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
       // linearized rotation update
       glm::vec3 rxP_a = glm::cross(col.rA, qac * P);
       glm::vec3 rxP_b = glm::cross(col.rB, qbc * P);
-      
-      stateA.rotation += 0.5f *
-        glm::quat(0.0f, stateA.rotation * (rbA.invMoi * rxP_a)) *
-        stateA.rotation;
+
+      stateA.rotation +=
+          0.5f * glm::quat(0.0f, stateA.rotation * (rbA.invMoi * rxP_a)) *
+          stateA.rotation;
       stateA.rotation = glm::normalize(stateA.rotation);
 
-      stateB.rotation -= 0.5f *
-        glm::quat(0.0f, stateB.rotation * (rbB.invMoi * rxP_b)) *
-        stateB.rotation;
+      stateB.rotation -=
+          0.5f * glm::quat(0.0f, stateB.rotation * (rbB.invMoi * rxP_b)) *
+          stateB.rotation;
       stateB.rotation = glm::normalize(stateB.rotation);
     }
   }
@@ -251,12 +280,14 @@ void PhysicsSystem::xpbd_predictVelocities(float h) {
     const RigidBody& rb = m_rigidBodies[rbIdx];
     RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
+    state.prevLinearVelocity = state.linearVelocity;
     state.linearVelocity = (state.translation - state.prevTranslation) / h;
 
+    state.prevAngularVelocity = state.angularVelocity;
     glm::quat dQ = state.rotation * glm::inverse(state.prevRotation);
     state.angularVelocity = 2.0f / h * glm::vec3(dQ.x, dQ.y, dQ.z);
-    /*  if (dQ.w < 0.0f)
-        state.angularVelocity = -state.angularVelocity;*/
+    if (dQ.w < 0.0f)
+      state.angularVelocity = -state.angularVelocity;
 
     // damping
     /*state.linearVelocity +=
@@ -292,13 +323,8 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     glm::vec3 vt = v - vn * col.nStatic;
     float vtMag = glm::length(vt);
 
-    glm::vec3 loc = state.translation + r;
-    float C = glm::dot(col.rStatic - loc, col.nStatic);
-    if (C < 0.0f)
-      continue;
-
-    if (vn >= 0.0f)
-      continue;
+    /*if (vn >= 0.0f)
+      continue;*/
 
     // restitution
     // glm::vec3 dV = col.nStatic*(-vn + glm::min(-m_settings.restitution *
@@ -307,14 +333,20 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     glm::vec3 dV = -col.nStatic * vn;
 
     // friction
-    float fn = 1.0f; // TODO
-    /*glm::vec3 dV =
-        -vtMag / vt* glm::min(
-                 deltaTime * m_settings.frictionCoeff * glm::abs(fn),
-                 vtMag);*/
+    float fn_h = col.lambdaN / h; 
+    float mu_d = m_settings.dynamicFriction;
+    if (vtMag > 0.0001f) {
+      glm::vec3 dV_friction = -vt / vtMag * glm::min(fn_h * mu_d, vtMag);
+      if (glm::length(dV_friction) > 0.01f)
+        dV += dV_friction;
+      {
+        glm::vec3 loc = state.translation + r;
+        m_dbgDrawLines->addLine(loc, loc + dV_friction, COLOR_RED);
+      }
+    }
 
     // damping
-    /* dV += -state.linearVelocity *
+    /*dV += -state.linearVelocity *
             glm::min(m_settings.linearDamping * deltaTime, 1.0f);
      state.angularVelocity += -state.angularVelocity *
          glm::min(m_settings.angularDamping * deltaTime, 1.0f);*/
@@ -322,19 +354,150 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     glm::vec3 p = dV / w;
     state.linearVelocity += p * rb.invMass;
     glm::vec3 rxp = glm::cross(col.rRB, qc * p);
-    glm::vec3 dw = state.rotation * (rb.invMoi * rxp);
-    state.angularVelocity += dw;
+    state.angularVelocity += state.rotation * (rb.invMoi * rxp);
+  }
+
+  for (const DynamicCollision& col : m_dynamicCollisions) {
+    const RigidBody& rba = m_rigidBodies[col.rbAIdx];
+    const RigidBody& rbb = m_rigidBodies[col.rbBIdx];
+
+    RigidBodyState& stateA = m_rigidBodyStates[col.rbAIdx];
+    RigidBodyState& stateB = m_rigidBodyStates[col.rbBIdx];
+
+    const glm::quat& qa = stateA.rotation;
+    const glm::quat& qb = stateB.rotation;
+
+    glm::quat qac = glm::inverse(qa);
+    glm::quat qbc = glm::inverse(qb);
+
+    glm::vec3 rxn_a = glm::cross(col.rA, qac * col.n);
+    glm::vec3 rxn_b = glm::cross(col.rB, qbc * col.n);
+
+    // effective mass at r
+    float wa = rba.invMass + glm::dot(rxn_a, rba.invMoi * rxn_a);
+    float wb = rbb.invMass + glm::dot(rxn_b, rbb.invMoi * rxn_b);
+
+    glm::vec3 ra = qa * col.rA;
+    glm::vec3 rb = qb * col.rB;
+
+    glm::vec3 va =
+        stateA.linearVelocity + glm::cross(stateA.angularVelocity, ra);
+    glm::vec3 vb =
+        stateB.linearVelocity + glm::cross(stateB.angularVelocity, rb);
+
+    glm::vec3 pva =
+        stateA.prevLinearVelocity + glm::cross(stateA.prevAngularVelocity, ra);
+    glm::vec3 pvb =
+        stateB.prevLinearVelocity + glm::cross(stateB.prevAngularVelocity, rb);
+
+    glm::vec3 v = vb - va;
+    glm::vec3 pv = pvb - pva;
+
+    float vn = glm::dot(v, col.n);
+    float pvn = glm::dot(pv, col.n);
+
+    glm::vec3 vt = v - vn * col.n;
+    float vtMag = glm::length(vt);
+
+    glm::vec3 locA = stateA.translation + ra;
+    glm::vec3 locB = stateB.translation + rb;
+
+    /*if (vn >= 0.0f)
+      continue;*/
+
+    // restitution
+    // glm::vec3 dV = col.nStatic*(-vn + glm::min(-m_settings.restitution *
+    // pvn, 0.0f));
+
+    // TODO negative here??
+    glm::vec3 dV = col.n * vn;
+
+    // friction
+    // float lambdaN = C / (wa + wb);
+    // float fn = abs(lambdaN); // TODO
+    // dV += -vt / vtMag * glm::min(h * m_settings.dynamicFriction * fn, vtMag);
+
+    // damping
+    /* dV += -state.linearVelocity *
+            glm::min(m_settings.linearDamping * deltaTime, 1.0f);
+     state.angularVelocity += -state.angularVelocity *
+         glm::min(m_settings.angularDamping * deltaTime, 1.0f);*/
+
+    glm::vec3 p = dV / (wa + wb);
+    stateA.linearVelocity += p * rba.invMass;
+    stateB.linearVelocity -= p * rbb.invMass;
+
+    glm::vec3 rxp_a = glm::cross(col.rA, qac * p);
+    glm::vec3 rxp_b = glm::cross(col.rB, qbc * p);
+
+    stateA.angularVelocity += stateA.rotation * (rba.invMoi * rxp_a);
+    stateB.angularVelocity -= stateB.rotation * (rbb.invMoi * rxp_b);
   }
 }
 
-void PhysicsSystem::debugDraw(float deltaTime) {
+void PhysicsSystem::forceDebugDraw(float deltaTime) {
   m_dbgDrawLines->reset();
   m_dbgDrawCapsules->reset();
+  m_dbgDrawCapsulesWireframe->reset();
 
+  debugDraw(deltaTime);
+}
+
+void PhysicsSystem::debugDraw(float deltaTime) {
   if (m_settings.debugDrawCapsules) {
+    Utilities::pushRandSeed(123);
+
+    for (uint32_t i = 0; i < m_rigidBodies.size(); ++i) {
+      const RigidBody& rb = m_rigidBodies[i];
+      const RigidBodyState& state = m_rigidBodyStates[i];
+
+      glm::mat4 model = glm::toMat4(state.rotation);
+      model[3] = glm::vec4(state.translation, 1.0f);
+
+      uint32_t color =
+        (static_cast<uint32_t>((float)0xffffff * Utilities::randf())
+          << 8) |
+        0xff;
+
+      for (const BoundCapsule& c : rb.capsules) {
+        if (m_settings.wireframeCapsules) {
+          m_dbgDrawCapsulesWireframe->addCapsule(
+              model,
+              c.bindPose.a,
+              c.bindPose.b,
+              c.bindPose.radius,
+              COLOR_BLUE);
+        } else {
+          m_dbgDrawCapsules->addCapsule(
+              model,
+              c.bindPose.a,
+              c.bindPose.b,
+              c.bindPose.radius,
+              color);
+        }
+      }
+    }
+
+    uint32_t lastSeedState = Utilities::getRandSeed();
+
+    Utilities::popRandSeed();
+
+    // unbound capsules
     for (uint32_t i = 0; i < m_registeredCapsules.size(); ++i) {
-      const Capsule& c = m_registeredCapsules[i];
-      m_dbgDrawCapsules->addCapsule(c.a, c.b, c.radius, COLOR_BLUE);
+      if (m_capsuleOwners[i] == ~0) {
+        const Capsule& c = m_registeredCapsules[i];
+        if (m_settings.wireframeCapsules)
+          m_dbgDrawCapsulesWireframe
+              ->addCapsule(c.a, c.b, c.radius, COLOR_BLUE);
+        else {
+          uint32_t color =
+              (static_cast<uint32_t>(
+                   (float)0xffffff * Utilities::randf(lastSeedState))
+               << 8) |
+              0xff;
+          m_dbgDrawCapsules->addCapsule(c.a, c.b, c.radius, color);
+        }
+      }
     }
   }
 
@@ -424,7 +587,7 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
   glm::vec3 com(0.0f);
 
   // TODO: paramaterize
-  float density = 1.0f;
+  float density = 10.0f;
 
   auto compCapsuleMass = [&](const Capsule& c) {
     return density * 2.0f * glm::pi<float>() * c.radius *
@@ -484,10 +647,11 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
       I[1][1] = I[2][2] = m * (l2 + 3.0f * r2) / 12.0f;
 
       // rigid body space (tensor rotation)
-      I = R * I * glm::transpose(R);
+      //I = R * I * glm::transpose(R);
+      //I = glm::transpose(R) * I * R;
 
       // parallel axis theorem
-      glm::vec3 D = C;
+      glm::vec3 D = -C;
       float DMag2 = glm::dot(D, D);
       for (int i = 0; i < 3; ++i) {
         I[i][i] += m * (DMag2 - D[i] * D[i]);
@@ -499,6 +663,10 @@ void PhysicsSystem::bakeRigidBody(RigidBodyHandle h) {
           I[j][i] += f;
         }
       }
+
+      // rigid body space (tensor rotation)
+      I = R * I * glm::transpose(R);
+      //I = glm::transpose(R) * I * R;
     }
 
     // superposition

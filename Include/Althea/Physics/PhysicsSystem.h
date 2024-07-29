@@ -21,9 +21,10 @@ class Application;
 namespace AltheaPhysics {
 
 struct PhysicsWorldSettings {
-  float gravity = 10.0f;
+  float gravity = 20.0f;
   float restitution = 0.8f;
-  float frictionCoeff = 0.8f;
+  float staticFriction = 0.01f;
+  float dynamicFriction = 0.01f;
   float angularDamping = 2.0f;
   float linearDamping = 2.0;
   float floorHeight = -8.0f;
@@ -38,6 +39,7 @@ struct PhysicsWorldSettings {
   bool enableVelocityUpdate = true;
   bool enableDynamicCollisions = true;
   bool debugDrawCapsules = true;
+  bool wireframeCapsules = false;
   bool debugDrawVelocities = true;
   bool debugDrawCollisions = true;
 };
@@ -91,22 +93,27 @@ public:
   const PhysicsWorldSettings& getSettings() const { return m_settings; }
 
   void forceUpdateCapsules();
+  void forceDebugDraw(float deltaTime);
 
 private:
   void xpbd_integrateState(float h);
 
   struct StaticCollision {
     glm::vec3 nStatic;
+    float lambdaN;
     glm::vec3 rStatic;
+    float lambdaT;
     glm::vec3 rRB;
     uint32_t rigidBodyIdx;
   };
 
   struct DynamicCollision {
     glm::vec3 n;
+    float lambdaN;
     glm::vec3 rA;
-    uint32_t rbAIdx;
+    float lambdaT;
     glm::vec3 rB;
+    uint32_t rbAIdx;
     uint32_t rbBIdx;
   };
   void xpbd_findCollisions();
@@ -128,6 +135,7 @@ private:
 
   IntrusivePtr<DebugDrawLines> m_dbgDrawLines;
   IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsules;
+  IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsulesWireframe;
 
   PhysicsWorldSettings m_settings{};
 };
