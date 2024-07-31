@@ -3,8 +3,8 @@
 
 #define PI 3.14159265359
 
-layout(location=0) in vec3 direction;
-layout(location=1) in vec2 uv;
+layout(location=0) in vec3 inDirection;
+layout(location=1) in vec2 inUv;
 
 layout(location=0) out vec4 reflectedColor;
 
@@ -75,7 +75,7 @@ vec4 environmentLitSample(vec3 currentPos, vec2 currentUV, vec3 rayDir, vec3 nor
   return vec4(material, 1.0);
 }
 
-#define RAYMARCH_STEPS 32
+#define RAYMARCH_STEPS 64
 vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
   // Arbitrary
   vec3 endPos = worldPos + rayDir * 1000.0;
@@ -84,7 +84,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
 
   // TODO: Handle degenerate case?
   vec2 uvStep = normalize(uvEnd - currentUV);
-  float stepSize = 0.01;
+  float stepSize = 0.001;
 
   vec3 perpRef = cross(rayDir, normal);
   perpRef = normalize(cross(perpRef, rayDir));
@@ -93,6 +93,9 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
   float prevProjection = 0.0;
 
   for (int i = 0; i < RAYMARCH_STEPS; ++i) {
+    // if (i == RAYMARCH_STEPS / 2)
+    stepSize *= 1.1;
+
     currentUV += uvStep * stepSize;
     if (currentUV.x < 0.0 || currentUV.x > 1.0 || currentUV.y < 0.0 || currentUV.y > 1.0) {
       return vec4(0.0);
@@ -126,15 +129,16 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
 }
 
 void main() {
-  vec4 normal4 = texture(gBufferNormal, uv);
+  vec4 normal4 = texture(gBufferNormal, inUv);
   if (normal4.a == 0.0) {
     // Nothing in the GBuffer, draw the environment map
     reflectedColor = vec4(0.0);
+    return;
   }
 
-  vec3 position = reconstructPosition(uv);
+  vec3 position = reconstructPosition(inUv);
   vec3 normal = normalize(normal4.xyz);
-  vec3 reflectedDirection = reflect(normalize(direction), normal);
+  vec3 reflectedDirection = reflect(normalize(inDirection), normal);
 
-  reflectedColor = raymarchGBuffer(uv, position.xyz, normal, reflectedDirection);
+  reflectedColor = raymarchGBuffer(inUv, position.xyz, normal, reflectedDirection);
 }

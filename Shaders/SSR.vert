@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(location=0) smooth out vec3 direction;
+layout(location=0) out vec3 direction;
 layout(location=1) out vec2 screenUV;
 
 #include <Global/GlobalUniforms.glsl>
