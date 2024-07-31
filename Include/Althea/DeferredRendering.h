@@ -113,8 +113,10 @@ public:
     _subpasses.push_back(subpass);
   }
 
+  void disableDepthDoubleBuffering() { _doubleBufferDepth = false; }
 private:
   std::vector<IntrusivePtr<IGBufferSubpass>> _subpasses;
+  bool _doubleBufferDepth = true;
 };
 
 class SceneToGBufferPass {

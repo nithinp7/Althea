@@ -300,8 +300,11 @@ void SceneToGBufferPass::begin(
     BufferHandle globalResourcesHandle,
     UniformHandle globalUniformsHandle) {
   {
-    ActiveRenderPass activePass =
-        _pass.begin(app, commandBuffer, frame, _phase ? _fbA : _fbB);
+    ActiveRenderPass activePass = _pass.begin(
+        app,
+        commandBuffer,
+        frame,
+        (!_builder._doubleBufferDepth || _phase) ? _fbA : _fbB);
 
     activePass.setGlobalDescriptorSet(heapSet);
 
