@@ -24,8 +24,9 @@ struct Capsule {
 };
 
 struct CollisionResult {
-  glm::vec3 intersectionPoint{};
-  glm::vec3 minSepTranslation{};
+  glm::vec3 rb{};
+  glm::vec3 ra{};
+  glm::vec3 n{};
 };
 class Collisions {
 public:

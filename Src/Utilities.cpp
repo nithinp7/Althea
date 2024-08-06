@@ -186,7 +186,6 @@ int Utilities::rand() {
   std::srand(randSeed);
   randSeed = randSeed * 214013 + 2531011;
   return std::rand();
-
 }
 
 /*static*/
