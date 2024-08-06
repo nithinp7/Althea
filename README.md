@@ -18,19 +18,19 @@ These are a few projects built using Althea.
 </p>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/RestirDI.gif"/>
 
-### [Althea Demo](https://github.com/nithinp7/AltheaDemo): GPU Particle Collisions
-
-<p float="left">
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles1.gif" height=350/>
-<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles2.gif" height=350/>
-</p>
-
 ### [Stable Fluids](https://github.com/nithinp7/StableFluids)
 
 Stable Fluids is a 2D incompressible fluid simulation based on "Stable Fluids" by Jos Stam.
 
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/MandelbrotFlames.gif" w=600px>
 <img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/Fluid.gif" w=900px>
+
+### [Althea Demo](https://github.com/nithinp7/AltheaDemo): GPU Particle Collisions
+
+<p float="left">
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles1.gif" height=350/>
+<img src="https://github.com/nithinp7/Althea/blob/main/Screenshots/GpuParticles2.gif" height=350/>
+</p>
 
 ### [Pies for Althea](https://github.com/nithinp7/PiesForAlthea)
 
