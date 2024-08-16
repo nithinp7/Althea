@@ -122,7 +122,7 @@ bool Collisions::checkIntersection(
 
   glm::vec3 diff = closestPoint_cd - closestPoint_ab;
   float dist2 = glm::dot(diff, diff);
-  float padding = 0.05f;
+  float padding = 0.1f;
   float r = C0.radius + C1.radius + padding;
   float r2 = r * r;
 

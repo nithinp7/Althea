@@ -23,8 +23,8 @@ namespace AltheaPhysics {
 struct PhysicsWorldSettings {
   float gravity = 20.0f;
   float restitution = 0.8f;
-  float staticFriction = 0.01f;
-  float dynamicFriction = 0.01f;
+  float staticFriction = 0.1f;
+  float dynamicFriction = 0.1f;
   float angularDamping = 2.0f;
   float linearDamping = 2.0;
   float floorHeight = -8.0f;
@@ -42,6 +42,14 @@ struct PhysicsWorldSettings {
   bool wireframeCapsules = false;
   bool debugDrawVelocities = true;
   bool debugDrawCollisions = true;
+};
+
+struct PositionConstraint {
+  glm::vec3 rA;
+  uint32_t rbAIdx;
+  glm::vec3 rB;
+  uint32_t rbBIdx;
+  float lambda;
 };
 
 class PhysicsSystem {
@@ -122,6 +130,8 @@ private:
   void xpbd_predictVelocities(float h);
   void xpbd_solveCollisionVelocities(float h);
 
+  void computeMomentOfInertia(uint32_t rbIdx, glm::mat3& I, glm::mat3& I_inv) const;
+
   void debugDraw(float deltaTime);
 
   std::vector<Capsule> m_registeredCapsules;
@@ -132,6 +142,8 @@ private:
 
   std::vector<StaticCollision> m_staticCollisions;
   std::vector<DynamicCollision> m_dynamicCollisions;
+
+  std::vector<PositionConstraint> m_positionConstraints;
 
   IntrusivePtr<DebugDrawLines> m_dbgDrawLines;
   IntrusivePtr<DebugDrawCapsules> m_dbgDrawCapsules;
