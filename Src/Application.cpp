@@ -38,7 +38,6 @@ std::string GEngineDirectory = "";
 
 InputManager* GInputManager = nullptr;
 
-// TODO: REFACTOR THIS MONOLITHIC CLASS !!!
 Application::Application(
     const std::string& appTitle,
     const std::string& projectDir,
