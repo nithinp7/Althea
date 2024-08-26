@@ -70,7 +70,7 @@ public:
 
 private:
   const uint32_t WIDTH = 1480;
-  const uint32_t HEIGHT = 1080;
+  const uint32_t HEIGHT = 1640;
 
   bool syncFramerate = true;
 

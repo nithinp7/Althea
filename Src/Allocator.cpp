@@ -5,6 +5,104 @@
 
 #include <stdexcept>
 
+// override allocator in debug builds
+#ifdef _DEBUG
+namespace AltheaEngine {
+thread_local AllocatorOverride::MallocOverrideFuncType*
+    AllocatorOverride::g_mallocOverride = nullptr;
+thread_local AllocatorOverride::FreeOverrideFuncType*
+    AllocatorOverride::g_freeOverride = nullptr;
+
+AllocatorOverride::AllocatorOverride(
+    MallocOverrideFuncType mallocOverride,
+    FreeOverrideFuncType freeOverride)
+    : m_prevMallocOverride(g_mallocOverride),
+      m_prevFreeOverride(g_freeOverride) {
+  g_mallocOverride = mallocOverride;
+  g_freeOverride = freeOverride;
+}
+
+AllocatorOverride::~AllocatorOverride() {
+  g_mallocOverride = m_prevMallocOverride;
+  g_freeOverride = m_prevFreeOverride;
+}
+
+/*static*/
+void* LinearAllocator::allocate(const size_t n) {
+  assert(g_allocSize + n <= MAX_ALLOC_SIZE);
+  assert(g_pAlloc);
+
+  size_t oldSize = g_allocSize;
+  g_allocSize += n;
+
+  return &g_pAlloc[oldSize];
+}
+
+// WARNING DEALLOCATIONS ARE IGNORED
+/*static*/
+void LinearAllocator::deallocate(void* p) {}
+
+LinearAllocator::LinearAllocator() : m_override(allocate, deallocate) {
+  assert(!g_pAlloc);
+  assert(g_allocSize == 0);
+
+  g_pAlloc = (char*)malloc(MAX_ALLOC_SIZE);
+  g_allocSize = 0;
+}
+
+LinearAllocator::~LinearAllocator() {
+  free(g_pAlloc);
+  g_pAlloc = nullptr;
+  g_allocSize = 0;
+}
+
+thread_local char* LinearAllocator::g_pAlloc = nullptr;
+thread_local size_t LinearAllocator::g_allocSize = 0;
+
+} // namespace AltheaEngine
+#include <new>
+void operator delete(void* p) noexcept {
+  if (!AltheaEngine::AllocatorOverride::g_freeOverride)
+    free(p);
+  else
+    AltheaEngine::AllocatorOverride::g_freeOverride(p);
+}
+void operator delete[](void* p) noexcept {
+  if (!AltheaEngine::AllocatorOverride::g_freeOverride)
+    free(p);
+  else
+    AltheaEngine::AllocatorOverride::g_freeOverride(p);
+}
+
+void* operator new(std::size_t n) noexcept(false) {
+  if (!AltheaEngine::AllocatorOverride::g_mallocOverride)
+    return malloc(n);
+  else
+    return AltheaEngine::AllocatorOverride::g_mallocOverride(n);
+}
+
+void* operator new[](std::size_t n) noexcept(false) {
+  if (!AltheaEngine::AllocatorOverride::g_mallocOverride)
+    return malloc(n);
+  else
+    return AltheaEngine::AllocatorOverride::g_mallocOverride(n);
+}
+
+void* operator new(std::size_t n, const std::nothrow_t& tag) noexcept {
+  if (!AltheaEngine::AllocatorOverride::g_mallocOverride)
+    return malloc(n);
+  else
+    return AltheaEngine::AllocatorOverride::g_mallocOverride(n);
+}
+void* operator new[](std::size_t n, const std::nothrow_t& tag) noexcept {
+  if (!AltheaEngine::AllocatorOverride::g_mallocOverride)
+    return malloc(n);
+  else
+    return AltheaEngine::AllocatorOverride::g_mallocOverride(n);
+}
+
+#endif // _DEBUG
+
 // TODO: provide a bit more abstraction here once various allocation types can
 // be reasonably categorized (e.g., staging, host-device-visible,
 // host-sequential-write-device-visible, device-local) Ideally avoid e.g.,
@@ -54,7 +152,7 @@ Allocator::Allocator(
     VkPhysicalDevice physicalDevice) {
   VmaAllocatorCreateInfo allocatorInfo{};
   // TODO: Should allocations be synchronized externally instead?
-  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT; 
+  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
   // | VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
   allocatorInfo.physicalDevice = physicalDevice;
   allocatorInfo.device = device;
