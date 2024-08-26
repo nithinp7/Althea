@@ -22,8 +22,8 @@ namespace AltheaPhysics {
 
 struct PhysicsWorldSettings {
   float gravity = 20.0f;
-  float restitution = 0.8f;
-  float staticFriction = 0.1f;
+  float restitution = 0.0f;
+  float staticFriction = 0.f;
   float dynamicFriction = 0.1f;
   float angularDamping = 2.0f;
   float linearDamping = 2.0;
@@ -32,7 +32,7 @@ struct PhysicsWorldSettings {
   float maxSpeed = 50.0f;
   float maxAngularSpeed = 1.0f;
 
-  int timeSubsteps = 1;
+  int timeSubsteps = 10;
   int positionIterations = 1;
 
   // DEBUG STUFF
@@ -103,6 +103,9 @@ public:
   void forceUpdateCapsules();
   void forceDebugDraw(float deltaTime);
 
+  void debugSaveToFile(const char* filename);
+  void debugLoadFromFile(const char* filename);
+
 private:
   void xpbd_integrateState(float h);
 
@@ -134,6 +137,7 @@ private:
 
   void debugDraw(float deltaTime);
 
+  std::vector<BoundCapsule> m_boundCapsules;
   std::vector<Capsule> m_registeredCapsules;
   std::vector<uint32_t> m_capsuleOwners;
 

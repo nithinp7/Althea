@@ -1,8 +1,12 @@
+#include <Althea/Allocator.h>
 #include <Althea/Application.h>
 #include <Althea/Containers/StackVector.h>
 #include <Althea/Physics/PhysicsSystem.h>
 #include <Althea/Utilities.h>
+#include <Althea/Serialization.h>
 #include <glm/gtx/quaternion.hpp>
+
+#include <memory>
 
 #define COLOR_RED 0xff0000ff
 #define COLOR_ORANGE 0xdd8822ff
@@ -65,7 +69,8 @@ void PhysicsSystem::tick(float deltaTime) {
 
   forceUpdateCapsules();
 
-  forceDebugDraw(deltaTime);
+  debugDraw(deltaTime);
+  // forceDebugDraw(deltaTime);
 }
 
 void PhysicsSystem::xpbd_integrateState(float h) {
@@ -128,7 +133,7 @@ void PhysicsSystem::xpbd_findCollisions() {
 
       glm::vec3 locs[2];
       uint32_t collisions = 0;
-      float padding = 0.1f;
+      float padding = 0.5f;
       if (c.a.y - c.radius < m_settings.floorHeight + padding) {
         vec3& loc = locs[collisions++];
         loc = c.a;
@@ -196,33 +201,40 @@ void PhysicsSystem::xpbd_findCollisions() {
   }
 }
 
-#define BRK_OR_EARLY_OUT(COND) if (COND) { if (bEnableBrk) __debugbreak(); continue; }
+#define BRK_OR_EARLY_OUT(COND)                                                 \
+  if (bEnableEarlyOut && (COND)) {                                             \
+    if (bEnableBrk)                                                            \
+      __debugbreak();                                                          \
+    continue;                                                                  \
+  }
 
 void PhysicsSystem::xpbd_solveCollisionPositions() {
   // TODO: ADD TO SETTINGS
   float EPS = 0.000001f;
   float Cmax = 0.1;
   bool bEnableBrk = false;
+  bool bEnableEarlyOut = false;
 
   for (StaticCollision& col : m_staticCollisions) {
     const RigidBody& rb = m_rigidBodies[col.rigidBodyIdx];
     RigidBodyState& state = m_rigidBodyStates[col.rigidBodyIdx];
 
-    glm::quat qc = glm::inverse(state.rotation);
+    glm::quat q = state.rotation;
 
-    glm::vec3 rxn = glm::cross(col.rRB, qc * col.nStatic);
+    glm::vec3 r = q * col.rRB;
+    glm::vec3 rxn = glm::cross(r, col.nStatic);
 
-    /*glm::mat3 I, I_inv;
-    computeMomentOfInertia(col.rigidBodyIdx, I, I_inv);*/
+    glm::mat3 I, I_inv;
+    computeMomentOfInertia(col.rigidBodyIdx, I, I_inv);
 
     // effective mass at r
-    float w = rb.invMass + glm::dot(rxn, rb.invMoi * rxn);
+    float w = rb.invMass + glm::dot(rxn, I_inv * rxn);
 
-    glm::vec3 loc = state.translation + state.rotation * col.rRB;
+    glm::vec3 loc = state.translation + r;
     float C = glm::dot(col.rStatic - loc, col.nStatic);
-    C = glm::min(C, Cmax);
+    // C = glm::min(C, Cmax);
     BRK_OR_EARLY_OUT(C > Cmax);
-    
+
     if (C <= 0.0f)
       continue;
 
@@ -244,10 +256,8 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
     state.translation += rb.invMass * P;
 
     // linearized rotation update
-    glm::vec3 rxP = glm::cross(col.rRB, qc * P);
-    state.rotation += 0.5f *
-                      glm::quat(0.0f, state.rotation * (rb.invMoi * rxP)) *
-                      state.rotation;
+    glm::vec3 rxP = glm::cross(r, P);
+    state.rotation += 0.5f * glm::quat(0.0f, I_inv * rxP) * state.rotation;
     state.rotation = glm::normalize(state.rotation);
   }
 
@@ -258,27 +268,30 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
       const RigidBody& rbB = m_rigidBodies[col.rbBIdx];
       RigidBodyState& stateB = m_rigidBodyStates[col.rbBIdx];
 
-      glm::vec3 a = stateA.translation + stateA.rotation * col.rA;
-      glm::vec3 b = stateB.translation + stateB.rotation * col.rB;
+      glm::vec3 ra = stateA.rotation * col.rA;
+      glm::vec3 rb = stateB.rotation * col.rB;
+
+      glm::vec3 a = stateA.translation + ra;
+      glm::vec3 b = stateB.translation + rb;
       float C = glm::dot(b - a, col.n);
-      C = glm::min(C, Cmax);
+      // C = glm::min(C, Cmax);
       BRK_OR_EARLY_OUT(C > Cmax);
 
       if (C < 0.0f)
         continue;
 
-      glm::quat qac = glm::inverse(stateA.rotation);
-      glm::quat qbc = glm::inverse(stateB.rotation);
+      glm::vec3 rxn_a = glm::cross(ra, col.n);
+      glm::vec3 rxn_b = glm::cross(rb, col.n);
 
-      glm::vec3 na = qac * col.n;
-      glm::vec3 nb = qbc * col.n;
+      glm::mat3 Ia, Ia_inv;
+      computeMomentOfInertia(col.rbAIdx, Ia, Ia_inv);
 
-      glm::vec3 rxn_a = glm::cross(col.rA, na);
-      glm::vec3 rxn_b = glm::cross(col.rB, nb);
+      glm::mat3 Ib, Ib_inv;
+      computeMomentOfInertia(col.rbBIdx, Ib, Ib_inv);
 
       // effective mass at r
-      float wa = rbA.invMass + glm::dot(rxn_a, rbA.invMoi * rxn_a);
-      float wb = rbB.invMass + glm::dot(rxn_b, rbB.invMoi * rxn_b);
+      float wa = rbA.invMass + glm::dot(rxn_a, Ia_inv * rxn_a);
+      float wb = rbB.invMass + glm::dot(rxn_b, Ib_inv * rxn_b);
 
       BRK_OR_EARLY_OUT(wa < EPS);
       BRK_OR_EARLY_OUT(wb < EPS);
@@ -301,17 +314,15 @@ void PhysicsSystem::xpbd_solveCollisionPositions() {
       stateB.translation -= P * rbB.invMass;
 
       // linearized rotation update
-      glm::vec3 rxP_a = glm::cross(col.rA, qac * P);
-      glm::vec3 rxP_b = glm::cross(col.rB, qbc * P);
+      glm::vec3 rxP_a = glm::cross(ra, P);
+      glm::vec3 rxP_b = glm::cross(rb, P);
 
       stateA.rotation +=
-          0.5f * glm::quat(0.0f, stateA.rotation * (rbA.invMoi * rxP_a)) *
-          stateA.rotation;
+          0.5f * glm::quat(0.0f, Ia_inv * rxP_a) * stateA.rotation;
       stateA.rotation = glm::normalize(stateA.rotation);
 
       stateB.rotation -=
-          0.5f * glm::quat(0.0f, stateB.rotation * (rbB.invMoi * rxP_b)) *
-          stateB.rotation;
+          0.5f * glm::quat(0.0f, Ib_inv * rxP_b) * stateB.rotation;
       stateB.rotation = glm::normalize(stateB.rotation);
     }
   }
@@ -347,15 +358,16 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     RigidBodyState& state = m_rigidBodyStates[col.rigidBodyIdx];
 
     const glm::quat& q = state.rotation;
-    glm::quat qc = glm::inverse(q);
-
-    glm::vec3 rxn = glm::cross(col.rRB, qc * col.nStatic);
-
-    // effective mass at r
-    float w = rb.invMass + glm::dot(rxn, rb.invMoi * rxn);
-    // assert(w > 0.0001f);
 
     glm::vec3 r = q * col.rRB;
+    glm::vec3 rxn = glm::cross(r, col.nStatic);
+
+    glm::mat3 I, I_inv;
+    computeMomentOfInertia(col.rigidBodyIdx, I, I_inv);
+
+    // effective mass at r
+    float w = rb.invMass + glm::dot(rxn, I_inv * rxn);
+    // assert(w > 0.0001f);
 
     glm::vec3 loc = state.translation + r;
 
@@ -381,16 +393,17 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
         -col.nStatic * (vn + glm::min(m_settings.restitution * pvn, 0.0f));
     // glm::vec3 dV_restitution = -col.nStatic * vn;// glm::min(glm::max(vn,
     // pvn), 0.0f);
-    if (C > 0.0f)
-      dV += dV_restitution;
+    // if (C > 0.0f)
+    dV += dV_restitution;
+    float dVrMag = glm::length(dV + v);
 
     // friction
     float fn_h = col.lambdaN / h;
     // float fn_h = max(col.lambdaN, 0.0f) / h;
     float mu_d = m_settings.dynamicFriction;
     // if (vtMag > 0.0001f)
-    if (C > 0.0f)
-    {
+    // if (C > 0.0f)
+    if (vtMag > 0.0001f) {
       glm::vec3 dV_friction =
           -glm::normalize(vt) * glm::min(fn_h * mu_d, vtMag);
       // if (glm::length(dV_friction) > 0.01f)
@@ -398,7 +411,7 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
       {
         m_dbgDrawLines->addLine(
             loc,
-            loc + 100.0f * col.lambdaN * col.nStatic,
+            loc + 1.0f * col.lambdaN * col.nStatic,
             COLOR_CYAN);
         m_dbgDrawLines->addLine(loc, loc + dV_friction, COLOR_RED);
       }
@@ -412,8 +425,8 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
 
     glm::vec3 p = dV / w;
     state.linearVelocity += p * rb.invMass;
-    glm::vec3 rxp = glm::cross(col.rRB, qc * p);
-    state.angularVelocity += state.rotation * (rb.invMoi * rxp);
+    glm::vec3 rxp = glm::cross(r, p);
+    state.angularVelocity += I_inv * rxp;
   }
 
   for (const DynamicCollision& col : m_dynamicCollisions) {
@@ -426,6 +439,12 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     const glm::quat& qa = stateA.rotation;
     const glm::quat& qb = stateB.rotation;
 
+    glm::mat3 Ia, Ia_inv;
+    computeMomentOfInertia(col.rbAIdx, Ia, Ia_inv);
+
+    glm::mat3 Ib, Ib_inv;
+    computeMomentOfInertia(col.rbBIdx, Ib, Ib_inv);
+
     glm::vec3 ra = qa * col.rA;
     glm::vec3 rb = qb * col.rB;
 
@@ -436,15 +455,12 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     /*if (C < 0.0f)
       continue;*/
 
-    glm::quat qac = glm::inverse(qa);
-    glm::quat qbc = glm::inverse(qb);
-
-    glm::vec3 rxn_a = glm::cross(col.rA, qac * col.n);
-    glm::vec3 rxn_b = glm::cross(col.rB, qbc * col.n);
+    glm::vec3 rxn_a = glm::cross(ra, col.n);
+    glm::vec3 rxn_b = glm::cross(rb, col.n);
 
     // effective mass at r
-    float wa = rba.invMass + glm::dot(rxn_a, rba.invMoi * rxn_a);
-    float wb = rbb.invMass + glm::dot(rxn_b, rbb.invMoi * rxn_b);
+    float wa = rba.invMass + glm::dot(rxn_a, Ia_inv * rxn_a);
+    float wb = rbb.invMass + glm::dot(rxn_b, Ib_inv * rxn_b);
 
     glm::vec3 va =
         stateA.linearVelocity + glm::cross(stateA.angularVelocity, ra);
@@ -479,19 +495,27 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     glm::vec3 dV_restitution =
         col.n * (vn + glm::min(m_settings.restitution * pvn, 0.0f));
     // glm::vec3 dV_restitution = col.n * glm::max(glm::max(vn, pvn), 0.0f);
-    if (C <= 0.0f)
-      dV += dV_restitution;
+    // if (C <= 0.0f)
+    dV += dV_restitution;
+    float dVrMag = glm::length(v + dV);
 
     float fn_h = abs(col.lambdaN) / h;
     float mu_d = m_settings.dynamicFriction;
     // if (vtMag > 0.0001f)
     // if (C >= 0.0f)
-    if (C <= 0.0f)
-    {
-      glm::vec3 dV_friction = glm::normalize(vt) * glm::min(fn_h * mu_d, vtMag);
+    // if (C <= 0.0f)
+    if (vtMag > 0.00001f) {
+      glm::vec3 dV_friction =
+          glm::normalize(pvt) * glm::min(fn_h * mu_d, pvtMag);
       // if (glm::length(dV_friction) > 0.01f)
       dV += dV_friction;
-      { m_dbgDrawLines->addLine(locA, locA + dV_friction, COLOR_RED); }
+
+      {
+        glm::vec3 loc = 0.5f * (locA + locB);
+        m_dbgDrawLines->addLine(loc, loc + 1.0f * col.n, COLOR_CYAN);
+        m_dbgDrawLines->addLine(loc, loc + pvt, COLOR_GREEN);
+        m_dbgDrawLines->addLine(loc, loc + vt, COLOR_RED);
+      }
     }
     // friction
     // float lambdaN = C / (wa + wb);
@@ -508,11 +532,11 @@ void PhysicsSystem::xpbd_solveCollisionVelocities(float h) {
     stateA.linearVelocity += p * rba.invMass;
     stateB.linearVelocity -= p * rbb.invMass;
 
-    glm::vec3 rxp_a = glm::cross(col.rA, qac * p);
-    glm::vec3 rxp_b = glm::cross(col.rB, qbc * p);
+    glm::vec3 rxp_a = glm::cross(ra, p);
+    glm::vec3 rxp_b = glm::cross(rb, p);
 
-    stateA.angularVelocity += stateA.rotation * (rba.invMoi * rxp_a);
-    stateB.angularVelocity -= stateB.rotation * (rbb.invMoi * rxp_b);
+    stateA.angularVelocity += Ia_inv * rxp_a;
+    stateB.angularVelocity -= Ib_inv * rxp_b;
   }
 }
 
@@ -524,7 +548,10 @@ void PhysicsSystem::forceDebugDraw(float deltaTime) {
   debugDraw(deltaTime);
 }
 
-void PhysicsSystem::computeMomentOfInertia(uint32_t rbIdx, glm::mat3& I, glm::mat3& I_inv) const {
+void PhysicsSystem::computeMomentOfInertia(
+    uint32_t rbIdx,
+    glm::mat3& I,
+    glm::mat3& I_inv) const {
   const RigidBody& rb = m_rigidBodies[rbIdx];
   const RigidBodyState& state = m_rigidBodyStates[rbIdx];
 
@@ -535,10 +562,9 @@ void PhysicsSystem::computeMomentOfInertia(uint32_t rbIdx, glm::mat3& I, glm::ma
   I_inv = R * rb.invMoi * Rt;
 
   // TODO: ??
-    // glm::mat3 I = Rt * rb.moi * R; // TODO: ??
-    // glm::mat3 I_inv = Rt * rb.invMoi * R;
+  // glm::mat3 I = Rt * rb.moi * R; // TODO: ??
+  // glm::mat3 I_inv = Rt * rb.invMoi * R;
 }
-
 
 typedef std::vector<bool> Bitset;
 
@@ -843,6 +869,86 @@ void PhysicsSystem::forceUpdateCapsules() {
       c.b = state.rotation * boundCollider.bindPose.b + state.translation;
     }
   }
+}
+
+namespace {
+struct SerializedRigidBody {
+  glm::mat3 moi;
+  glm::mat3 invMoi;
+  float invMass;
+  gsl::span<BoundCapsule> capsules;
+
+  SerializedRigidBody() = default;
+  SerializedRigidBody(const RigidBody& rb)
+      : moi(rb.moi),
+        invMoi(rb.invMoi),
+        invMass(rb.invMass),
+        capsules(serializeVector(rb.capsules)) {}
+
+  operator RigidBody() const {
+    RigidBody rb{};
+    rb.moi = moi;
+    rb.invMoi = invMoi;
+    rb.invMass = invMass;
+    rb.capsules = deserializeVector(capsules);
+    return rb;
+  }
+};
+
+struct SerializedSim {
+  gsl::span<Capsule> m_registeredCapsules;
+  gsl::span<uint32_t> m_capsuleOwners;
+
+  gsl::span<SerializedRigidBody> m_rigidBodies;
+  gsl::span<RigidBodyState> m_rigidBodyStates;
+
+  char* basePtr;
+};
+} // namespace
+
+#ifdef _DEBUG
+void PhysicsSystem::debugSaveToFile(const char* filename) {
+  std::vector<char> outBuf;
+
+  SCOPED_LINEAR_ALLOCATOR;
+
+  SerializedSim s{};
+  s.m_registeredCapsules = serializeVector(m_registeredCapsules);
+  s.m_capsuleOwners = serializeVector(m_capsuleOwners);
+  s.m_rigidBodies =
+      serializeVector<RigidBody, SerializedRigidBody>(m_rigidBodies);
+  s.m_rigidBodyStates = serializeVector(m_rigidBodyStates);
+
+  s.basePtr = LinearAllocator::g_pAlloc;
+
+  {
+    SCOPED_ALLOCATOR_OVERRIDE(nullptr, nullptr);
+    outBuf.resize(sizeof(SerializedSim) + LinearAllocator::g_allocSize);
+    memcpy(&outBuf[0], &s, sizeof(SerializedSim));
+    memcpy(
+        &outBuf[0] + sizeof(SerializedSim),
+        LinearAllocator::g_pAlloc,
+        LinearAllocator::g_allocSize);
+
+    Utilities::writeFile(filename, outBuf);
+  }
+}
+#else
+void PhysicsSystem::debugSaveToFile(const char* filename) {}
+#endif // _DEBUG
+
+void PhysicsSystem::debugLoadFromFile(const char* filename) {
+  std::vector<char> buf = Utilities::readFile(filename);
+
+  SerializedSim* s = reinterpret_cast<SerializedSim*>(&buf[0]);
+
+  SCOPED_DESERIALIZE(s->basePtr, &buf[sizeof(SerializedSim)]);
+
+  m_registeredCapsules = deserializeVector(s->m_registeredCapsules);
+  m_capsuleOwners = deserializeVector(s->m_capsuleOwners);
+  m_rigidBodies =
+      deserializeVector<SerializedRigidBody, RigidBody>(s->m_rigidBodies);
+  m_rigidBodyStates = deserializeVector(s->m_rigidBodyStates);
 }
 } // namespace AltheaPhysics
 } // namespace AltheaEngine
