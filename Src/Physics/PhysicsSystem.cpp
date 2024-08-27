@@ -30,6 +30,9 @@ PhysicsSystem::PhysicsSystem(
   gBufferPassBuilder.registerSubpass(m_dbgDrawLines);
   gBufferPassBuilder.registerSubpass(m_dbgDrawCapsules);
   gBufferPassBuilder.registerSubpass(m_dbgDrawCapsulesWireframe);
+
+  m_dbgDrawCapsules->enableStencil(true);
+  m_dbgDrawCapsulesWireframe->enableStencil(true);
 }
 
 void PhysicsSystem::tick(float deltaTime) {
@@ -604,14 +607,16 @@ void PhysicsSystem::debugDraw(float deltaTime) {
               c.bindPose.a,
               c.bindPose.b,
               c.bindPose.radius,
-              bIsColliding ? COLOR_GREEN : COLOR_BLUE);
+              bIsColliding ? COLOR_GREEN : COLOR_BLUE,
+              (uint8_t)i + 1);
         } else {
           m_dbgDrawCapsules->addCapsule(
               model,
               c.bindPose.a,
               c.bindPose.b,
               c.bindPose.radius,
-              color);
+              color,
+              (uint8_t)i + 1);
         }
       }
     }

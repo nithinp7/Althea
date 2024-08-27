@@ -56,21 +56,23 @@ public:
       UniformHandle globalUniformsHandle) override;
 
   void reset() { m_count = 0; }
-  bool addCapsule(const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color) {
+  bool addCapsule(const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color, uint8_t stencil = 0) {
     if (m_count < m_capsules.getVertexCount()) {
-      m_capsules.setVertex({glm::mat4(1.0f), a, b, radius, color}, m_count++);
+      m_capsules.setVertex({glm::mat4(1.0f), a, b, radius, color, stencil }, m_count++);
       return true;
     }
     return false;
   }
 
-  bool addCapsule(const glm::mat4& model, const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color) {
+  bool addCapsule(const glm::mat4& model, const glm::vec3& a, const glm::vec3& b, float radius, uint32_t color, uint8_t stencil = 0) {
     if (m_count < m_capsules.getVertexCount()) {
-      m_capsules.setVertex({ model, a, b, radius, color }, m_count++);
+      m_capsules.setVertex({ model, a, b, radius, color, stencil }, m_count++);
       return true;
     }
     return false;
   }
+
+  void enableStencil(bool enable) { m_bWriteStencil = enable; }
 
 private:
   struct Mesh {
@@ -80,7 +82,8 @@ private:
   Mesh m_sphere;
   Mesh m_cylinder;
 
-  bool m_bWireframe;
+  bool m_bWireframe = false;
+  bool m_bWriteStencil = false;
 
   struct CapsuleInst {
     glm::mat4 model;
@@ -88,6 +91,7 @@ private:
     glm::vec3 b;
     float radius;
     uint32_t color;
+    uint8_t stencil;
   };
   DynamicVertexBuffer<CapsuleInst> m_capsules;
   uint32_t m_count = 0;

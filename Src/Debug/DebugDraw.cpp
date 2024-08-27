@@ -12,7 +12,6 @@ DebugDrawLines::DebugDrawLines(Application& app, uint32_t maxLinesCapacity) {
 // IGBufferSubpass impl
 void DebugDrawLines::registerGBufferSubpass(
     GraphicsPipelineBuilder& builder) const {
-
   builder.setPrimitiveType(PrimitiveType::LINES)
       .setLineWidth(2.5f)
       .addVertexInputBinding<DebugVert>(VK_VERTEX_INPUT_RATE_VERTEX)
@@ -78,6 +77,15 @@ DebugDrawCapsules::DebugDrawCapsules(
 void DebugDrawCapsules::registerGBufferSubpass(
     GraphicsPipelineBuilder& builder) const {
 
+  VkStencilOpState stencil{};
+  stencil.failOp = VK_STENCIL_OP_KEEP;
+  stencil.passOp = VK_STENCIL_OP_REPLACE;
+  stencil.depthFailOp = VK_STENCIL_OP_KEEP;
+  stencil.compareOp = VK_COMPARE_OP_ALWAYS;
+  stencil.compareMask = ~0ull;
+  stencil.writeMask = ~0ull;
+  stencil.reference = 0;
+
   ShaderDefines defs{};
   if (m_bWireframe) {
     defs.emplace("WIREFRAME", "");
@@ -111,6 +119,8 @@ void DebugDrawCapsules::registerGBufferSubpass(
       .addVertexShader(GEngineDirectory + "/Shaders/Debug/Capsule.vert", defs)
       .addFragmentShader(GEngineDirectory + "/Shaders/Debug/Capsule.frag", defs)
 
+      .setDynamicStencil(stencil, stencil)
+
       .layoutBuilder //
       .addPushConstants<DebugDrawPush>(VK_SHADER_STAGE_ALL);
 }
@@ -127,6 +137,9 @@ void DebugDrawCapsules::beginGBufferSubpass(
     constants.globalResources = globalResources.index;
     constants.globalUniforms = globalUniforms.index;
 
+    context.setStencilCompareMask(VK_STENCIL_FRONT_AND_BACK, ~0ull);
+    context.setStencilWriteMask(VK_STENCIL_FRONT_AND_BACK, ~0ull);
+
     context.bindDescriptorSets();
 
     VkBuffer vbs[2] = {
@@ -138,27 +151,86 @@ void DebugDrawCapsules::beginGBufferSubpass(
     vkCmdBindVertexBuffers(context.getCommandBuffer(), 0, 2, vbs, offsets);
     context.bindIndexBuffer(m_sphere.indices);
 
-    // phase sphere A
-    constants.extras0 = 0;
-    context.updatePushConstants(constants, 0);
+    if (m_bWriteStencil) {
+      // phase sphere A
+      constants.extras0 = 0;
+      context.updatePushConstants(constants, 0);
 
-    context.drawIndexed(m_sphere.indices.getIndexCount(), m_count);
+      for (uint32_t i = 0; i < m_count; ++i) {
+        context.setStencilReference(
+            VK_STENCIL_FRONT_AND_BACK,
+            m_capsules.getVertex(i).stencil);
+        vkCmdDrawIndexed(
+            context.getCommandBuffer(),
+            m_sphere.indices.getIndexCount(),
+            1,
+            0,
+            0,
+            i);
+      }
 
-    // phase sphere B
-    constants.extras0 = 1;
-    context.updatePushConstants(constants, 0);
+      // phase sphere B
+      constants.extras0 = 1;
+      context.updatePushConstants(constants, 0);
 
-    context.drawIndexed(m_sphere.indices.getIndexCount(), m_count);
+      for (uint32_t i = 0; i < m_count; ++i) {
+        context.setStencilReference(
+            VK_STENCIL_FRONT_AND_BACK,
+            m_capsules.getVertex(i).stencil);
+        vkCmdDrawIndexed(
+            context.getCommandBuffer(),
+            m_sphere.indices.getIndexCount(),
+            1,
+            0,
+            0,
+            i);
+      }
 
-    // phase cylinder
-    constants.extras0 = 2;
-    context.updatePushConstants(constants, 0);
+      // phase cylinder
+      constants.extras0 = 2;
+      context.updatePushConstants(constants, 0);
 
-    vbs[1] = m_cylinder.verts.getAllocation().getBuffer();
-    vkCmdBindVertexBuffers(context.getCommandBuffer(), 0, 2, vbs, offsets);
-    context.bindIndexBuffer(m_cylinder.indices);
+      vbs[1] = m_cylinder.verts.getAllocation().getBuffer();
+      vkCmdBindVertexBuffers(context.getCommandBuffer(), 0, 2, vbs, offsets);
+      context.bindIndexBuffer(m_cylinder.indices);
 
-    context.drawIndexed(m_cylinder.indices.getIndexCount(), m_count);
+      for (uint32_t i = 0; i < m_count; ++i) {
+        context.setStencilReference(
+            VK_STENCIL_FRONT_AND_BACK,
+            m_capsules.getVertex(i).stencil);
+        vkCmdDrawIndexed(
+            context.getCommandBuffer(),
+            m_cylinder.indices.getIndexCount(),
+            1,
+            0,
+            0,
+            i);
+      }
+    } else {
+      // Instanced draw (no stencil)
+
+      // phase sphere A
+      constants.extras0 = 0;
+      context.updatePushConstants(constants, 0);
+
+      context.drawIndexed(m_sphere.indices.getIndexCount(), m_count);
+
+      // phase sphere B
+      constants.extras0 = 1;
+      context.updatePushConstants(constants, 0);
+
+      context.drawIndexed(m_sphere.indices.getIndexCount(), m_count);
+
+      // phase cylinder
+      constants.extras0 = 2;
+      context.updatePushConstants(constants, 0);
+
+      vbs[1] = m_cylinder.verts.getAllocation().getBuffer();
+      vkCmdBindVertexBuffers(context.getCommandBuffer(), 0, 2, vbs, offsets);
+      context.bindIndexBuffer(m_cylinder.indices);
+
+      context.drawIndexed(m_cylinder.indices.getIndexCount(), m_count);
+    }
   }
 }
 } // namespace AltheaEngine

@@ -136,6 +136,11 @@ public:
    */
   GraphicsPipelineBuilder& setCullMode(VkCullModeFlags cullMode);
 
+  // TODO: Create nicer abstraction?
+  GraphicsPipelineBuilder& setStencil(const VkStencilOpState& front, const VkStencilOpState& back);
+  GraphicsPipelineBuilder& setDynamicStencil(const VkStencilOpState& front, const VkStencilOpState& back);
+
+
   /**
    * @brief The builder for creating a pipeline layout for this graphics
    * pipeline.
@@ -166,6 +171,12 @@ private:
   bool _depthTest = true;
   bool _depthWrite = true;
 
+  bool _stencilTest = false;
+  VkStencilOpState _stencilFront{};
+  VkStencilOpState _stencilBack{};
+
+  bool _dynamicStencil = false;
+
   std::vector<VkDynamicState> _dynamicStates;
 };
 
@@ -188,6 +199,14 @@ public:
 
   bool isDynamicFrontFaceEnabled() const {
     return this->_dynamicFrontFaceEnabled;
+  }
+
+  bool isStencilEnabled() const {
+    return _builder._stencilTest;
+  }
+
+  bool isDynamicStencilEnabled() const {
+    return _builder._dynamicStencil;
   }
 
   void tryRecompile(Application& app);

@@ -20,6 +20,10 @@
     layout(set=BINDLESS_SET, binding=IMAGE_HEAP_BINDING, FORMAT) \
       SIGNATURE[]
 
+#define DECL_SAMPLER_HEAP(SIGNATURE) \
+    layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \
+      SIGNATURE[]
+
 #define SAMPLER2D(NAME) \
     layout(set=BINDLESS_SET, binding=TEXTURE_HEAP_BINDING) \
       uniform sampler2D NAME[]

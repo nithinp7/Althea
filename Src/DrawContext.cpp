@@ -73,14 +73,35 @@ void DrawContext::_updatePushConstants(
 
 void DrawContext::setFrontFaceDynamic(VkFrontFace frontFace) const {
   assert(this->_pCurrentSubpass != nullptr);
-
-  // TODO: Only do these checks in debug mode!
-  if (!this->_pCurrentSubpass->getPipeline().isDynamicFrontFaceEnabled()) {
-    throw std::runtime_error("Attempting to dynamically set front face without "
-                             "enabling this feature in the pipeline.");
-  }
+  assert(this->_pCurrentSubpass->getPipeline().isDynamicFrontFaceEnabled());
 
   vkCmdSetFrontFace(this->_commandBuffer, frontFace);
+}
+
+void DrawContext::setStencilCompareMask(
+    VkStencilFaceFlags flags,
+    uint32_t cmpMask) const {
+  assert(this->_pCurrentSubpass != nullptr);
+  assert(this->_pCurrentSubpass->getPipeline().isDynamicStencilEnabled());
+
+  vkCmdSetStencilCompareMask(_commandBuffer, flags, cmpMask);
+}
+
+void DrawContext::setStencilWriteMask(
+    VkStencilFaceFlags flags,
+    uint32_t writeMask) const {
+  assert(this->_pCurrentSubpass != nullptr);
+  assert(this->_pCurrentSubpass->getPipeline().isDynamicStencilEnabled());
+
+  vkCmdSetStencilWriteMask(_commandBuffer, flags, writeMask);
+}
+void DrawContext::setStencilReference(
+    VkStencilFaceFlags flags,
+    uint32_t reference) const {
+  assert(this->_pCurrentSubpass != nullptr);
+  assert(this->_pCurrentSubpass->getPipeline().isDynamicStencilEnabled());
+
+  vkCmdSetStencilReference(_commandBuffer, flags, reference);
 }
 
 void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {
@@ -92,7 +113,8 @@ void DrawContext::bindIndexBuffer(const IndexBuffer& indexBuffer) const {
       VK_INDEX_TYPE_UINT32);
 }
 
-void DrawContext::drawIndexed(uint32_t indexCount, uint32_t instanceCount) const {
+void DrawContext::drawIndexed(uint32_t indexCount, uint32_t instanceCount)
+    const {
   // TODO: Expose more flexible draw commands, index offset, vertex offset,
   // instance count, etc.
   vkCmdDrawIndexed(this->_commandBuffer, indexCount, instanceCount, 0, 0, 0);

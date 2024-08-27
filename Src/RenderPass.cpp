@@ -55,8 +55,12 @@ RenderPass::RenderPass(
     vkAttachment.storeOp = attachment.store ? VK_ATTACHMENT_STORE_OP_STORE
                                             : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-    vkAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    vkAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkAttachment.stencilLoadOp = (attachment.flags & ATTACHMENT_FLAG_DEPTH)
+                                     ? vkAttachment.loadOp
+                                     : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkAttachment.stencilStoreOp = (attachment.flags & ATTACHMENT_FLAG_DEPTH)
+                                      ? vkAttachment.storeOp
+                                      : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     // TODO: need a way to configure context for what the attachment
     // was doing before. E.g., we may be doing anti-aliasing with

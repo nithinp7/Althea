@@ -177,9 +177,9 @@ GraphicsPipeline::GraphicsPipeline(
   depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
   depthStencilInfo.minDepthBounds = 0.0f; // Not used
   depthStencilInfo.maxDepthBounds = 1.0f; // Not used
-  depthStencilInfo.stencilTestEnable = VK_FALSE;
-  depthStencilInfo.front = {};
-  depthStencilInfo.back = {};
+  depthStencilInfo.stencilTestEnable = builder._stencilTest;
+  depthStencilInfo.front = builder._stencilFront;
+  depthStencilInfo.back = builder._stencilBack;
 
   // DYNAMIC STATES
 
@@ -486,6 +486,33 @@ GraphicsPipelineBuilder::setFrontFace(VkFrontFace frontFace) {
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::setCullMode(VkCullModeFlags cullMode) {
   this->_cullMode = cullMode;
+
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setStencil(
+  const VkStencilOpState& front,
+  const VkStencilOpState& back) {
+  _stencilTest = true;
+  _stencilFront = front;
+  _stencilBack = back;
+
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDynamicStencil(
+    const VkStencilOpState& front,
+    const VkStencilOpState& back) {
+  if (!_dynamicStencil) {
+    _dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
+    _dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+    _dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+  }
+
+  _dynamicStencil = true;
+  _stencilTest = true;
+  _stencilFront = front;
+  _stencilBack = back;
 
   return *this;
 }

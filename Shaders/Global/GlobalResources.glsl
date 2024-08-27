@@ -9,6 +9,8 @@ struct GBufferHandles {
   uint normalHandle;
   uint albedoHandle;
   uint metallicRoughnessOcclusionHandle;
+  uint stencilAHandle;
+  uint stencilBHandle;
 };
 
 struct IBLHandles {

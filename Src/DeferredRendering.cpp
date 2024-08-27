@@ -46,8 +46,8 @@ GBufferResources::GBufferResources(const Application& app) {
   depthOptions.mipCount = 1;
   depthOptions.layerCount = 1;
   depthOptions.format = app.getDepthImageFormat();
-  // TODO: stencil bit?
-  depthOptions.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  depthOptions.aspectMask =
+      VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
   depthOptions.usage =
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -56,9 +56,13 @@ GBufferResources::GBufferResources(const Application& app) {
 
   ImageViewOptions depthViewOptions{};
   depthViewOptions.format = app.getDepthImageFormat();
-  depthViewOptions.aspectFlags = depthOptions.aspectMask;
+  depthViewOptions.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
   this->_depthA.view = ImageView(app, this->_depthA.image, depthViewOptions);
   this->_depthB.view = ImageView(app, this->_depthB.image, depthViewOptions);
+
+  depthViewOptions.aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+  this->_stencilAView = ImageView(app, this->_depthA.image, depthViewOptions);
+  this->_stencilBView = ImageView(app, this->_depthB.image, depthViewOptions);
 
   SamplerOptions depthSampler{};
   this->_depthA.sampler = Sampler(app, depthSampler);
@@ -233,6 +237,9 @@ void GBufferResources::registerToHeap(GlobalHeap& heap) {
   this->_albedoHandle = heap.registerTexture();
   this->_metallicRoughnessOcclusionHandle = heap.registerTexture();
 
+  _stencilAHandle = heap.registerTexture();
+  _stencilBHandle = heap.registerTexture();
+
   heap.updateTexture(
       this->_depthAHandle,
       this->_depthA.view,
@@ -253,6 +260,9 @@ void GBufferResources::registerToHeap(GlobalHeap& heap) {
       this->_metallicRoughnessOcclusionHandle,
       this->_metallicRoughnessOcclusion.view,
       this->_metallicRoughnessOcclusion.sampler);
+
+  heap.updateTexture(_stencilAHandle, _stencilAView, _depthA.sampler);
+  heap.updateTexture(_stencilBHandle, _stencilBView, _depthB.sampler);
 }
 
 SceneToGBufferPass::SceneToGBufferPass(

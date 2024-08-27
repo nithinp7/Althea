@@ -29,6 +29,8 @@ struct ALTHEA_API GBufferHandles {
   uint32_t normalHandle;
   uint32_t albedoHandle;
   uint32_t metallicRoughnessOcclusionHandle;
+  uint32_t stencilAHandle;
+  uint32_t stencilBHandle;
 };
 
 class SubpassBuilder;
@@ -71,7 +73,9 @@ public:
         this->_depthBHandle.index,
         this->_normalHandle.index,
         this->_albedoHandle.index,
-        this->_metallicRoughnessOcclusionHandle.index};
+        this->_metallicRoughnessOcclusionHandle.index,
+        this->_stencilAHandle.index,
+        this->_stencilBHandle.index};
   }
 
 private:
@@ -80,6 +84,11 @@ private:
   ImageResource _normal{};
   ImageResource _albedo{};
   ImageResource _metallicRoughnessOcclusion{};
+
+  ImageView _stencilAView{};
+  ImageView _stencilBView{};
+  TextureHandle _stencilAHandle{};
+  TextureHandle _stencilBHandle{};
 
   TextureHandle _depthAHandle{};
   TextureHandle _depthBHandle{};
@@ -114,6 +123,7 @@ public:
   }
 
   void disableDepthDoubleBuffering() { _doubleBufferDepth = false; }
+
 private:
   std::vector<IntrusivePtr<IGBufferSubpass>> _subpasses;
   bool _doubleBufferDepth = true;

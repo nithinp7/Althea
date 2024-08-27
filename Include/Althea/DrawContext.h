@@ -61,6 +61,11 @@ public:
    */
   void setFrontFaceDynamic(VkFrontFace frontFace) const;
 
+  // dynamic stencil state
+  void setStencilCompareMask(VkStencilFaceFlags flags, uint32_t cmpMask) const;
+  void setStencilWriteMask(VkStencilFaceFlags flags, uint32_t writeMask) const;
+  void setStencilReference(VkStencilFaceFlags flags, uint32_t reference) const;
+
   // TODO: Support multiple vertex buffers being bound together
   // e.g., instance buffer
   // TODO: Support dynamic vertex buffer (uses offset depnding on frameContext)
