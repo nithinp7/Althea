@@ -23,7 +23,6 @@ void BufferUtilities::copyBuffer(
 
 /*static*/
 BufferAllocation BufferUtilities::createBuffer(
-    const Application& app,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
     const VmaAllocationCreateInfo& allocInfo) {
@@ -33,36 +32,55 @@ BufferAllocation BufferUtilities::createBuffer(
   bufferInfo.usage = usage;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  return app.getAllocator().createBuffer(bufferInfo, allocInfo);
+  return GAllocator->createBuffer(bufferInfo, allocInfo);
 }
 
 /*static*/
-BufferAllocation BufferUtilities::createStagingBuffer(
-    const Application& app,
-    size_t bufferSize) {
+BufferAllocation BufferUtilities::createStagingBuffer(size_t bufferSize) {
   VmaAllocationCreateInfo stagingInfo{};
   stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
   return createBuffer(
-      app,
       bufferSize,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       stagingInfo);
 }
 
 /*static*/
-BufferAllocation BufferUtilities::createStagingBuffer(
-    const Application& app,
-    gsl::span<const std::byte> srcBuffer) {
-  BufferAllocation stagingBuffer =
-      createStagingBuffer(app, srcBuffer.size());
+BufferAllocation
+BufferUtilities::createStagingBuffer(gsl::span<const std::byte> srcBuffer) {
+  BufferAllocation stagingBuffer = createStagingBuffer(srcBuffer.size());
 
   void* data = stagingBuffer.mapMemory();
   memcpy(data, srcBuffer.data(), srcBuffer.size());
   stagingBuffer.unmapMemory();
 
   return stagingBuffer;
+}
+
+// just for backward compat
+/*static*/
+BufferAllocation BufferUtilities::createBuffer(
+    const Application& app,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    const VmaAllocationCreateInfo& allocInfo) {
+  return createBuffer(size, usage, allocInfo);
+}
+
+/*static*/
+BufferAllocation BufferUtilities::createStagingBuffer(
+    const Application& app,
+    size_t bufferSize) {
+  return createStagingBuffer(bufferSize);
+}
+
+/*static*/
+BufferAllocation BufferUtilities::createStagingBuffer(
+    const Application& app,
+    gsl::span<const std::byte> srcBuffer) {
+  return createStagingBuffer(srcBuffer);
 }
 
 /*static*/

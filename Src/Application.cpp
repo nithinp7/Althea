@@ -37,6 +37,7 @@ std::string GProjectDirectory = "";
 std::string GEngineDirectory = "";
 
 InputManager* GInputManager = nullptr;
+Allocator* GAllocator = nullptr;
 
 Application::Application(
     const std::string& appTitle,
@@ -97,6 +98,7 @@ void Application::initVulkan() {
       this->instance,
       this->device,
       this->physicalDevice);
+  GAllocator = pAllocator.get();
 
   depthImageFormat = findDepthFormat();
 
@@ -213,6 +215,7 @@ void Application::cleanup() {
 
   destroyDefaultTextures();
 
+  GAllocator = nullptr;
   this->pAllocator.reset();
 
   vkDestroyDevice(device, nullptr);
@@ -516,7 +519,8 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          vulkan12Features.scalarBlockLayout && 
          vulkan12Features.runtimeDescriptorArray &&
          vulkan12Features.descriptorIndexing &&
-         vulkan12Features.descriptorBindingPartiallyBound;
+         vulkan12Features.descriptorBindingPartiallyBound &&
+         vulkan12Features.descriptorBindingUpdateUnusedWhilePending;
   //  rtPipelineFeature.rayTraversalPrimitiveCulling ??
   //  rtPipelineFeature.rayTracingPipelineTraceRaysIndirect ??; // &&
   // inlineBlockFeatures.descriptorBindingInlineUniformBlockUpdateAfterBind;
@@ -613,6 +617,7 @@ void Application::createLogicalDevice() {
   vulkan12Features.bufferDeviceAddress = VK_TRUE;
   vulkan12Features.descriptorIndexing = VK_TRUE;
   vulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
+  vulkan12Features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
   vulkan12Features.pNext = &rayQueryFeature;
 
   VkDeviceCreateInfo createInfo{};

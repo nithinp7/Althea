@@ -22,6 +22,14 @@ public:
       size_t dstOffset,
       size_t size);
   static BufferAllocation createBuffer(
+      VkDeviceSize size,
+      VkBufferUsageFlags usage,
+      const VmaAllocationCreateInfo& allocInfo);
+  static BufferAllocation createStagingBuffer(size_t bufferSize);
+  static BufferAllocation
+  createStagingBuffer(gsl::span<const std::byte> srcBuffer);
+
+  static BufferAllocation createBuffer(
       const Application& app,
       VkDeviceSize size,
       VkBufferUsageFlags usage,

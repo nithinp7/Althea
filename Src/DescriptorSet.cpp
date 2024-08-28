@@ -428,7 +428,7 @@ DescriptorSetAllocator::DescriptorSetAllocator(
   std::vector<VkDescriptorBindingFlags> bindingFlags{};
   bindingFlags.resize(layoutBuilder._bindings.size());
   for (auto& flag : bindingFlags) {
-    flag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    flag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
   }
 
   VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{

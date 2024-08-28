@@ -36,6 +36,7 @@ extern std::string GProjectDirectory;
 extern std::string GEngineDirectory;
 
 extern InputManager* GInputManager;
+extern Allocator* GAllocator;
 
 // TODO: Standardize the conventions in this class ALTHEA_API with the rest of
 // the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)

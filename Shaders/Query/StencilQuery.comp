@@ -1,0 +1,41 @@
+
+#version 450
+
+#include <Bindless/GlobalHeap.glsl>
+
+layout(push_constant) uniform PushConstants {
+  uint stencilHandle;
+  uint inputBufferHandle;
+  uint outputBufferHandle;
+  uint queryCount;
+} push;
+
+BUFFER_R(_inputBuffer, InputBuffer{
+  vec2 queries[32];
+});
+#define getQuery(queryIdx) \
+  _inputBuffer[push.inputBufferHandle + ((queryIdx) / 32)].queries[(queryIdx) % 32]
+
+BUFFER_W(_outputBuffer, OutputBuffer{
+  uint results[32];
+});
+#define getOutput(queryIdx) \
+  _outputBuffer[push.outputBufferHandle + ((queryIdx) / 32)].results[(queryIdx) % 32]
+
+DECL_SAMPLER_HEAP(uniform usampler2D usamplerHeap);
+#define stencil usamplerHeap[push.stencilHandle]
+
+layout(local_size_x = 32) in;
+void main() {
+  uint queryIdx = gl_GlobalInvocationID.x; 
+  if (queryIdx >= push.queryCount) {
+    return;
+  } 
+
+  vec2 uv = getQuery(queryIdx);
+  getOutput(queryIdx) = texture(stencil, uv).r;
+}
+
+
+
+
