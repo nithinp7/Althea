@@ -1,0 +1,100 @@
+#version 460 core
+
+#include "HairResources.glsl"
+
+layout(local_size_x = LOCAL_SIZE_X) in;
+
+void cs_advectParticles() {
+  uint particleIdx = uint(gl_GlobalInvocationID.x);
+  if (particleIdx >= simUniforms.particleCount) {
+    return;
+  }
+
+  if (bool(globals.inputMask & INPUT_BIT_SPACE))
+  {
+    return;
+  }
+
+  Particle p = BUFFER_HEAP_GET(particles, particleIdx);
+  
+  vec3 vdt = p.position - p.prevPosition;
+  vdt += vec3(0.0, -GRAVITY * DT, 0.0);
+  vdt *= 1.0 - DAMPING;
+  float speed = length(vdt);
+  if (speed > MAX_SPEED)
+    vdt *= MAX_SPEED / speed;
+
+  p.prevPosition = p.position;
+
+  p.position += vdt;
+  
+  float floorPenetration = FLOOR_HEIGHT + PARTICLE_RADIUS - p.position.y;
+  if (floorPenetration > 0.0)
+    p.position.y += floorPenetration;
+  
+  BUFFER_HEAP_GET(particles, particleIdx) = p;  
+}
+
+void cs_ftlStrands() {
+  uint strandIdx = uint(gl_GlobalInvocationID.x);
+  if (strandIdx >= STRANDS_COUNT) {
+    return;
+  }
+
+  if (bool(globals.inputMask & INPUT_BIT_SPACE)) {
+    return;
+  }
+
+  if (!bool(globals.inputMask & INPUT_BIT_LEFT_MOUSE)) {
+    uint pIdx = BUFFER_HEAP_GET(strandBuffer, strandIdx).indices[0];
+    Particle p = BUFFER_HEAP_GET(particles, pIdx);
+
+    vec4 spherePos = vec4(0.0, 0.0, -20.0, 1.0);
+    spherePos = globals.inverseView * spherePos;
+    spherePos.y += 10.0;
+    float radius = 10.0;
+    float c = cos(strandIdx);
+    float s = sin(strandIdx);
+    spherePos.xyz += radius * vec3(c, 0., s);
+    vec3 diff = spherePos.xyz - p.position;
+    float dist = length(diff);
+    p.position += K_INTERACTION * diff * (dist - radius) / dist; 
+
+    BUFFER_HEAP_GET(particles, pIdx) = p;
+  }
+
+  for (int i = 1; i < STRAND_PARTICLE_COUNT; ++i) {
+    uint p0Idx = BUFFER_HEAP_GET(strandBuffer, strandIdx).indices[i-1];
+    uint p1Idx = BUFFER_HEAP_GET(strandBuffer, strandIdx).indices[i];
+
+    vec3 p0 = BUFFER_HEAP_GET(particles, p0Idx).position;
+    vec3 p1 = BUFFER_HEAP_GET(particles, p1Idx).position;
+  
+    vec3 diff = p1 - p0;
+    float dist2 = dot(diff, diff);
+    // if (dist2 > STRAND_PARTICLE_SEPARATION * STRAND_PARTICLE_SEPARATION)
+    {
+      float dist = sqrt(dist2);
+      float d = dist - STRAND_PARTICLE_SEPARATION;
+
+      diff *= K_FTL * d / dist;
+
+      // p0 += diff;
+      p1 -= diff;
+
+      // BUFFER_HEAP_GET(particles, p0Idx).position = p0;
+      BUFFER_HEAP_GET(particles, p1Idx).position = p1;
+      BUFFER_HEAP_GET(particles, p0Idx).prevPosition -= FTL_DAMPING * diff;
+    }
+  }
+}
+
+void cs_p2g_dense() {
+  uint particleIdx = uint(gl_GlobalInvocationID.x);
+  if (particleIdx >= simUniforms.particleCount) {
+    return;
+  }
+
+  //BUFFER_HEAP_GET(particles, particleIdx).position += vec3(0.0, -0.1, 0.0);
+}
+
