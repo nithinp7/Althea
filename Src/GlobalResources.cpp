@@ -9,8 +9,7 @@ GlobalResources::GlobalResources(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     GlobalHeap& heap,
-    TextureHandle shadowMapArrayHandle,
-    BufferHandle primitiveConstantBuffer) {
+    const GlobalResourcesBuilder& builder) {
 
   this->_gBuffer = GBufferResources(app);
   this->_gBuffer.registerToHeap(heap);
@@ -25,8 +24,13 @@ GlobalResources::GlobalResources(
   GlobalResourcesConstants constants{};
   constants.gBuffer = this->_gBuffer.getHandles();
   constants.ibl = this->_ibl.getHandles();
-  constants.shadowMapArray = shadowMapArrayHandle.index;
-  constants.primitiveBuffer = primitiveConstantBuffer.index;
+  constants.shadowMapArray = builder.shadowMapArrayHandle.index;
+
+  if (builder.rayTracing)
+  {
+    _rayTracingResources = RayTracingResources(app, commandBuffer, heap, *builder.rayTracing);
+    constants.raytracing = _rayTracingResources.getHandles();
+  }
 
   this->_constants =
       ConstantBuffer<GlobalResourcesConstants>(app, commandBuffer, constants);

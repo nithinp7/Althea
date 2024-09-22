@@ -21,7 +21,7 @@ class ALTHEA_API AccelerationStructure {
 public:
   AccelerationStructure() = default;
   AccelerationStructure(
-      Application& app,
+      const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       const std::vector<Model>& models);
 

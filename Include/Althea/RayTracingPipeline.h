@@ -52,7 +52,7 @@ public:
     vkCmdPushConstants(
         commandBuffer,
         getLayout(),
-        VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+        VK_SHADER_STAGE_ALL,
         0,
         sizeof(TPush),
         &push);

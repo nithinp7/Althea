@@ -1,14 +1,9 @@
 #version 450
 
+#include "SimpleRTResources.glsl"
+
 layout(location=0) smooth out vec3 direction;
 layout(location=1) out vec2 screenUV;
-
-layout(push_constant) Push {
-  uint globalUniformsHandle;
-} push;
-
-#include <Global/GlobalUniforms.glsl>
-#define globals globalUniforms[push.globalUniformsHandle]
 
 void main() {
   vec2 screenPos = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);

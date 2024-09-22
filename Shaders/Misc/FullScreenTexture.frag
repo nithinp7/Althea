@@ -7,8 +7,6 @@ layout(location=1) in vec2 uv;
 
 layout(location=0) out vec4 outColor;
 
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
 #include <Global/GlobalUniforms.glsl>
 
 layout(set=1, binding=0) uniform sampler2D tex; 

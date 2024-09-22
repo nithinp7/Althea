@@ -9,7 +9,7 @@ namespace AltheaEngine {
 // TODO: Allow for regular command buffer as well
 // TODO: Separate out BLAS and TLAS building to make this more readable
 AccelerationStructure::AccelerationStructure(
-    Application& app,
+    const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     const std::vector<Model>& models) {
   uint32_t primCount = 0;
@@ -259,7 +259,7 @@ AccelerationStructure::AccelerationStructure(
       tlasInstance.transform.matrix[1][3] = primTransform[3][1];
       tlasInstance.transform.matrix[2][3] = primTransform[3][2];
 
-      tlasInstance.instanceCustomIndex = primIndex;
+      tlasInstance.instanceCustomIndex = prim.getConstantBufferHandle().index;
       tlasInstance.mask = 0xFF;
       tlasInstance.instanceShaderBindingTableRecordOffset =
           0; // For now everything uses same shader

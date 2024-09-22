@@ -1,3 +1,6 @@
+#ifndef _COMMONTRANSLATIONS_
+#define _COMMONTRANSLATIONS_
+
 #ifndef IS_SHADER
 #include <cstdint>
 #include <glm/glm.hpp>
@@ -15,3 +18,5 @@ uvec4 unpack_u16vec4(uvec2 packed) {
   // return uvec4(packed.x & 0xffff, packed.x >> 16, packed.y & 0xffff, packed.y >> 16);
 }
 #endif
+
+#endif // _COMMONTRANSLATIONS_

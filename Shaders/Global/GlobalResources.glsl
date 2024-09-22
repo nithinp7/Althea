@@ -2,6 +2,7 @@
 #define _GLOBALRESOURCES_
 
 #include <Bindless/GlobalHeap.glsl>
+#include <../Include/Althea/Common/RayTracingCommon.h>
 
 struct GBufferHandles {
   uint depthAHandle;
@@ -23,8 +24,8 @@ struct IBLHandles {
 BUFFER_R(globalResources, GlobalResources{
   GBufferHandles gBuffer;
   IBLHandles ibl;
+  RayTracingHandles raytracing;
   uint shadowMapArray;
-  uint primitiveConstantsBuffer;
 });
 
 #endif // _GLOBALRESOURCES_
