@@ -94,6 +94,8 @@ private:
   std::vector<Skin> _skins;
   DynamicVertexBuffer<glm::mat4> _nodeTransforms;
   std::vector<Primitive> _primitives;
+  std::vector<Material> _materials;
+  std::vector<Texture> _textures;
 
   glm::mat4 _modelTransform;
 

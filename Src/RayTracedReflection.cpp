@@ -19,22 +19,22 @@ RayTracedReflection::RayTracedReflection(
 
   // Setup material needed for reflection pass
   {
-    DescriptorSetLayoutBuilder layoutBuilder{};
-    GBufferResources::buildMaterial(layoutBuilder);
-    layoutBuilder.addAccelerationStructureBinding(
-        VK_SHADER_STAGE_RAYGEN_BIT_KHR);
-    layoutBuilder.addStorageImageBinding(VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+    // DescriptorSetLayoutBuilder layoutBuilder{};
+    // GBufferResources::buildMaterial(layoutBuilder);
+    // layoutBuilder.addAccelerationStructureBinding(
+    //     VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+    // layoutBuilder.addStorageImageBinding(VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 
-    this->_pReflectionMaterialAllocator =
-        std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, 1);
-    this->_pReflectionMaterial =
-        std::make_unique<Material>(app, *this->_pReflectionMaterialAllocator);
-    ResourcesAssignment assignment = this->_pReflectionMaterial->assign();
-    gBuffer.bindTextures(assignment);
-    assignment.bindAccelerationStructure(tlas);
-    assignment.bindStorageImage(
-        this->_reflectionBuffer.getReflectionBufferTargetView(),
-        this->_reflectionBuffer.getReflectionBufferTargetSampler());
+    // this->_pReflectionMaterialAllocator =
+    //     std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, 1);
+    // // this->_pReflectionMaterial =
+    // //     std::make_unique<Material>(app, *this->_pReflectionMaterialAllocator);
+    // ResourcesAssignment assignment;// = this->_pReflectionMaterial->assign();
+    // gBuffer.bindTextures(assignment);
+    // assignment.bindAccelerationStructure(tlas);
+    // assignment.bindStorageImage(
+    //     this->_reflectionBuffer.getReflectionBufferTargetView(),
+    //     this->_reflectionBuffer.getReflectionBufferTargetSampler());
   }
 
   // Setup reflection pass
@@ -76,7 +76,7 @@ void RayTracedReflection::captureReflection(
   {
     VkDescriptorSet sets[2] = {
         globalSet,
-        this->_pReflectionMaterial->getCurrentDescriptorSet(context)};
+        0};//this->_pReflectionMaterial->getCurrentDescriptorSet(context)};
     vkCmdBindDescriptorSets(
         commandBuffer,
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,

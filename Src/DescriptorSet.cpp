@@ -2,7 +2,6 @@
 
 #include "Application.h"
 #include "BufferHeap.h"
-#include "TextureHeap.h"
 
 #include <cassert>
 #include <stdexcept>
@@ -272,35 +271,6 @@ DescriptorAssignment& DescriptorAssignment::bindTextureDescriptor(
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = nullptr;
   descriptorWrite.pImageInfo = &textureImageInfo;
-  descriptorWrite.pTexelBufferView = nullptr;
-
-  ++this->_currentIndex;
-  return *this;
-}
-
-DescriptorAssignment& DescriptorAssignment::bindTextureHeap(TextureHeap& heap) {
-  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
-    throw std::runtime_error(
-        "Exceeded expected number of bindings in descriptor set.");
-  }
-
-  if (this->_bindings[this->_currentIndex].descriptorType !=
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
-    throw std::runtime_error("Unexpected binding in descriptor set.");
-  }
-
-  const std::vector<VkDescriptorImageInfo>& imageInfos = heap.getImageInfos();
-
-  VkWriteDescriptorSet& descriptorWrite =
-      this->_descriptorWrites[this->_currentIndex];
-  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrite.dstSet = this->_descriptorSet;
-  descriptorWrite.dstBinding = this->_currentIndex;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
-  descriptorWrite.pBufferInfo = nullptr;
-  descriptorWrite.pImageInfo = imageInfos.data();
   descriptorWrite.pTexelBufferView = nullptr;
 
   ++this->_currentIndex;

@@ -186,17 +186,10 @@ Model::Model(
   this->_model = std::move(*result.model);
   // this->_model.generateMissingNormalsSmooth();
 
-  // Generate mip-maps for all images
-  for (CesiumGltf::Image& image : this->_model.images) {
-    if (CesiumGltfReader::GltfReader::generateMipMaps(image.cesium)) {
-      throw std::runtime_error(
-          "Could not generate mip-maps for images in glTF.");
-    }
-  }
-
   _modelTransform = glm::mat4(1.0f);
   _nodes.resize(_model.nodes.size());
 
+  _skins.reserve(_model.skins.size());
   for (const CesiumGltf::Skin& gltfSkin : _model.skins) {
     // joint maps are used to lookup node indices in order to fetch
     // transforms
@@ -219,6 +212,47 @@ Model::Model(
             inverseBindMatrices[jointIdx];
       }
     }
+  }
+
+  uint32_t textureCount = _model.textures.size();
+
+  // need to mark which textures are srgb
+  // we need to infer this from whether they are referenced as base colors
+  // or emissive textures from materials
+  bool* bIsSrgb = (bool*)alloca(sizeof(bool) * textureCount);
+  memset(bIsSrgb, 0, sizeof(bool) * textureCount);
+
+  for (const CesiumGltf::Material& material : _model.materials) {
+    if (material.pbrMetallicRoughness) {
+      if (material.pbrMetallicRoughness->baseColorTexture) {
+        int texIndex = material.pbrMetallicRoughness->baseColorTexture->index;
+        if (texIndex >= 0 && texIndex < textureCount)
+          bIsSrgb[texIndex] = true;
+      }
+    }
+
+    if (material.emissiveTexture) {
+      int texIndex = material.emissiveTexture->index;
+      if (texIndex >= 0 && texIndex < textureCount)
+        bIsSrgb[texIndex] = true;
+    }
+  }
+
+  _textures.reserve(textureCount);
+  for (uint32_t texIdx = 0; texIdx < textureCount; ++texIdx) {
+    _textures.emplace_back(
+        app,
+        commandBuffer,
+        _model,
+        _model.textures[texIdx],
+        bIsSrgb[texIdx]);
+    _textures.back().registerToHeap(heap);
+  }
+
+  _materials.reserve(_model.materials.size());
+  for (const CesiumGltf::Material& material : _model.materials) {
+    _materials
+        .emplace_back(app, commandBuffer, heap, _model, material, _textures);
   }
 
   // Sensible estimate of number of primitives that will be in the model
@@ -249,6 +283,7 @@ Model::Model(
             heap,
             this->_model,
             primitive,
+            _materials,
             BufferHandle(),
             0);
       }
@@ -418,6 +453,7 @@ void Model::_loadNode(
           heap,
           this->_model,
           primitive,
+          _materials,
           gltfNode.skin >= 0 ? getSkinJointMapHandle(gltfNode.skin)
                              : BufferHandle(),
           nodeIdx);

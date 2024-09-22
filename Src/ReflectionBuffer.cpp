@@ -72,26 +72,26 @@ ReflectionBuffer::ReflectionBuffer(
   SamplerOptions mipSamplerOptions{};
   this->_mipSampler = Sampler(app, mipSamplerOptions);
 
-  // Setup material needed for convolution pass
-  {
-    DescriptorSetLayoutBuilder layoutBuilder{};
-    // Previous mip of reflection buffer.
-    layoutBuilder.addTextureBinding(VK_SHADER_STAGE_COMPUTE_BIT)
-        .addStorageImageBinding();
-    this->_pConvolutionMaterialAllocator =
-        std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, mipCount);
+  // // Setup material needed for convolution pass
+  // {
+  //   DescriptorSetLayoutBuilder layoutBuilder{};
+  //   // Previous mip of reflection buffer.
+  //   layoutBuilder.addTextureBinding(VK_SHADER_STAGE_COMPUTE_BIT)
+  //       .addStorageImageBinding();
+  //   this->_pConvolutionMaterialAllocator =
+  //       std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, mipCount);
 
-    // Each convolution pass gets a material
-    this->_convolutionMaterials.reserve(mipCount - 1);
-    for (uint32_t mipIndex = 0; mipIndex < mipCount - 1; ++mipIndex) {
-      Material& material = this->_convolutionMaterials.emplace_back(
-          app,
-          *this->_pConvolutionMaterialAllocator);
-      material.assign()
-          .bindTexture(this->_mipViews[mipIndex], this->_mipSampler)
-          .bindStorageImage(this->_mipViews[mipIndex + 1], this->_mipSampler);
-    }
-  }
+  //   // Each convolution pass gets a material
+  //   this->_convolutionMaterials.reserve(mipCount - 1);
+  //   for (uint32_t mipIndex = 0; mipIndex < mipCount - 1; ++mipIndex) {
+  //     Material& material = this->_convolutionMaterials.emplace_back(
+  //         app,
+  //         *this->_pConvolutionMaterialAllocator);
+  //     material.assign()
+  //         .bindTexture(this->_mipViews[mipIndex], this->_mipSampler)
+  //         .bindStorageImage(this->_mipViews[mipIndex + 1], this->_mipSampler);
+  //   }
+  // }
 
   // Setup convolution pass
   {
@@ -259,9 +259,9 @@ void ReflectionBuffer::convolveReflectionBuffer(
         &readBarrier);
 
     // Dispatch compute work
-    VkDescriptorSet material =
-        this->_convolutionMaterials[mipLevel - 1].getCurrentDescriptorSet(
-            context);
+    VkDescriptorSet material;//=
+    //     this->_convolutionMaterials[mipLevel - 1].getCurrentDescriptorSet(
+    //         context);
     vkCmdBindDescriptorSets(
         commandBuffer,
         VK_PIPELINE_BIND_POINT_COMPUTE,

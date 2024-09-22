@@ -7,6 +7,9 @@
 
 #include <cstdint>
 
+namespace CesiumGltf {
+  struct Sampler;
+} // namespace CesiumGltf
 namespace AltheaEngine {
 class Application;
 
@@ -23,6 +26,9 @@ struct ALTHEA_API SamplerOptions {
   uint32_t firstMip = 0;
   uint32_t mipCount = 1;
   bool normalized = true;
+
+  SamplerOptions() = default;
+  SamplerOptions(const CesiumGltf::Sampler& gltfSampler, uint32_t mipCount = 1);
 };
 
 class ALTHEA_API Sampler {

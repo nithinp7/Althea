@@ -42,15 +42,6 @@ ResourcesAssignment::bindTexture(VkImageView imageView, VkSampler sampler) {
   return *this;
 }
 
-ResourcesAssignment&
-ResourcesAssignment::bindTextureHeap(TextureHeap& textureHeap) {
-  for (DescriptorAssignment& assignment : this->_assignments) {
-    assignment.bindTextureHeap(textureHeap);
-  }
-
-  return *this;
-}
-
 ResourcesAssignment& ResourcesAssignment::bindStorageImage(
     VkImageView imageView,
     VkSampler sampler) {

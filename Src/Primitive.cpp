@@ -19,65 +19,6 @@
 #include <string>
 
 namespace AltheaEngine {
-namespace {
-struct PrimitivePushConstants {
-  uint32_t constantBufferHandle{};
-  uint32_t matrixBufferHandle{};
-};
-} // namespace
-static std::shared_ptr<Texture> createTexture(
-    const Application& app,
-    SingleTimeCommandBuffer& commandBuffer,
-    const CesiumGltf::Model& model,
-    const std::optional<CesiumGltf::TextureInfo>& texture,
-    std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>&
-        textureMap,
-    int32_t& textureCoordinateIndexConstant,
-    bool srgb) {
-  if (texture && texture->index >= 0 &&
-      texture->index <= model.textures.size() &&
-      static_cast<int32_t>(texture->texCoord) < MAX_UV_COORDS) {
-    textureCoordinateIndexConstant = static_cast<int32_t>(texture->texCoord);
-
-    const CesiumGltf::Texture& gltfTexture = model.textures[texture->index];
-    auto textureIt = textureMap.find(&gltfTexture);
-    if (textureIt != textureMap.end()) {
-      return textureIt->second;
-    }
-
-    auto result = textureMap.emplace(
-        &gltfTexture,
-        std::make_shared<Texture>(
-            app,
-            commandBuffer,
-            model,
-            model.textures[texture->index],
-            srgb));
-    return result.first->second;
-  }
-
-  return nullptr;
-}
-
-void TextureSlots::fillEmptyWithDefaults() {
-  if (!this->pBaseTexture)
-    this->pBaseTexture = GWhiteTexture1x1;
-
-  if (!this->pNormalMapTexture)
-    this->pNormalMapTexture = GNormalTexture1x1;
-
-  if (!this->pMetallicRoughnessTexture)
-    this->pMetallicRoughnessTexture = GWhiteTexture1x1; // GGreenTexture1x1;
-
-  if (!this->pOcclusionTexture) {
-    this->pOcclusionTexture = GWhiteTexture1x1;
-  }
-
-  if (!this->pEmissiveTexture) {
-    this->pEmissiveTexture = GBlackTexture1x1;
-  }
-}
-
 /*static*/
 void Primitive::buildPipeline(GraphicsPipelineBuilder& builder) {
   builder.setPrimitiveType(PrimitiveType::TRIANGLES)
@@ -430,159 +371,72 @@ Primitive::Primitive(
     GlobalHeap& heap,
     const CesiumGltf::Model& model,
     const CesiumGltf::MeshPrimitive& primitive,
+    const std::vector<Material>& materialMap,
     BufferHandle jointMapHandle,
     uint32_t nodeIdx)
-    : _device(app.getDevice()),
-      // TODO: 
+    : 
+      // TODO:
       // glm::determinant(glm::mat3(nodeTransform)) < 0.0f
-      _flipFrontFace(false) {
-  
-  _constants.jointMapHandle = jointMapHandle.index;
-  _constants.nodeIdx = nodeIdx;
-
-  // fill some non-zero defaults
-  
-  _constants.baseColorFactor = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-
-  _constants.normalScale = 1.0f;
-  _constants.roughnessFactor = 1.0f;
-
-  _constants.occlusionStrength = 1.0f;
-  _constants.alphaCutoff = 0.5f;
-
-  const VkPhysicalDevice& physicalDevice = app.getPhysicalDevice();
-
-  std::vector<Vertex> vertices;
-  std::vector<uint32_t> indices;
+      m_flipFrontFace(false) {
 
   // If the normal map exists, we might need its UV coordinates for
   // tangent-space generation later.
-  uint32_t normalMapUvIndex = 0;
+  uint32_t normalMapUvIndex = 0; 
 
-  // TODO: texture map could exist on a model level, to allow for shared texture
-  // resource across primitives
-  std::unordered_map<const CesiumGltf::Texture*, std::shared_ptr<Texture>>
-      textureMap;
-  if (primitive.material >= 0 && primitive.material < model.materials.size()) {
-    const CesiumGltf::Material& material = model.materials[primitive.material];
-    if (material.pbrMetallicRoughness) {
-      const CesiumGltf::MaterialPBRMetallicRoughness& pbr =
-          *material.pbrMetallicRoughness;
-      this->_textureSlots.pBaseTexture = createTexture(
-          app,
-          commandBuffer,
-          model,
-          pbr.baseColorTexture,
-          textureMap,
-          this->_constants.baseTextureCoordinateIndex,
-          true);
+  PrimitiveConstants constants{};
 
-      this->_constants.baseColorFactor = glm::vec4(
-          static_cast<float>(pbr.baseColorFactor[0]),
-          static_cast<float>(pbr.baseColorFactor[1]),
-          static_cast<float>(pbr.baseColorFactor[2]),
-          static_cast<float>(pbr.baseColorFactor[3]));
+  constants.jointMapHandle = jointMapHandle.index;
+  constants.nodeIdx = nodeIdx;
 
-      this->_textureSlots.pMetallicRoughnessTexture = createTexture(
-          app,
-          commandBuffer,
-          model,
-          pbr.metallicRoughnessTexture,
-          textureMap,
-          this->_constants.metallicRoughnessTextureCoordinateIndex,
-          false);
+   if (primitive.material >= 0 && primitive.material < model.materials.size()) {
+    constants.materialHandle = materialMap[primitive.material].getHandle().index;
+    normalMapUvIndex = materialMap[primitive.material].getNormalTextureCoordinateIndex();
+   }
+   else
+   {
+    // TODO - setup default material...
+    constants.materialHandle = INVALID_BINDLESS_HANDLE;
+   }
 
-      this->_constants.metallicFactor = static_cast<float>(pbr.metallicFactor);
-      this->_constants.roughnessFactor =
-          static_cast<float>(pbr.roughnessFactor);
-      // TODO: reconsider default textures!! e.g., consider no texture + factors
-      // metallic factor, roughness factor
-    }
 
-    this->_textureSlots.pNormalMapTexture = createTexture(
-        app,
-        commandBuffer,
-        model,
-        material.normalTexture,
-        textureMap,
-        this->_constants.normalMapTextureCoordinateIndex,
-        false);
-
-    if (material.normalTexture) {
-      normalMapUvIndex = this->_constants.normalMapTextureCoordinateIndex;
-      this->_constants.normalScale =
-          static_cast<float>(material.normalTexture->scale);
-    }
-
-    this->_textureSlots.pOcclusionTexture = createTexture(
-        app,
-        commandBuffer,
-        model,
-        material.occlusionTexture,
-        textureMap,
-        this->_constants.occlusionTextureCoordinateIndex,
-        false);
-
-    if (material.occlusionTexture) {
-      this->_constants.occlusionStrength =
-          static_cast<float>(material.occlusionTexture->strength);
-    }
-
-    this->_textureSlots.pEmissiveTexture = createTexture(
-        app,
-        commandBuffer,
-        model,
-        material.emissiveTexture,
-        textureMap,
-        this->_constants.emissiveTextureCoordinateIndex,
-        true);
-
-    this->_constants.emissiveFactor = glm::vec4(
-        static_cast<float>(material.emissiveFactor[0]),
-        static_cast<float>(material.emissiveFactor[1]),
-        static_cast<float>(material.emissiveFactor[2]),
-        1.0f);
-
-    this->_constants.alphaCutoff = static_cast<float>(material.alphaCutoff);
+  VertexBufferBuilder vbBuilder(model, primitive, normalMapUvIndex);
+  if (vbBuilder.failed) {
+    throw std::runtime_error(
+        "Failed to create glTF vertex buffer for primitive!");
+    return;
   }
 
-  this->_textureSlots.fillEmptyWithDefaults();
+  std::vector<Vertex> vertices = std::move(vbBuilder.vertices);
+  std::vector<uint32_t> indices = std::move(vbBuilder.indices);
 
-  {
-    VertexBufferBuilder vbBuilder(model, primitive, normalMapUvIndex);
-    if (vbBuilder.failed) {
-      throw std::runtime_error(
-          "Failed to create glTF vertex buffer for primitive!");
-      return;
-    }
-
-    vertices = std::move(vbBuilder.vertices);
-    indices = std::move(vbBuilder.indices);
-
-    _constants.isSkinned = vbBuilder.isSkinned;
-  }
-
+  constants.isSkinned = vbBuilder.isSkinned;
+  
   // Compute AABB
   if (vertices.size() > 0) {
-    this->_aabb.min = this->_aabb.max = vertices[0].position;
+    m_aabb.min = m_aabb.max = vertices[0].position;
     for (size_t i = 1; i < vertices.size(); ++i) {
-      this->_aabb.min = glm::min(this->_aabb.min, vertices[i].position);
-      this->_aabb.max = glm::max(this->_aabb.max, vertices[i].position);
+      m_aabb.min = glm::min(m_aabb.min, vertices[i].position);
+      m_aabb.max = glm::max(m_aabb.max, vertices[i].position);
     }
   } else {
     throw std::runtime_error(
         "Attempting to create a primitive with no vertices!");
   }
 
-  this->_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
-  this->_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
+  m_vertexBuffer = VertexBuffer(app, commandBuffer, std::move(vertices));
+  m_vertexBuffer.registerToHeap(heap);
+  constants.vertexBufferHandle = m_vertexBuffer.getHandle().index;
 
-  registerToHeap(heap);
-  createConstantBuffer(app, commandBuffer, heap);
+  m_indexBuffer = IndexBuffer(app, commandBuffer, std::move(indices));
+  m_indexBuffer.registerToHeap(heap);
+  constants.indexBufferHandle = m_indexBuffer.getHandle().index;
+
+  m_constantBuffer = ConstantBuffer<PrimitiveConstants>(app, commandBuffer, constants);
+  m_constantBuffer.registerToHeap(heap);
 }
 
 AABB Primitive::computeWorldAABB() const {
-  const std::vector<Vertex>& vertices = this->_vertexBuffer.getVertices();
+  const std::vector<Vertex>& vertices = m_vertexBuffer.getVertices();
 
   if (vertices.empty())
     throw std::runtime_error(
@@ -602,69 +456,5 @@ AABB Primitive::computeWorldAABB() const {
   }
 
   return aabb;
-}
-
-void Primitive::registerToHeap(GlobalHeap& heap) {
-  {
-    TextureHandle handle = heap.registerTexture();
-    heap.updateTexture(
-        handle,
-        this->_textureSlots.pBaseTexture->getImageView(),
-        this->_textureSlots.pBaseTexture->getSampler());
-    this->_constants.baseTextureHandle = handle.index;
-  }
-
-  {
-    TextureHandle handle = heap.registerTexture();
-    heap.updateTexture(
-        handle,
-        this->_textureSlots.pNormalMapTexture->getImageView(),
-        this->_textureSlots.pNormalMapTexture->getSampler());
-    this->_constants.normalTextureHandle = handle.index;
-  }
-
-  {
-    TextureHandle handle = heap.registerTexture();
-    heap.updateTexture(
-        handle,
-        this->_textureSlots.pMetallicRoughnessTexture->getImageView(),
-        this->_textureSlots.pMetallicRoughnessTexture->getSampler());
-    this->_constants.metallicRoughnessTextureHandle = handle.index;
-  }
-
-  {
-    TextureHandle handle = heap.registerTexture();
-    heap.updateTexture(
-        handle,
-        this->_textureSlots.pOcclusionTexture->getImageView(),
-        this->_textureSlots.pOcclusionTexture->getSampler());
-    this->_constants.occlusionTextureHandle = handle.index;
-  }
-
-  {
-    TextureHandle handle = heap.registerTexture();
-    heap.updateTexture(
-        handle,
-        this->_textureSlots.pEmissiveTexture->getImageView(),
-        this->_textureSlots.pEmissiveTexture->getSampler());
-    this->_constants.emissiveTextureHandle = handle.index;
-  }
-
-  {
-    this->_vertexBuffer.registerToHeap(heap);
-    this->_constants.vertexBufferHandle = this->_vertexBuffer.getHandle().index;
-
-    this->_indexBuffer.registerToHeap(heap);
-    this->_constants.indexBufferHandle = this->_indexBuffer.getHandle().index;
-  }
-}
-
-void Primitive::createConstantBuffer(
-    const Application& app,
-    SingleTimeCommandBuffer& commandBuffer,
-    GlobalHeap& heap) {
-  _constantBuffer =
-      ConstantBuffer<PrimitiveConstants>(app, commandBuffer, _constants);
-  _constantBuffer.registerToHeap(heap);
 }
 } // namespace AltheaEngine

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common/GltfCommon.h"
+#include "Common/InstanceDataCommon.h"
 #include "ConstantBuffer.h"
 #include "DrawContext.h"
 #include "GlobalHeap.h"
@@ -38,68 +38,46 @@ struct ALTHEA_API AABB {
   glm::vec3 max{};
 };
 
-struct ALTHEA_API TextureSlots {
-  std::shared_ptr<Texture> pBaseTexture;
-  std::shared_ptr<Texture> pNormalMapTexture;
-  std::shared_ptr<Texture> pMetallicRoughnessTexture;
-  std::shared_ptr<Texture> pOcclusionTexture;
-  std::shared_ptr<Texture> pEmissiveTexture;
-
-  void fillEmptyWithDefaults();
-};
-
 class ALTHEA_API Primitive {
 public:
   static void buildPipeline(GraphicsPipelineBuilder& builder);
 
-  const PrimitiveConstants& getConstants() const { return this->_constants; }
+  const PrimitiveConstants& getConstants() const { return m_constantBuffer.getConstants(); }
 
   const VertexBuffer<Vertex>& getVertexBuffer() const {
-    return this->_vertexBuffer;
+    return m_vertexBuffer;
   }
 
-  const IndexBuffer& getIndexBuffer() const { return this->_indexBuffer; }
+  const IndexBuffer& getIndexBuffer() const { return m_indexBuffer; }
 
   const std::vector<Vertex>& getVertices() const {
-    return this->_vertexBuffer.getVertices();
+    return m_vertexBuffer.getVertices();
   }
 
   const std::vector<uint32_t>& getIndices() const {
-    return this->_indexBuffer.getIndices();
+    return m_indexBuffer.getIndices();
   }
-
-  const TextureSlots& getTextures() const { return this->_textureSlots; }
 
   AABB computeWorldAABB() const;
 
-  const AABB& getAABB() const { return this->_aabb; }
+  const AABB& getAABB() const { return m_aabb; }
 
   BufferHandle getConstantBufferHandle() const {
-    return _constantBuffer.getHandle();
+    return m_constantBuffer.getHandle();
   }
 
-  uint32_t getNodeIdx() const { return _constants.nodeIdx; }
-  bool isSkinned() const { return _constants.isSkinned != 0; }
+  uint32_t getNodeIdx() const { return m_constantBuffer.getConstants().nodeIdx; }
+  bool isSkinned() const { return m_constantBuffer.getConstants().isSkinned != 0; }
 
 private:
-  void registerToHeap(GlobalHeap& heap);
-  void createConstantBuffer(
-      const Application& app,
-      SingleTimeCommandBuffer& commandBuffer,
-      GlobalHeap& heap);
+  bool m_flipFrontFace = false;
 
-  VkDevice _device;
+  ConstantBuffer<PrimitiveConstants> m_constantBuffer;
 
-  bool _flipFrontFace = false;
+  VertexBuffer<Vertex> m_vertexBuffer;
+  IndexBuffer m_indexBuffer;
 
-  PrimitiveConstants _constants;
-  ConstantBuffer<PrimitiveConstants> _constantBuffer;
-  TextureSlots _textureSlots;
-
-  VertexBuffer<Vertex> _vertexBuffer;
-  IndexBuffer _indexBuffer;
-
-  AABB _aabb;
+  AABB m_aabb;
 
 public:
   Primitive(
@@ -108,11 +86,12 @@ public:
       GlobalHeap& heap,
       const CesiumGltf::Model& model,
       const CesiumGltf::MeshPrimitive& primitive,
+      const std::vector<Material>& materialMap,
       BufferHandle handle,
       uint32_t nodeIdx);
 
   VkFrontFace getFrontFace() const {
-    return this->_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
+    return m_flipFrontFace ? VK_FRONT_FACE_CLOCKWISE
                                 : VK_FRONT_FACE_COUNTER_CLOCKWISE;
   }
 };

@@ -4,7 +4,6 @@
 #include "ImageResource.h"
 #include "Library.h"
 #include "Texture.h"
-#include "TextureHeap.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
 
@@ -27,8 +26,6 @@ public:
   ResourcesAssignment& bindTexture(const ImageResource& texture);
 
   ResourcesAssignment& bindTexture(VkImageView imageView, VkSampler sampler);
-
-  ResourcesAssignment& bindTextureHeap(TextureHeap& textureHeap);
 
   template <typename TBufferHeap>
   ResourcesAssignment& bindBufferHeap(TBufferHeap& bufferHeap) {

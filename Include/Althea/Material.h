@@ -1,30 +1,39 @@
 #pragma once
 
-#include "Library.h"
+#include "BindlessHandle.h"
+#include "Common/InstanceDataCommon.h"
+#include "ConstantBuffer.h"
+#include "Texture.h"
 
-#include "DescriptorSet.h"
-#include "FrameContext.h"
-#include "ResourcesAssignment.h"
+#include <CesiumGltf/Material.h>
 
+#include <memory>
 #include <vector>
 
 namespace AltheaEngine {
+
 class Application;
+class GlobalHeap;
+class SIngleTimeCommandBuffer;
 
 class ALTHEA_API Material {
 public:
-  Material(const Application& app, DescriptorSetAllocator& allocator);
   Material() = default;
-  Material(Material&& rhs) = default;
-  Material& operator=(Material&& rhs) = default;
-  Material(const Material& rhs) = delete;
-  Material& operator=(const Material& rhs) = delete;
+  Material(
+      const Application& app,
+      SingleTimeCommandBuffer& commandBuffer,
+      GlobalHeap& heap,
+      const CesiumGltf::Model& model,
+      const CesiumGltf::Material& material,
+      const std::vector<Texture>& textureMap);
 
-  VkDescriptorSet getCurrentDescriptorSet(const FrameContext& frame) const;
+  BufferHandle getHandle() const { return m_constants.getHandle(); }
 
-  ResourcesAssignment assign();
+  int getNormalTextureCoordinateIndex() const {
+    return m_constants.getConstants().normalMapTextureCoordinateIndex;
+  }
 
 private:
-  DescriptorSet _descriptorSets[MAX_FRAMES_IN_FLIGHT]{};
+  ConstantBuffer<MaterialConstants> m_constants;
 };
 } // namespace AltheaEngine

@@ -1,7 +1,8 @@
 #include "Debug/DebugDraw.h"
-
 #include "Debug/DebugDrawCommon.h"
 #include "ShapeUtilities.h"
+
+#include <Althea/Application.h>
 
 namespace AltheaEngine {
 

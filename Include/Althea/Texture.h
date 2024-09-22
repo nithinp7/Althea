@@ -1,11 +1,8 @@
 #pragma once
 
-#include "Application.h"
-#include "Image.h"
-#include "ImageView.h"
+#include "BindlessHandle.h"
 #include "Library.h"
-#include "Sampler.h"
-#include "SingleTimeCommandBuffer.h"
+#include "ImageResource.h"
 
 #include <vulkan/vulkan.h>
 
@@ -17,6 +14,10 @@ struct Sampler;
 } // namespace CesiumGltf
 
 namespace AltheaEngine {
+class Application;
+class SingleTimeCommandBuffer;
+class GlobalHeap;
+
 class ALTHEA_API Texture {
 public:
   Texture(
@@ -32,12 +33,10 @@ public:
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  VkImage getImage() const { return this->_image; }
-
-  VkImageView getImageView() const { return this->_imageView; }
-
-  VkSampler getSampler() const { return this->_sampler; }
-
+  VkImageView getImageView() const { return m_resource.view; }
+  VkSampler getSampler() const { return m_resource.sampler; }
+  void registerToHeap(GlobalHeap& heap);
+  TextureHandle getHandle() const { return m_resource.textureHandle; }
 private:
   void _initTexture(
       const Application& app,
@@ -46,8 +45,6 @@ private:
       const CesiumGltf::Sampler& sampler,
       bool srgb);
 
-  Image _image;
-  ImageView _imageView;
-  Sampler _sampler;
+  ImageResource m_resource;
 };
 } // namespace AltheaEngine

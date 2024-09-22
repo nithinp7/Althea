@@ -32,7 +32,7 @@ public:
    *
    * @param material The materal corresponding to the current object.
    */
-  void bindDescriptorSets(const Material& material) const;
+  void bindDescriptorSets(VkDescriptorSet set) const;
 
   void bindDescriptorSets() const;
 

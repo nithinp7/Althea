@@ -183,8 +183,6 @@ public:
   DescriptorAssignment&
   bindAccelerationStructure(VkAccelerationStructureKHR accelerationStructure);
 
-  DescriptorAssignment& bindTextureHeap(TextureHeap& heap);
-
   template <typename TBufferHeap>
   DescriptorAssignment& bindBufferHeap(TBufferHeap& heap) {
     if ((size_t)this->_currentIndex >= this->_bindings.size()) {

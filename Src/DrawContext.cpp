@@ -5,15 +5,14 @@
 #include <cassert>
 
 namespace AltheaEngine {
-void DrawContext::bindDescriptorSets(const Material& material) const {
+void DrawContext::bindDescriptorSets(VkDescriptorSet set) const {
   assert(this->_pCurrentSubpass != nullptr);
 
   uint32_t descriptorSetCount = this->_globalDescriptorSetCount + 1;
 
   // Mutate _descriptorSets so that all the descriptor sets are
   // contiguous in memory for the binding operation.
-  this->_descriptorSets[this->_globalDescriptorSetCount] =
-      material.getCurrentDescriptorSet(*this->_pFrame);
+  this->_descriptorSets[this->_globalDescriptorSetCount] = set;
 
   vkCmdBindDescriptorSets(
       this->_commandBuffer,

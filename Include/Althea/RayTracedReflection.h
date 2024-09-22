@@ -51,6 +51,6 @@ private:
 
   std::unique_ptr<RayTracingPipeline> _pReflectionPass;
   std::unique_ptr<DescriptorSetAllocator> _pReflectionMaterialAllocator;
-  std::unique_ptr<Material> _pReflectionMaterial;
+  // std::unique_ptr<Material> _pReflectionMaterial;
 };
 } // namespace AltheaEngine

@@ -3,7 +3,9 @@
 
 #include <../Include/Althea/Common/CommonTranslations.h>
 
-struct PrimitiveConstants {
+// various per-instance data
+
+struct MaterialConstants {
   vec4 baseColorFactor;
   vec4 emissiveFactor;
 
@@ -25,12 +27,19 @@ struct PrimitiveConstants {
   uint metallicRoughnessTextureHandle;
   uint occlusionTextureHandle;
   uint emissiveTextureHandle;
-  uint vertexBufferHandle;
+  uint padding;
+};
 
+struct PrimitiveConstants {
+  uint materialHandle;
+  uint vertexBufferHandle;
   uint indexBufferHandle;
   uint jointMapHandle;
+
   uint nodeIdx;
   uint isSkinned; // TODO: turn this into a flag bitmask
+  uint padding;
+  uint padding2;
 };
 
 struct Vertex {

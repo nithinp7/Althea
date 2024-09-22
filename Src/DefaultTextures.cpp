@@ -1,4 +1,5 @@
 #include "DefaultTextures.h"
+#include "Application.h"
 
 #include "Utilities.h"
 #include "SingleTimeCommandBuffer.h"
@@ -99,5 +100,12 @@ void destroyDefaultTextures() {
   GGreenTexture1x1 = nullptr;
   GWhiteTexture1x1 = nullptr;
   GBlackTexture1x1 = nullptr;
+}
+
+void registerDefaultTexturesToHeap(GlobalHeap& heap) {
+  GNormalTexture1x1->registerToHeap(heap);
+  GGreenTexture1x1->registerToHeap(heap);
+  GWhiteTexture1x1->registerToHeap(heap);
+  GBlackTexture1x1->registerToHeap(heap);
 }
 } // namespace AltheaEngine

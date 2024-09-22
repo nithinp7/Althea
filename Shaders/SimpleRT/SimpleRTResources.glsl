@@ -2,8 +2,6 @@
 #define _SIMPLERTRESOURCES_
 
 #define IS_SHADER
-#include <../Include/Althea/Common/GltfCommon.h>
-
 #include <Bindless/GlobalHeap.glsl>
 
 layout(push_constant) uniform RtPush {
@@ -16,11 +14,6 @@ layout(push_constant) uniform RtPush {
 
 #include <Global/GlobalUniforms.glsl>
 #define globals globalUniforms[push.globalUniformsHandle]
-
-SAMPLER2D(samplerHeap);
-DECL_CONSTANTS(PrimitiveConstants, primitiveConstants);
-DECL_BUFFER(R_PACKED, Vertex, primitiveVertices);
-DECL_BUFFER(R_PACKED, uint, primitiveIndices);
 
 struct RtPayload {
   // input

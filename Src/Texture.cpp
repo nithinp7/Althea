@@ -1,5 +1,8 @@
 #include "Texture.h"
 
+#include "Application.h"
+#include "GlobalHeap.h"
+#include "SingleTimeCommandBuffer.h"
 #include "Utilities.h"
 
 #include <CesiumGltf/Image.h>
@@ -53,90 +56,13 @@ void Texture::_initTexture(
     return;
   }
 
-  SamplerOptions samplerInfo{};
+  uint32_t mipCount = Utilities::computeMipCount(
+                          static_cast<uint32_t>(image.width),
+                          static_cast<uint32_t>(image.height));
+  SamplerOptions samplerInfo(sampler, mipCount);
+  mipCount = samplerInfo.mipCount;
 
-  switch (sampler.wrapS) {
-  case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    break;
-  case CesiumGltf::Sampler::WrapS::REPEAT:
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    break;
-  // case CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE:
-  default:
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  };
-
-  switch (sampler.wrapT) {
-  case CesiumGltf::Sampler::WrapT::MIRRORED_REPEAT:
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    break;
-  case CesiumGltf::Sampler::WrapT::REPEAT:
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    break;
-  // case CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE:
-  default:
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  };
-
-  if (sampler.magFilter) {
-    switch (*sampler.magFilter) {
-    case CesiumGltf::Sampler::MagFilter::NEAREST:
-      samplerInfo.magFilter = VK_FILTER_NEAREST;
-      break;
-    default:
-      samplerInfo.magFilter = VK_FILTER_LINEAR;
-    }
-  } else {
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-  }
-
-  bool useMipMaps = false;
-
-  // Determine minification filter
-  int32_t minFilter = sampler.minFilter.value_or(
-      CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR);
-
-  switch (minFilter) {
-  case CesiumGltf::Sampler::MinFilter::NEAREST:
-  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-    break;
-  // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-  // case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-  // case CesiumGltf::Sampler::MinFilter::LINEAR:
-  default:
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-  }
-
-  // Determine mipmap mode.
-  switch (minFilter) {
-  case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-    useMipMaps = true;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    break;
-  case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-  case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-    useMipMaps = true;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    break;
-  case CesiumGltf::Sampler::MinFilter::NEAREST:
-  case CesiumGltf::Sampler::MinFilter::LINEAR:
-  default:
-    useMipMaps = false;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-  }
-
-  uint32_t mipCount = useMipMaps ? Utilities::computeMipCount(
-                                       static_cast<uint32_t>(image.width),
-                                       static_cast<uint32_t>(image.height))
-                                 : 1;
-
-  samplerInfo.mipCount = mipCount;
-
-  this->_sampler = Sampler(app, samplerInfo);
+  m_resource.sampler = Sampler(app, samplerInfo);
 
   gsl::span<const std::byte> mip0View(image.pixelData);
   if (!image.mipPositions.empty()) {
@@ -152,14 +78,14 @@ void Texture::_initTexture(
   options.mipCount = mipCount;
   options.format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
   options.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-  if (useMipMaps) {
+  if (mipCount > 1) {
     options.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   }
 
-  this->_image = Image(app, commandBuffer, mip0View, options);
+  m_resource.image = Image(app, commandBuffer, mip0View, options);
 
   // Assume texture images are going to be used in a fragment shader
-  this->_image.transitionLayout(
+  m_resource.image.transitionLayout(
       commandBuffer,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT,
@@ -169,6 +95,10 @@ void Texture::_initTexture(
   viewOptions.format = options.format;
   viewOptions.mipCount = mipCount;
 
-  this->_imageView = ImageView(app, this->_image, viewOptions);
+  m_resource.view = ImageView(app, m_resource.image, viewOptions);
+}
+
+void Texture::registerToHeap(GlobalHeap& heap) {
+  m_resource.registerToTextureHeap(heap);
 }
 } // namespace AltheaEngine
