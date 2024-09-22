@@ -5,6 +5,8 @@
 #define IS_RT_SHADER
 #include <SimpleRT/SimpleRTResources.glsl>
 
+#include <Misc/Sampling.glsl>
+
 layout(location = 0) rayPayloadEXT RtPayload payload;
 
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
@@ -17,9 +19,15 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
+uvec2 seed;
 void main() {
+  seed = uvec2(gl_LaunchIDEXT) * uvec2(globals.frameCount+1, globals.frameCount+2);
+
   vec3 rayOrigin = globals.inverseView[3].xyz;
   vec3 rayDir = computeDir(gl_LaunchIDEXT, gl_LaunchSizeEXT);
+  payload.dir = rayDir;
+  payload.xi = randVec2(seed);
+
   traceRayEXT(
       acc, 
       gl_RayFlagsOpaqueEXT, 
@@ -33,8 +41,7 @@ void main() {
       1000.0, 
       0 /* payload */);
   
-  // vec3 dirCol = rayDir * 0.5 + vec3(0.5);
-  vec4 color = payload.color;//vec4(payload.rgb + dirCol, 1.0);
+  vec4 color = payload.color;
 
   imageStore(rtTargetImg, ivec2(gl_LaunchIDEXT), color);
 }

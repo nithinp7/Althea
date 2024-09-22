@@ -27,7 +27,7 @@ struct GlobalUniforms {
   float time;
   float exposure;
   uint32_t inputMask;
-  uint32_t padding;
+  uint32_t frameCount;
 };
 
 class Application;

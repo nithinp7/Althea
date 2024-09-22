@@ -62,6 +62,28 @@
     layout(scalar, set=BINDLESS_SET, binding=BUFFER_HEAP_BINDING) \
       writeonly buffer BODY NAME[]
 
+// TODO: This garbage would be much simpler with a custom preprocessor to
+// resolve bindless syntax sugar
+
+#define DECL_CONSTANTS(TYPE, NAME)                                    \
+    BUFFER_R(_##NAME##Heap, _##NAME##_BUFFER{                         \
+      TYPE val;                                                       \
+    })                             
+
+#define DECL_BUFFER(MODE, TYPE, NAME)                                 \
+    BUFFER_##MODE(_##NAME##Heap, _##NAME##_BUFFER{                    \
+      TYPE arr[];                                                     \
+    })                                                                                     
+
+#define BINDLESS(NAME, HANDLE) \
+  uint _##NAME##_handle = HANDLE;
+
+#define GET_CONSTANTS(NAME)                                           \
+    _##NAME##Heap[_##NAME##_handle].val 
+
+#define BUFFER_GET(NAME, IDX)                                         \
+    _##NAME##Heap[_##NAME##_handle].arr[IDX] 
+
 #define BUFFER_HEAP(TYPE, NAME, START_HANDLE, COUNT_PER_BUFFER)       \
     BUFFER_RW(_##NAME##Heap, _##NAME##_BUFFER{                        \
       TYPE arr[];                                                     \

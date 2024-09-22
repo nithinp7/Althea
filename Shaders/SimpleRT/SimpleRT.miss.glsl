@@ -9,5 +9,5 @@
 layout(location = 0) rayPayloadInEXT RtPayload payload;
 
 void main() {
-  payload.color = vec4(0.0, 0.0, 0.0, 1.0);
+  payload.color = vec4(sampleEnvMap(payload.dir), 1.0);
 }

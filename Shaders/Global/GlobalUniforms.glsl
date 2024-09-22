@@ -20,7 +20,7 @@ UNIFORM_BUFFER(globalUniforms, GlobalUniforms{
   float time;
   float exposure;
   uint inputMask;
-  uint padding;
+  uint frameCount;
 });
 
 #endif // _GLOBALUNIFORMS_

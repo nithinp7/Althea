@@ -5,24 +5,29 @@
 #include <../Include/Althea/Common/GltfCommon.h>
 
 #include <Bindless/GlobalHeap.glsl>
-#include <Global/GlobalResources.glsl>
-#include <Global/GlobalUniforms.glsl>
 
 layout(push_constant) uniform RtPush {
   uint globalResourcesHandle;
   uint globalUniformsHandle;
 } push;
 
-#define resources globalResources[push.globalResourcesHandle]
+#define GLOBAL_RESOURCES_HANDLE push.globalResourcesHandle
+#include <Global/GlobalResources.glsl>
+
+#include <Global/GlobalUniforms.glsl>
 #define globals globalUniforms[push.globalUniformsHandle]
 
-BUFFER_R(_primitiveConstants, _PrimitiveConstants {
-  PrimitiveConstants c;
-});
-#define primitiveConstants(IDX) _primitiveConstants[IDX].c
+SAMPLER2D(samplerHeap);
+DECL_CONSTANTS(PrimitiveConstants, primitiveConstants);
+DECL_BUFFER(R_PACKED, Vertex, primitiveVertices);
+DECL_BUFFER(R_PACKED, uint, primitiveIndices);
 
-// testing
 struct RtPayload {
+  // input
+  vec3 dir;
+  vec2 xi;  
+
+  // output
   vec4 color;
 };
 
