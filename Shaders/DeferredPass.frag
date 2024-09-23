@@ -12,9 +12,7 @@ layout(set=0, binding=1) uniform sampler2D prefilteredMap;
 layout(set=0, binding=2) uniform sampler2D irradianceMap;
 layout(set=0, binding=3) uniform sampler2D brdfLut;
 
-#define GLOBAL_UNIFORMS_SET 0
-#define GLOBAL_UNIFORMS_BINDING 4
-#include <Global/GlobalUniforms.glsl>
+#include <Global/GlobalResources.glsl>
 
 // GBuffer textures
 layout(set=1, binding=0) uniform sampler2D gBufferPosition;

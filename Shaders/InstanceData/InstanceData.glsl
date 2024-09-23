@@ -13,6 +13,7 @@ struct MaterialDesc {
   float ao;
   float emissive;
   vec3 normal;
+  bool bShouldDiscard;
 };
 
 SAMPLER2D(_materialSamplerHeap);
@@ -21,6 +22,8 @@ DECL_CONSTANTS(MaterialConstants, materialConstants);
 DECL_CONSTANTS(PrimitiveConstants, primitiveConstants);
 DECL_BUFFER(R_PACKED, Vertex, primitiveVertices);
 DECL_BUFFER(R_PACKED, uint, primitiveIndices);
+DECL_BUFFER(R_PACKED, mat4, transformBuffer);
+DECL_BUFFER(R_PACKED, uint, jointMap);
 
 MaterialDesc fetchMaterial(Vertex v, uint materialHandle) {
   MaterialDesc desc;
@@ -40,11 +43,10 @@ MaterialDesc fetchMaterial(Vertex v, uint materialHandle) {
       vec3(constants.normalScale, constants.normalScale, 1.0);
   
   desc.normal = 
-      normalize(gl_ObjectToWorldEXT *
-      vec4(normalize(
+      normalize(
         tangentSpaceNormal.x * v.tangent + 
         tangentSpaceNormal.y * v.bitangent + 
-        tangentSpaceNormal.z * v.normal), 0.0));
+        tangentSpaceNormal.z * v.normal);
 
   vec2 metallicRoughness = texture(
       _materialSamplerHeap[constants.metallicRoughnessTextureHandle], 
@@ -58,6 +60,8 @@ MaterialDesc fetchMaterial(Vertex v, uint materialHandle) {
   desc.ao = 0.0;
   desc.emissive = 0.0;
 
+  desc.bShouldDiscard = desc.baseColor.a < constants.alphaCutoff;
+  
   return desc;
 }
 
@@ -75,7 +79,26 @@ MaterialDesc fetchMaterialFromPrimitive(Vertex v, uint primitiveHandle) {
 
 #define INTERPOLATE(member)(v.member=v0.member*bc.x+v1.member*bc.y+v2.member*bc.z)
 
-Vertex fetchInterpolatedVertex(uint triangleIdx, vec3 bc, uint primitiveHandle) {
+Vertex fetchVertex(uint idx, uint primitiveHandle) {
+  BINDLESS(primitiveConstants, primitiveHandle);
+  PrimitiveConstants constants = GET_CONSTANTS(primitiveConstants);
+
+  BINDLESS(primitiveVertices, constants.vertexBufferHandle);  
+  return BUFFER_GET(primitiveVertices, idx);
+}
+
+Vertex fetchVertexIndexed(uint i, uint primitiveHandle) {
+  BINDLESS(primitiveConstants, primitiveHandle);
+  PrimitiveConstants constants = GET_CONSTANTS(primitiveConstants);
+
+  BINDLESS(primitiveVertices, constants.vertexBufferHandle);
+  BINDLESS(primitiveIndices, constants.indexBufferHandle);
+    
+  uint idx = BUFFER_GET(primitiveIndices, i);
+  return BUFFER_GET(primitiveVertices, idx);
+}
+
+Vertex fetchInterpolatedVertexIndexed(uint triangleIdx, vec3 bc, uint primitiveHandle) {
   BINDLESS(primitiveConstants, primitiveHandle);
   PrimitiveConstants constants = GET_CONSTANTS(primitiveConstants);
 
@@ -101,5 +124,15 @@ Vertex fetchInterpolatedVertex(uint triangleIdx, vec3 bc, uint primitiveHandle) 
   INTERPOLATE(uvs[3]);
 
   return v;
+}
+
+mat4 getMatrix(uint bufferHandle, uint matrixIdx) {
+  BINDLESS(transformBuffer, bufferHandle);
+  return BUFFER_GET(transformBuffer, matrixIdx);  
+}
+
+uint getNodeIdxFromJointIdx(uint bufferHandle, uint jointIdx) {
+  BINDLESS(jointMap, bufferHandle);
+  return BUFFER_GET(jointMap, jointIdx);  
 }
 #endif // _INSTANCEDATA_

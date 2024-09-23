@@ -1,6 +1,7 @@
 #ifndef _GLOBALRESOURCES_
 #define _GLOBALRESOURCES_
 
+#define IS_SHADER
 #include <Bindless/GlobalHeap.glsl>
 #include <../Include/Althea/Common/RayTracingCommon.h>
 #include <Misc/Constants.glsl>

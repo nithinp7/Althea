@@ -2,7 +2,7 @@
 #define _PRIMITIVERESOURCES_
 
 #define IS_SHADER
-#include <../Include/Althea/Common/GltfCommon.h>
+#include <../Include/Althea/Common/InstanceDataCommon.h>
 
 SAMPLER2D(primTexHeap);
 

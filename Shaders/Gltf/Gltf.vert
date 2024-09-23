@@ -12,19 +12,15 @@ layout(location=8) in vec4 weights;
 layout(location=9) in uvec4 joints;
 // layout(location=9) in uvec2 packedJoints;
 
-layout(location=0) out vec2 baseColorUV;
-layout(location=1) out vec2 normalMapUV;
-layout(location=2) out vec2 metallicRoughnessUV;
-layout(location=3) out vec2 occlusionUV;
-layout(location=4) out vec2 emissiveUV;
-layout(location=5) out mat3 vertTbn;
-layout(location=8) out vec3 worldPosition;
-layout(location=9) out vec3 direction;
+layout(location=0) out vec2 outUvs[4];
+layout(location=4) out mat3 vertTbn;
+layout(location=7) out vec3 worldPosition;
+layout(location=8) out vec3 direction;
 
 #include <Bindless/GlobalHeap.glsl>
 #include <Global/GlobalUniforms.glsl>
 #include <Global/GlobalResources.glsl>
-#include <PrimitiveResources.glsl>
+#include <InstanceData/InstanceData.glsl>
 
 layout(push_constant) uniform PushConstants {
   uint matrixBufferHandle;
@@ -37,9 +33,7 @@ layout(push_constant) uniform PushConstants {
 #define resources RESOURCE(globalResources, pushConstants.globalResourcesHandle)
 
 void main() {
-  PrimitiveConstants constants = 
-      RESOURCE(primitiveConstants, pushConstants.primConstantsBuffer)
-        .primitiveConstantsArr[0];
+  PrimitiveConstants constants = getPrimitiveConstants(pushConstants.primConstantsBuffer);
 
   mat4 model = mat4(0.0);
   if (constants.isSkinned > 0) {
@@ -61,11 +55,7 @@ void main() {
 
   direction = worldPos4.xyz - cameraPos;
 
-  baseColorUV = uvs[constants.baseTextureCoordinateIndex];
-  normalMapUV = uvs[constants.normalMapTextureCoordinateIndex];
-  metallicRoughnessUV = uvs[constants.metallicRoughnessTextureCoordinateIndex];
-  occlusionUV = uvs[constants.occlusionTextureCoordinateIndex];
-  emissiveUV = uvs[constants.emissiveTextureCoordinateIndex];
+  outUvs = uvs;
 
   vertTbn = mat3(model) * tbn;
 }
