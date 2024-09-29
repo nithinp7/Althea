@@ -151,7 +151,9 @@ Model::Model(
     const Application& app,
     SingleTimeCommandBuffer& commandBuffer,
     GlobalHeap& heap,
-    const std::string& path) {
+    const std::string& path,
+    const glm::mat4& transform)
+    : _modelTransform(transform) {
   // TODO: just for testing
   static CesiumAsync::AsyncSystem async(std::make_shared<TaskProcessor>());
 
@@ -186,8 +188,7 @@ Model::Model(
   this->_model = std::move(*result.model);
   // this->_model.generateMissingNormalsSmooth();
 
-  _modelTransform = glm::mat4(1.0f);
-  _nodes.resize(_model.nodes.size());
+  _nodes.resize(_model.nodes.size()); 
 
   _skins.reserve(_model.skins.size());
   for (const CesiumGltf::Skin& gltfSkin : _model.skins) {

@@ -19,10 +19,14 @@ RayTracingResources::RayTracingResources(
   ImageOptions imageOptions{};
   imageOptions.width = app.getSwapChainExtent().width;
   imageOptions.height = app.getSwapChainExtent().height;
+  imageOptions.format = VK_FORMAT_R32G32B32A32_SFLOAT;
   imageOptions.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
+  ImageViewOptions viewOptions{};
+  viewOptions.format = imageOptions.format;
+
   m_target.image = Image(app, imageOptions);
-  m_target.view = ImageView(app, m_target.image, {});
+  m_target.view = ImageView(app, m_target.image, viewOptions);
   m_target.sampler = Sampler(app, {});
 
   m_target.registerToImageHeap(heap);

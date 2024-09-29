@@ -36,56 +36,6 @@ AccelerationStructure::AccelerationStructure(
         nullptr);
   }
 
-  // std::vector<VkTransformMatrixKHR> transforms;
-  // transforms.reserve(primCount);
-  // for (const Model& model : models) {
-  //   for (const Primitive& prim : model.getPrimitives()) {
-  //     glm::mat4 primTransform = prim.computeWorldTransform();
-
-  //     VkTransformMatrixKHR& transform = transforms.emplace_back();
-  //     transform.matrix[0][0] = primTransform[0][0];
-  //     transform.matrix[1][0] = primTransform[0][1];
-  //     transform.matrix[2][0] = primTransform[0][2];
-
-  //     transform.matrix[0][1] = primTransform[1][0];
-  //     transform.matrix[1][1] = primTransform[1][1];
-  //     transform.matrix[2][1] = primTransform[1][2];
-
-  //     transform.matrix[0][2] = primTransform[2][0];
-  //     transform.matrix[1][2] = primTransform[2][1];
-  //     transform.matrix[2][2] = primTransform[2][2];
-
-  //     transform.matrix[0][3] = primTransform[3][0];
-  //     transform.matrix[1][3] = primTransform[3][1];
-  //     transform.matrix[2][3] = primTransform[3][2];
-  //   }
-  // }
-
-  // // Upload transforms for all primitives
-  // VmaAllocationCreateInfo transformBufferAllocInfo{};
-  // transformBufferAllocInfo.flags =
-  //     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-  // transformBufferAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-
-  // this->_transformBuffer = BufferUtilities::createBuffer(
-  //     app,
-  //     sizeof(VkTransformMatrixKHR) * primCount,
-  //     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-  //         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-  //     transformBufferAllocInfo);
-
-  // {
-  //   void* data = this->_transformBuffer.mapMemory();
-  //   memcpy(data, transforms.data(), primCount * sizeof(VkTransformMatrixKHR));
-  //   this->_transformBuffer.unmapMemory();
-  // }
-
-  // VkBufferDeviceAddressInfo transformBufferAddrInfo{
-  //     VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-  // transformBufferAddrInfo.buffer = this->_transformBuffer.getBuffer();
-  // VkDeviceAddress transformBufferDevAddr =
-  //     vkGetBufferDeviceAddress(app.getDevice(), &transformBufferAddrInfo);
-
   // Each gltf primitive will be it's BLAS with one geometry, and correspond to
   // its own TLAS instance. This way, individual primitives can rigidly
   // transform without updating the BLAS. It also allows us to use

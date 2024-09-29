@@ -49,7 +49,8 @@ public:
       const Application& app,
       SingleTimeCommandBuffer& commandBuffer,
       GlobalHeap& heap,
-      const std::string& path);
+      const std::string& path,
+      const glm::mat4& transform = glm::mat4(1.0f));
 
   void setNodeRelativeTransform(uint32_t nodeIdx, const glm::mat4& transform);
   void recomputeTransforms();

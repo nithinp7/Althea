@@ -25,6 +25,8 @@ public:
   void setMinSpeed(float speed);
   void setMaxSpeed(float speed);
 
+  void setMouseDisabled() { _forceMouseDisabled = true; }
+  void setMouseEnabled() { _forceMouseDisabled = false; }
   void setPosition(const glm::vec3& position);
   void setRotationDegrees(float yawDegrees, float pitchDegrees);
 private:
@@ -67,6 +69,7 @@ private:
   float _yawMultiplier = 0.5f;   // 0.25f;
   float _pitchMultiplier = 1.0f; // 0.25f;
 
+  bool _forceMouseDisabled = false; // make this less hacky
   bool _mouseDisabled = true;
 
   Camera _camera;

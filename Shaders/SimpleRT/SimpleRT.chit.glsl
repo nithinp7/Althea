@@ -26,7 +26,7 @@ void main() {
   vec3 wiw;
   float pdf;
   vec3 f = sampleMicrofacetBrdf(
-    payload.xi, -payload.dir, material.normal,
+    payload.xi, -payload.dir, normalWS,
     material.baseColor.rgb, material.metallic, material.roughness, 
     wiw, pdf);
 

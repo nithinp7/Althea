@@ -12,4 +12,10 @@ struct RayTracingHandles {
   uint padding;
 };
 
+struct RtPush {
+  uint globalResourcesHandle;
+  uint globalUniformsHandle;
+  uint accumulatedFramesCount;
+};
+
 #endif // _RAYTRACINGCOMMON_

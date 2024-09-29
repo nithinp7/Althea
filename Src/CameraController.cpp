@@ -159,7 +159,7 @@ static void moveLocal(Camera& camera, const glm::vec3& localDisplacement) {
 }
 
 void CameraController::_updateMouse(double x, double y, bool cursorHidden) {
-  if (cursorHidden) {
+  if (cursorHidden && !_forceMouseDisabled) {
     float unclampedTargetYaw =
         this->_yawMultiplier * static_cast<float>(-180.0 * x);
     float unclampedTargetPitch =

@@ -4,10 +4,10 @@
 #define IS_SHADER
 #include <Bindless/GlobalHeap.glsl>
 
-layout(push_constant) uniform RtPush {
-  uint globalResourcesHandle;
-  uint globalUniformsHandle;
-} push;
+#include <../Include/Althea/Common/RayTracingCommon.h>
+layout(push_constant) uniform _RtPush {
+  RtPush push;
+};
 
 #define GLOBAL_RESOURCES_HANDLE push.globalResourcesHandle
 #include <Global/GlobalResources.glsl>
@@ -24,7 +24,8 @@ struct RtPayload {
   vec4 color;
 };
 
-IMAGE2D_W(imageHeap);
+// TODO: use floating point textures
+IMAGE2D_RW(imageHeap, rgba32f);
 #define rtTargetImg imageHeap[resources.raytracing.targetImgHandle]
 
 SAMPLER2D(sampler2DHeap);

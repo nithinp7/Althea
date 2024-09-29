@@ -9,8 +9,11 @@
 
 layout(location = 0) rayPayloadEXT RtPayload payload;
 
+uvec2 seed;
+
 vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
-  const vec2 pixelCenter = vec2(launchID.xy) + vec2(0.5);
+  vec2 jitter = randVec2(seed);
+  const vec2 pixelCenter = vec2(launchID.xy) + jitter;//vec2(0.5);
 	const vec2 inUV = pixelCenter/vec2(launchSize.xy);
 	vec2 d = inUV * 2.0 - 1.0;
 
@@ -19,7 +22,6 @@ vec3 computeDir(uvec3 launchID, uvec3 launchSize) {
 	return (globals.inverseView*vec4(normalize(target.xyz), 0)).xyz;
 }
 
-uvec2 seed;
 void main() {
   seed = uvec2(gl_LaunchIDEXT) * uvec2(globals.frameCount+1, globals.frameCount+2);
 
@@ -42,6 +44,12 @@ void main() {
       0 /* payload */);
   
   vec4 color = payload.color;
+  if (push.accumulatedFramesCount > 0) {
+    vec3 prevColor = imageLoad(rtTargetImg, ivec2(gl_LaunchIDEXT)).rgb;
+    color.rgb = 
+        (color.rgb + prevColor * push.accumulatedFramesCount) / 
+        (push.accumulatedFramesCount + 1);
+  }
 
   imageStore(rtTargetImg, ivec2(gl_LaunchIDEXT), color);
 }

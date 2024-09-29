@@ -1,41 +1,6 @@
 #include <Misc/Constants.glsl>
 #include <Misc/Sampling.glsl>
 
-vec3 sampleEnvMap(vec3 reflectedDirection, float roughness) {
-  float yaw = atan(reflectedDirection.z, reflectedDirection.x);
-  float pitch = -atan(reflectedDirection.y, length(reflectedDirection.xz));
-  vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
-
-  // return textureLod(environmentMap, uv, 4.0 * roughness).rgb;
-  return textureLod(prefilteredMap, uv, 4.0 * roughness).rgb;
-}
-
-vec3 sampleIrrMap(vec3 normal) {
-  float yaw = atan(normal.z, normal.x);
-  float pitch = -atan(normal.y, length(normal.xz));
-  vec2 uv = vec2(0.5 * yaw, pitch) / PI + 0.5;
-
-  return texture(irradianceMap, uv).rgb;
-}
-
-float vary(float period, float rangeMin, float rangeMax) {
-  float halfRange = 0.5 * (rangeMax - rangeMin);
-  float t = 2.0 * radians(180.0) * globals.time / period;
-  return halfRange * sin(t) + halfRange;
-}
-
-float vary(float period, float rangeMax) {
-  return vary(period, 0.0, rangeMax);
-}
-
-float vary(float period) {
-  return vary(period, 0.0, 1.0);
-}
-
-
-// Based on learnopengl ***********************
-
-
 // Relative surface area of microfacets that are aligned to
 // the halfway vector.
 float ndfGgx(float NdotH, float a2) {
@@ -140,7 +105,7 @@ vec3 sampleMicrofacetBrdf(
   vec3 F = vec3(1.0);
   float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
 
-  return baseColor * D * G * F / (4.0 * wi.z * wo.z);
+  return baseColor * D / (4.0 * wi.z * wo.z);
 }
 
 // TODO: look into this
