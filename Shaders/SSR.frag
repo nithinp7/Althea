@@ -56,6 +56,7 @@ vec4 environmentLitSample(vec3 currentPos, vec2 currentUV, vec3 rayDir, vec3 nor
   vec3 baseColor = texture(gBufferAlbedo, currentUV).rgb;
   vec3 metallicRoughnessOcclusion = 
       texture(gBufferMetallicRoughnessOcclusion, currentUV).rgb;
+  metallicRoughnessOcclusion.z = 1.0; // TODO:...
 
   vec3 reflectedDirection = reflect(normalize(rayDir), normal);
   vec4 reflectedColor = vec4(sampleEnvMap(reflectedDirection, metallicRoughnessOcclusion.y), 1.0);
@@ -72,19 +73,20 @@ vec4 environmentLitSample(vec3 currentPos, vec2 currentUV, vec3 rayDir, vec3 nor
         metallicRoughnessOcclusion.x, 
         metallicRoughnessOcclusion.y, 
         metallicRoughnessOcclusion.z);
+
   return vec4(material, 1.0);
 }
 
-#define RAYMARCH_STEPS 64
+#define RAYMARCH_STEPS 128
 vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
   // Arbitrary
-  vec3 endPos = worldPos + rayDir * 1000.0;
+  vec3 endPos = worldPos + rayDir * 10000.0;
   vec4 projectedEnd = globals.projection * globals.view * vec4(endPos, 1.0);
   vec2 uvEnd = 0.5 * projectedEnd.xy / projectedEnd.w + vec2(0.5);
 
   // TODO: Handle degenerate case?
   vec2 uvStep = normalize(uvEnd - currentUV);
-  float stepSize = 0.001;
+  float stepSize = 0.005;
 
   vec3 perpRef = cross(rayDir, normal);
   perpRef = normalize(cross(perpRef, rayDir));
@@ -94,7 +96,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
 
   for (int i = 0; i < RAYMARCH_STEPS; ++i) {
     // if (i == RAYMARCH_STEPS / 2)
-    stepSize *= 1.1;
+    // stepSize *= 1.01;
 
     currentUV += uvStep * stepSize;
     if (currentUV.x < 0.0 || currentUV.x > 1.0 || currentUV.y < 0.0 || currentUV.y > 1.0) {
@@ -104,19 +106,21 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     // TODO: Check for invalid position
     
     vec3 currentPos = reconstructPosition(currentUV);
-    vec3 dir = currentPos - worldPos;
+    vec3 dir = normalize(currentPos - worldPos);
     float currentProjection = dot(dir, perpRef);
-
-    float dist = length(dir);
-    dir = dir / dist;
 
     // TODO: interpolate between last two samples
     // Step between this and the previous sample
     float worldStep = length(currentPos - prevPos);
-    
-    if (currentProjection * prevProjection < 0.0 && worldStep <= 2.0 && i > 0) {
+    float f = dot(dir, rayDir);
+    float c = 0.999;// + 0.09 * sin(globals.time);
+    if (currentProjection * prevProjection <= 0.0 && f > c /*&& worldStep <= 1.0*/ && i > 0) {
       vec3 currentNormal = normalize(textureLod(gBufferNormal, currentUV, 0.0).xyz);
-      if (dot(currentNormal, rayDir) < 0) {
+      if (dot(currentNormal, rayDir) < 0) 
+      {
+        // return vec4(vec3(worldStep), 1.0);
+        // return vec4(vec3(currentProjection), 1.0);
+        // return vec4(perpRef * 0.5 + vec3(0.5), 1.0);
         return environmentLitSample(currentPos, currentUV, rayDir, currentNormal);
       }
     }
@@ -125,7 +129,7 @@ vec4 raymarchGBuffer(vec2 currentUV, vec3 worldPos, vec3 normal, vec3 rayDir) {
     prevProjection = currentProjection;
   }
 
-  return vec4(0.0);//sampleEnvMap(rayDir), 1.0);
+  return vec4(0.0);//vec4(sampleEnvMap(rayDir), 1.0);
 }
 
 void main() {
@@ -140,5 +144,6 @@ void main() {
   vec3 normal = normalize(normal4.xyz);
   vec3 reflectedDirection = reflect(normalize(inDirection), normal);
 
+  // reflectedColor = environmentLitSample(position, inUv, inDirection, normal);
   reflectedColor = raymarchGBuffer(inUv, position.xyz, normal, reflectedDirection);
 }

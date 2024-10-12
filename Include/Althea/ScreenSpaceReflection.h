@@ -29,18 +29,19 @@ public:
   ScreenSpaceReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      VkDescriptorSetLayout globalSetLayout);
+      GlobalHeap& heap);
 
   void captureReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      VkDescriptorSet globalSet,
+      VkDescriptorSet heapSet,
       const FrameContext& context,
       UniformHandle globalUniforms,
       BufferHandle globalResources);
   void convolveReflectionBuffer(
       const Application& app,
       VkCommandBuffer commandBuffer,
+      VkDescriptorSet heapSet,
       const FrameContext& context);
 
   void bindTexture(ResourcesAssignment& assignment) const;

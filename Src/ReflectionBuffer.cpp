@@ -8,6 +8,8 @@
 namespace AltheaEngine {
 namespace {
 struct ConvolutionPushConstants {
+  uint32_t srcMipTexHandle;
+  uint32_t targetMipImgHandle;
   uint32_t width;
   uint32_t height;
   glm::vec2 direction;
@@ -17,7 +19,8 @@ struct ConvolutionPushConstants {
 
 ReflectionBuffer::ReflectionBuffer(
     const Application& app,
-    VkCommandBuffer commandBuffer) {
+    VkCommandBuffer commandBuffer,
+    GlobalHeap& heap) {
 
   const VkExtent2D& extent = app.getSwapChainExtent();
 
@@ -49,49 +52,37 @@ ReflectionBuffer::ReflectionBuffer(
   this->_reflectionBuffer.view =
       ImageView(app, this->_reflectionBuffer.image, viewOptions);
 
-  // Individual mip views
-  this->_mipViews.reserve(mipCount);
-  for (uint32_t mipIndex = 0; mipIndex < mipCount; ++mipIndex) {
-    ImageViewOptions mipViewOptions{};
-    mipViewOptions.format = imageOptions.format;
-    mipViewOptions.mipCount = 1;
-    mipViewOptions.mipBias = mipIndex;
-    mipViewOptions.type = VK_IMAGE_VIEW_TYPE_2D;
-    this->_mipViews.emplace_back(
-        app,
-        this->_reflectionBuffer.image,
-        mipViewOptions);
-  }
-
   // Sampler
   SamplerOptions samplerOptions{};
   samplerOptions.mipCount = mipCount;
   this->_reflectionBuffer.sampler = Sampler(app, samplerOptions);
 
+  this->_reflectionBuffer.registerToTextureHeap(heap);
+
   // Individual mip sampler
   SamplerOptions mipSamplerOptions{};
   this->_mipSampler = Sampler(app, mipSamplerOptions);
 
-  // // Setup material needed for convolution pass
-  // {
-  //   DescriptorSetLayoutBuilder layoutBuilder{};
-  //   // Previous mip of reflection buffer.
-  //   layoutBuilder.addTextureBinding(VK_SHADER_STAGE_COMPUTE_BIT)
-  //       .addStorageImageBinding();
-  //   this->_pConvolutionMaterialAllocator =
-  //       std::make_unique<DescriptorSetAllocator>(app, layoutBuilder, mipCount);
-
-  //   // Each convolution pass gets a material
-  //   this->_convolutionMaterials.reserve(mipCount - 1);
-  //   for (uint32_t mipIndex = 0; mipIndex < mipCount - 1; ++mipIndex) {
-  //     Material& material = this->_convolutionMaterials.emplace_back(
-  //         app,
-  //         *this->_pConvolutionMaterialAllocator);
-  //     material.assign()
-  //         .bindTexture(this->_mipViews[mipIndex], this->_mipSampler)
-  //         .bindStorageImage(this->_mipViews[mipIndex + 1], this->_mipSampler);
-  //   }
-  // }
+  // Individual mip views
+  this->_convolvedMips.reserve(mipCount);
+  for (uint32_t mipIndex = 0; mipIndex < mipCount; ++mipIndex) {
+    ConvolvedMip& mip = _convolvedMips.emplace_back();
+    
+    ImageViewOptions mipViewOptions{};
+    mipViewOptions.format = imageOptions.format;
+    mipViewOptions.mipCount = 1;
+    mipViewOptions.mipBias = mipIndex;
+    mipViewOptions.type = VK_IMAGE_VIEW_TYPE_2D;
+    mip.view = ImageView(
+        app,
+        this->_reflectionBuffer.image,
+        mipViewOptions);
+    
+    mip.imgHandle = heap.registerImage();
+    heap.updateStorageImage(mip.imgHandle, mip.view, this->_mipSampler);
+    mip.texHandle = heap.registerTexture();
+    heap.updateTexture(mip.texHandle, mip.view, this->_mipSampler);
+  }
 
   // Setup convolution pass
   {
@@ -99,12 +90,11 @@ ReflectionBuffer::ReflectionBuffer(
     computeBuilder.setComputeShader(
         GEngineDirectory + "/Shaders/SSRGlossyConvolve.comp");
     computeBuilder.layoutBuilder
-        .addDescriptorSet(this->_pConvolutionMaterialAllocator->getLayout())
+        .addDescriptorSet(heap.getDescriptorSetLayout())
         .addPushConstants<ConvolutionPushConstants>(
             VK_SHADER_STAGE_COMPUTE_BIT);
 
-    this->_pConvolutionPass =
-        std::make_unique<ComputePipeline>(app, std::move(computeBuilder));
+    this->_convolutionPass = ComputePipeline(app, std::move(computeBuilder));
   }
 }
 
@@ -173,12 +163,11 @@ void ReflectionBuffer::transitionToStorageImageWrite(
 void ReflectionBuffer::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
+    VkDescriptorSet heapSet,
     const FrameContext& context,
     VkImageLayout prevLayout,
     VkAccessFlags prevAccess,
     VkPipelineStageFlags srcStage) {
-
-  this->_pConvolutionPass->bindPipeline(commandBuffer);
 
   const ImageOptions& imageDetails = this->_reflectionBuffer.image.getOptions();
 
@@ -259,32 +248,20 @@ void ReflectionBuffer::convolveReflectionBuffer(
         &readBarrier);
 
     // Dispatch compute work
-    VkDescriptorSet material;//=
-    //     this->_convolutionMaterials[mipLevel - 1].getCurrentDescriptorSet(
-    //         context);
-    vkCmdBindDescriptorSets(
-        commandBuffer,
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        this->_pConvolutionPass->getLayout(),
-        0,
-        1,
-        &material,
-        0,
-        nullptr);
+    _convolutionPass.bindPipeline(commandBuffer);
+
+    _convolutionPass.bindDescriptorSet(commandBuffer, heapSet);
 
     ConvolutionPushConstants constants{};
+    constants.srcMipTexHandle = _convolvedMips[mipLevel - 1].texHandle.index;
+    constants.targetMipImgHandle = _convolvedMips[mipLevel].imgHandle.index;
     constants.width = mipWidth;
     constants.height = mipHeight;
     constants.direction =
         (mipLevel & 1) ? glm::vec2(0.0f, 1.0f) : glm::vec2(1.0f, 0.0f);
     constants.roughness = static_cast<float>(mipLevel) / 4.0f;
-    vkCmdPushConstants(
-        commandBuffer,
-        this->_pConvolutionPass->getLayout(),
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        0,
-        sizeof(ConvolutionPushConstants),
-        &constants);
+    
+    _convolutionPass.setPushConstants(commandBuffer, constants);
 
     uint32_t groupCountX = (mipWidth - 1) / 16 + 1;
     uint32_t groupCountY = (mipHeight - 1) / 16 + 1;
@@ -317,13 +294,5 @@ void ReflectionBuffer::convolveReflectionBuffer(
 
 void ReflectionBuffer::bindTexture(ResourcesAssignment& assignment) const {
   assignment.bindTexture(this->_reflectionBuffer);
-}
-
-void ReflectionBuffer::registerToHeap(GlobalHeap& heap) {
-  this->_reflectionBufferHandle = heap.registerTexture();
-  heap.updateTexture(
-      this->_reflectionBufferHandle,
-      this->_reflectionBuffer.view,
-      this->_reflectionBuffer.sampler);
 }
 } // namespace AltheaEngine

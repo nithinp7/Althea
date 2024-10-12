@@ -11,7 +11,7 @@ namespace AltheaEngine {
 
 template <typename THandle, typename TDeleter> class ALTHEA_API UniqueVkHandle {
 public:
-  UniqueVkHandle() : _device(VK_NULL_HANDLE), _handle(VK_NULL_HANDLE) {}
+  UniqueVkHandle() : _device(VK_NULL_HANDLE), _handle(VK_NULL_HANDLE), _deleter() {}
 
   UniqueVkHandle(VkDevice device, THandle handle, TDeleter&& deleter = {})
       : _device(device), _handle(handle), _deleter(std::move(deleter)) {}

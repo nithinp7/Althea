@@ -10,13 +10,15 @@ namespace AltheaEngine {
 RayTracedReflection::RayTracedReflection(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    // TODO: standardize global descriptor set
-    VkDescriptorSetLayout globalSetLayout,
+    GlobalHeap& heap,
     VkAccelerationStructureKHR tlas,
     const GBufferResources& gBuffer,
     const ShaderDefines& shaderDefs)
-    : _reflectionBuffer(app, commandBuffer) {
+    : _reflectionBuffer(app, commandBuffer, heap) {
 
+  // TODO: Switch this to bindless, this looks broken after removal of old
+  // descriptor set code.
+  
   // Setup material needed for reflection pass
   {
     // DescriptorSetLayoutBuilder layoutBuilder{};
@@ -50,7 +52,7 @@ RayTracedReflection::RayTracedReflection(
         GEngineDirectory + "/Shaders/RayTracing/Miss.glsl",
         shaderDefs);
 
-    pipelineBuilder.layoutBuilder.addDescriptorSet(globalSetLayout);
+    pipelineBuilder.layoutBuilder.addDescriptorSet(heap.getDescriptorSetLayout());
     pipelineBuilder.layoutBuilder.addDescriptorSet(
         this->_pReflectionMaterialAllocator->getLayout());
 
@@ -95,10 +97,12 @@ void RayTracedReflection::captureReflection(
 void RayTracedReflection::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
+    VkDescriptorSet heapSet,
     const FrameContext& context) {
   this->_reflectionBuffer.convolveReflectionBuffer(
       app,
       commandBuffer,
+      heapSet,
       context,
       VK_IMAGE_LAYOUT_GENERAL,
       VK_ACCESS_SHADER_WRITE_BIT,

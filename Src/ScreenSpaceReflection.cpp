@@ -13,8 +13,8 @@ struct SSRPushConstants {
 ScreenSpaceReflection::ScreenSpaceReflection(
     const Application& app,
     VkCommandBuffer commandBuffer,
-    VkDescriptorSetLayout globalSetLayout)
-    : _reflectionBuffer(app, commandBuffer) {
+    GlobalHeap& heap)
+    : _reflectionBuffer(app, commandBuffer, heap) {
   // Setup reflection pass
   {
     std::vector<SubpassBuilder> subpassBuilders;
@@ -30,7 +30,7 @@ ScreenSpaceReflection::ScreenSpaceReflection(
 
           .setCullMode(VK_CULL_MODE_NONE) // ??
 
-          .layoutBuilder.addDescriptorSet(globalSetLayout)
+          .layoutBuilder.addDescriptorSet(heap.getDescriptorSetLayout())
           .addPushConstants<SSRPushConstants>(VK_SHADER_STAGE_ALL);
     }
 
@@ -85,10 +85,12 @@ void ScreenSpaceReflection::captureReflection(
 void ScreenSpaceReflection::convolveReflectionBuffer(
     const Application& app,
     VkCommandBuffer commandBuffer,
+    VkDescriptorSet heapSet,
     const FrameContext& context) {
   this->_reflectionBuffer.convolveReflectionBuffer(
       app,
       commandBuffer,
+      heapSet,
       context,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,

@@ -28,7 +28,7 @@ public:
   RayTracedReflection(
       const Application& app,
       VkCommandBuffer commandBuffer,
-      VkDescriptorSetLayout globalSetLayout,
+      GlobalHeap& heap,
       VkAccelerationStructureKHR tlas,
       const GBufferResources& gBuffer,
       const ShaderDefines& shaderDefs);
@@ -40,6 +40,7 @@ public:
   void convolveReflectionBuffer(
       const Application& app,
       VkCommandBuffer commandBuffer,
+      VkDescriptorSet heapSet,
       const FrameContext& context);
 
   void bindTexture(ResourcesAssignment& assignment) const;

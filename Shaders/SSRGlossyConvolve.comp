@@ -1,23 +1,29 @@
 
 #version 450
 
-layout(local_size_x = 16, local_size_y = 16) in;
-// Previous mip of the reflection buffer
-layout(set=0, binding=0) uniform sampler2D reflectionBuffer;
-layout(set=0, binding=1) uniform writeonly image2D filteredMip;
+#include <Bindless/GlobalHeap.glsl>
 
 layout(push_constant) uniform PushConstants {
+  uint srcMipTexHandle;
+  uint targetMipImgHandle;
   uint width;
   uint height;
   vec2 direction;
   float roughness;
 } pushConstants;
 
+SAMPLER2D(samplerHeap);
+IMAGE2D_W(imageHeap);
+
+#define reflectionBuffer samplerHeap[pushConstants.srcMipTexHandle]
+#define filteredMip imageHeap[pushConstants.targetMipImgHandle]
+
 vec4 sampleReflection(vec2 uv) {
   vec4 color = textureLod(reflectionBuffer, uv, 0.0);
   return color;//vec4(color.rgb * color.a, color.a);
 }
 
+layout(local_size_x = 16, local_size_y = 16) in;
 void main() {
   ivec2 texelPos = 
       ivec2(gl_GlobalInvocationID.xy);

@@ -27,78 +27,46 @@ class GlobalHeap;
 class ReflectionBuffer {
 public:
   ReflectionBuffer() = default;
-  ReflectionBuffer(const Application& app, VkCommandBuffer commandBuffer);
-
-  ReflectionBuffer(ReflectionBuffer&& other) {
-    this->_pConvolutionPass = std::move(other._pConvolutionPass);
-    this->_convolutionMaterials = std::move(other._convolutionMaterials);
-    this->_pConvolutionMaterialAllocator =
-        std::move(other._pConvolutionMaterialAllocator);
-
-    this->_reflectionBuffer = std::move(other._reflectionBuffer);
-    this->_reflectionBufferHandle = other._reflectionBufferHandle;
-
-    this->_mipViews = std::move(other._mipViews);
-
-    this->_mipSampler = std::move(other._mipSampler);
-  }
-
-  // TODO: This descriptor set architecture is becoming a pain in the ass
-  ReflectionBuffer& operator=(ReflectionBuffer&& other) {
-    this->_convolutionMaterials.clear();
-    this->_pConvolutionMaterialAllocator.reset();
-
-    this->_pConvolutionPass = std::move(other._pConvolutionPass);
-    this->_convolutionMaterials = std::move(other._convolutionMaterials);
-    this->_pConvolutionMaterialAllocator =
-        std::move(other._pConvolutionMaterialAllocator);
-
-    this->_reflectionBuffer = std::move(other._reflectionBuffer);
-    this->_reflectionBufferHandle = other._reflectionBufferHandle;
-
-    this->_mipViews = std::move(other._mipViews);
-
-    this->_mipSampler = std::move(other._mipSampler);
-
-    return *this;
-  }
+  ReflectionBuffer(const Application& app, VkCommandBuffer commandBuffer, GlobalHeap& heap);
 
   void transitionToAttachment(VkCommandBuffer commandBuffer);
   void transitionToStorageImageWrite(
       VkCommandBuffer commandBuffer,
       VkPipelineStageFlags dstPipelineStageFlags);
-  void convolveReflectionBuffer(
-      const Application& app,
-      VkCommandBuffer commandBuffer,
-      const FrameContext& context,
-      VkImageLayout prevLayout,
-      VkAccessFlags prevAccess,
-      VkPipelineStageFlags srcStage);
   void bindTexture(ResourcesAssignment& assignment) const;
 
   const ImageView& getReflectionBufferTargetView() const {
-    return this->_mipViews[0];
+    return this->_convolvedMips[0].view;
   }
   const Sampler& getReflectionBufferTargetSampler() const {
     return this->_mipSampler;
   }
 
-  void registerToHeap(GlobalHeap& heap);
+  TextureHandle getHandle() const { return _reflectionBuffer.textureHandle; }
 
-  TextureHandle getHandle() const { return this->_reflectionBufferHandle; }
+  void convolveReflectionBuffer(
+    const Application& app,
+    VkCommandBuffer commandBuffer,
+    VkDescriptorSet heapSet,
+    const FrameContext& context,
+    VkImageLayout prevLayout,
+    VkAccessFlags prevAccess,
+    VkPipelineStageFlags srcStage);
 
 private:
-  std::unique_ptr<ComputePipeline> _pConvolutionPass;
-  std::unique_ptr<DescriptorSetAllocator> _pConvolutionMaterialAllocator;
-  std::vector<Material> _convolutionMaterials;
+  ComputePipeline _convolutionPass;
 
   // Entire reflection buffer resource
   // The view contains all the mips together
   ImageResource _reflectionBuffer;
-  TextureHandle _reflectionBufferHandle;
 
-  // Individual mip views of the reflection buffer mips
-  std::vector<ImageView> _mipViews;
+  struct ConvolvedMip {
+    ImageView view;
+    ImageHandle imgHandle;
+    TextureHandle texHandle;
+  };
+  std::vector<ConvolvedMip> _convolvedMips;
+  
   // The sampler to use when viewing a single mip of the
   // reflection buffer.
   Sampler _mipSampler;
