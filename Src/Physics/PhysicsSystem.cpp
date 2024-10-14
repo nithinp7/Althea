@@ -884,11 +884,13 @@ struct SerializedRigidBody {
   gsl::span<BoundCapsule> capsules;
 
   SerializedRigidBody() = default;
+#ifdef _DEBUG
   SerializedRigidBody(const RigidBody& rb)
       : moi(rb.moi),
         invMoi(rb.invMoi),
         invMass(rb.invMass),
         capsules(serializeVector(rb.capsules)) {}
+#endif 
 
   operator RigidBody() const {
     RigidBody rb{};

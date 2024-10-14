@@ -38,8 +38,6 @@ extern std::string GEngineDirectory;
 extern InputManager* GInputManager;
 extern Allocator* GAllocator;
 
-// TODO: Standardize the conventions in this class ALTHEA_API with the rest of
-// the repository (e.g., "pFoo" for pointers, "_foo" for private members, etc.)
 class ALTHEA_API Application {
 public:
   static PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
@@ -71,7 +69,7 @@ public:
 
 private:
   const uint32_t WIDTH = 1480;
-  const uint32_t HEIGHT = 1640;
+  const uint32_t HEIGHT = 1280;
 
   bool syncFramerate = true;
 
