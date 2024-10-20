@@ -42,11 +42,15 @@ Allocator* GAllocator = nullptr;
 Application::Application(
     const std::string& appTitle,
     const std::string& projectDir,
-    const std::string& engineDir)
+    const std::string& engineDir,
+    uint32_t width,
+    uint32_t height)
     : configParser(engineDir + "/Config/ConfigFile.txt") {
   GApplicationTitle = appTitle;
   GProjectDirectory = projectDir;
   GEngineDirectory = engineDir;
+  swapChainExtent.width = width;
+  swapChainExtent.height = height;
 }
 
 void Application::run() {
@@ -75,7 +79,7 @@ void Application::initWindow() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-  window = glfwCreateWindow(WIDTH, HEIGHT, GApplicationTitle.c_str(), nullptr, nullptr);
+  window = glfwCreateWindow(swapChainExtent.width, swapChainExtent.height, GApplicationTitle.c_str(), nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
 
   GInputManager = new InputManager(window);

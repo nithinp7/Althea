@@ -58,7 +58,9 @@ public:
   Application(
       const std::string& appTitle,
       const std::string& projectDirectory,
-      const std::string& engineDirectory);
+      const std::string& engineDirectory,
+      uint32_t width = 1480,
+      uint32_t height = 1280);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();
@@ -68,9 +70,6 @@ public:
   void notifyWindowResized();
 
 private:
-  const uint32_t WIDTH = 1480;
-  const uint32_t HEIGHT = 1280;
-
   bool syncFramerate = true;
 
   double lastFrameTime = 0.0f;
