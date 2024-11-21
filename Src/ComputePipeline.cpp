@@ -12,6 +12,14 @@ void ComputePipelineBuilder::setComputeShader(
   this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader, defines);
 }
 
+std::string ComputePipelineBuilder::compileShadersGetErrors() {
+  std::string errors;
+  if (!_shaderBuilder.recompile()) {
+    errors += _shaderBuilder.getErrors() + "\n";
+  }
+  return errors;
+}
+
 ComputePipeline::ComputePipeline(
     const Application& app,
     ComputePipelineBuilder&& builder)

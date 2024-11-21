@@ -22,6 +22,9 @@ public:
   void
   setComputeShader(const std::string& path, const ShaderDefines& defines = {});
 
+
+  std::string compileShadersGetErrors();
+
   /**
    * @brief The builder for creating a pipeline layout for this graphics
    * pipeline.

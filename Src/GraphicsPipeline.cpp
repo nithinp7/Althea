@@ -516,4 +516,16 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDynamicStencil(
 
   return *this;
 }
+
+std::string GraphicsPipelineBuilder::compileShadersGetErrors()
+{
+  std::string errors;
+  for (ShaderBuilder& shader : _shaderBuilders) {
+    if (!shader.recompile())
+    {
+      errors += shader.getErrors() + "\n";
+    }
+  }
+  return errors;
+}
 } // namespace AltheaEngine

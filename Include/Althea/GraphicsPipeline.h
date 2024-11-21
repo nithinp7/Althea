@@ -140,6 +140,7 @@ public:
   GraphicsPipelineBuilder& setStencil(const VkStencilOpState& front, const VkStencilOpState& back);
   GraphicsPipelineBuilder& setDynamicStencil(const VkStencilOpState& front, const VkStencilOpState& back);
 
+  std::string compileShadersGetErrors();
 
   /**
    * @brief The builder for creating a pipeline layout for this graphics

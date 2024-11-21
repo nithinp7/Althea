@@ -59,8 +59,8 @@ public:
       const std::string& appTitle,
       const std::string& projectDirectory,
       const std::string& engineDirectory,
-      uint32_t width = 1480,
-      uint32_t height = 1280);
+      uint32_t width = 1440,
+      uint32_t height = 1080);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();
