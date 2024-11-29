@@ -1,5 +1,6 @@
 
 #include "Application.h"
+
 #include "DefaultTextures.h"
 #include "IGameInstance.h"
 #include "SingleTimeCommandBuffer.h"
@@ -79,7 +80,12 @@ void Application::initWindow() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-  window = glfwCreateWindow(swapChainExtent.width, swapChainExtent.height, GApplicationTitle.c_str(), nullptr, nullptr);
+  window = glfwCreateWindow(
+      swapChainExtent.width,
+      swapChainExtent.height,
+      GApplicationTitle.c_str(),
+      nullptr,
+      nullptr);
   glfwSetWindowUserPointer(window, this);
 
   GInputManager = new InputManager(window);
@@ -513,14 +519,14 @@ bool Application::isDeviceSuitable(const VkPhysicalDevice& device) const {
          deviceFeatures.features.fillModeNonSolid &&
          deviceFeatures.features.imageCubeArray &&
          deviceFeatures.features.wideLines &&
+         deviceFeatures.features.shaderFloat64 &&
          inlineBlockFeatures.inlineUniformBlock &&
          multiviewFeatures.multiview && accelFeature.accelerationStructure &&
          // accelFeature.accelerationStructureHostCommands &&
          //  accelFeature.accelerationStructureIndirectBuild && ??
-         rtPipelineFeature.rayTracingPipeline &&
-         rayQueriesFeature.rayQuery && 
+         rtPipelineFeature.rayTracingPipeline && rayQueriesFeature.rayQuery &&
          vulkan12Features.bufferDeviceAddress &&
-         vulkan12Features.scalarBlockLayout && 
+         vulkan12Features.scalarBlockLayout &&
          vulkan12Features.runtimeDescriptorArray &&
          vulkan12Features.descriptorIndexing &&
          vulkan12Features.descriptorBindingPartiallyBound &&
@@ -585,7 +591,8 @@ void Application::createLogicalDevice() {
   deviceFeatures.fillModeNonSolid = VK_TRUE;
   deviceFeatures.imageCubeArray = VK_TRUE;
   deviceFeatures.wideLines = VK_TRUE;
-  
+  deviceFeatures.shaderFloat64 = VK_TRUE;
+
   VkPhysicalDeviceInlineUniformBlockFeatures inlineBlockFeatures{};
   inlineBlockFeatures.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES;
@@ -610,10 +617,10 @@ void Application::createLogicalDevice() {
   rtPipelineFeature.pNext = &accelFeature;
 
   VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeature{
-    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
   rayQueryFeature.rayQuery = VK_TRUE;
   rayQueryFeature.pNext = &rtPipelineFeature;
-  
+
   VkPhysicalDeviceVulkan12Features vulkan12Features{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
   vulkan12Features.runtimeDescriptorArray = VK_TRUE;
@@ -777,10 +784,8 @@ VkExtent2D Application::chooseSwapExtent(
 void Application::createSwapChain() {
   SwapChainSupportDetails swapChainSupport =
       querySwapChainSupport(physicalDevice);
-  surfaceFormat =
-      chooseSwapSurfaceFormat(swapChainSupport.formats);
-  presentMode =
-      chooseSwapPresentMode(swapChainSupport.presentModes);
+  surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+  presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
   VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -865,7 +870,7 @@ void Application::recreateSwapChain() {
 
   cleanupSwapChain();
   createSwapChain();
-  
+
   this->gameInstance->createRenderState(*this);
 }
 
@@ -892,8 +897,7 @@ VkFormat Application::findSupportedFormat(
 
 VkFormat Application::findDepthFormat() {
   return findSupportedFormat(
-      {
-       //VK_FORMAT_D32_SFLOAT,
+      {// VK_FORMAT_D32_SFLOAT,
        VK_FORMAT_D32_SFLOAT_S8_UINT,
        VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,

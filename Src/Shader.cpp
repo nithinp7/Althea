@@ -4,7 +4,6 @@
 #include "Utilities.h"
 #include "sha256.h"
 
-#include <filesystem>
 #include <stdexcept>
 
 namespace AltheaEngine {
@@ -16,11 +15,11 @@ struct IncludedShader {
 
 class AltheaShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
 private:
-  std::string _folderPath;
+  std::filesystem::path _shaderPath;
 
 public:
-  AltheaShaderIncluder(const std::string& folderPath)
-      : _folderPath(folderPath) {}
+  AltheaShaderIncluder(const std::filesystem::path& shaderPath)
+      : _shaderPath(shaderPath) {}
 
   virtual shaderc_include_result* GetInclude(
       const char* requested_source,
@@ -31,27 +30,37 @@ public:
     IncludedShader* pIncludedShader = new IncludedShader();
     pIncludedShader->sourceName = std::string(requested_source);
 
-    std::string includedShaderPath;
+    std::filesystem::path includedShaderPath;
     if (type == shaderc_include_type_relative) {
-      includedShaderPath = this->_folderPath + pIncludedShader->sourceName;
+      includedShaderPath = std::filesystem::path(this->_shaderPath)
+                               .replace_filename(pIncludedShader->sourceName);
     } else { // type == shaderc_include_type_standard
       // TODO: formalize this as configurable shader "include paths"
 
       // First search the project shader directory
       includedShaderPath =
-          GProjectDirectory + "/Shaders/" + pIncludedShader->sourceName;
-      if (!Utilities::checkFileExists(includedShaderPath)) {
+          std::filesystem::path(GProjectDirectory + "/Shaders/")
+              .replace_filename(pIncludedShader->sourceName);
+      if (!Utilities::checkFileExists(includedShaderPath.string())) {
         // Then search the engine shader directory
         includedShaderPath =
-            GEngineDirectory + "/Shaders/" + pIncludedShader->sourceName;
-        if (!Utilities::checkFileExists(includedShaderPath)) {
+            std::filesystem::path(GEngineDirectory + "/Shaders/")
+                .replace_filename(pIncludedShader->sourceName);
+        if (!Utilities::checkFileExists(includedShaderPath.string())) {
           // Else, assume the shader is in the same directory
-          includedShaderPath = this->_folderPath + pIncludedShader->sourceName;
+          includedShaderPath =
+              std::filesystem::path(this->_shaderPath)
+                  .replace_filename(pIncludedShader->sourceName);
         }
       }
     }
 
-    pIncludedShader->sourceContent = Utilities::readFile(includedShaderPath);
+    if (!Utilities::checkFileExists(includedShaderPath.string())) {
+      return new shaderc_include_result();
+    }
+
+    pIncludedShader->sourceContent =
+        Utilities::readFile(includedShaderPath.string());
 
     shaderc_include_result* pResult = new shaderc_include_result();
 
@@ -114,12 +123,11 @@ ShaderBuilder::ShaderBuilder(
     shaderc_shader_kind kind,
     const std::unordered_map<std::string, std::string>& defines)
     : _path(path), _kind(kind), _defines(defines) {
-  this->_folderPath =
-      std::filesystem::path(this->_path).parent_path().string() + "/";
+  this->_path = std::filesystem::path(this->_path);
 
   // Note we do not fail gracefully when an invalid path is given. We only
   // fail gracefully during compilation errors.
-  this->_glslCode = Utilities::readFile(this->_path);
+  this->_glslCode = Utilities::readFile(this->_path.string());
 
   // Store file hash in order to check if the file gets changed later.
   SHA256 sha256;
@@ -137,8 +145,7 @@ bool ShaderBuilder::recompile() {
 
   // TODO: Hot-reloading does not currently work for "included" shader files
   // dummy changes need to be made in the main shader file
-  options.SetIncluder(
-      std::make_unique<AltheaShaderIncluder>(this->_folderPath));
+  options.SetIncluder(std::make_unique<AltheaShaderIncluder>(_path));
 
   if (s_shouldGenerateDebugInfo)
     options.SetGenerateDebugInfo();
@@ -155,17 +162,17 @@ bool ShaderBuilder::recompile() {
   }
 
   options.SetTargetSpirv(shaderc_spirv_version_1_4);
-  
+
 #if !NDEBUG
   options.SetGenerateDebugInfo();
-#endif 
+#endif
 
   shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
       this->_glslCode.data(),
       this->_glslCode.size(),
       this->_kind,
       // TODO: Should we use the short-path instead as the name
-      this->_path.c_str(),
+      this->_path.string().c_str(),
       options);
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
@@ -178,7 +185,7 @@ bool ShaderBuilder::recompile() {
 }
 
 bool ShaderBuilder::reloadIfStale() {
-  std::vector<char> currentGlslCode = Utilities::readFile(this->_path);
+  std::vector<char> currentGlslCode = Utilities::readFile(this->_path.string());
 
   SHA256 sha256;
   std::string currentHash =

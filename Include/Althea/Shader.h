@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -80,8 +81,7 @@ public:
 private:
   friend class Shader;
 
-  std::string _path;
-  std::string _folderPath;
+  std::filesystem::path _path;
 
   shaderc_shader_kind _kind;
 
