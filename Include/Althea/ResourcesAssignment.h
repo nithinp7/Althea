@@ -6,6 +6,7 @@
 #include "Texture.h"
 #include "TransientUniforms.h"
 #include "UniformBuffer.h"
+#include "DynamicBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -60,7 +61,19 @@ public:
   ResourcesAssignment&
   bindTransientUniforms(const TransientUniforms<TUniforms>& buffer) {
     for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
-      this->_assignments[i].bindUniformBufferDescriptor(buffer.getUniformBuffers()[i]);
+      this->_assignments[i].bindUniformBufferDescriptor(
+          buffer.getUniformBuffers()[i]);
+    }
+
+    return *this;
+  }
+
+  ResourcesAssignment& bindTransientUniforms(const DynamicBuffer& buffer) {
+    for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
+      this->_assignments[i].bindUniformBufferDescriptor(
+          buffer.getAllocation().getBuffer(),
+          buffer.getSize() * i,
+          buffer.getSize());
     }
 
     return *this;

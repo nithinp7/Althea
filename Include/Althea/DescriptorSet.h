@@ -31,8 +31,9 @@ public:
   DescriptorSetLayoutBuilder& addAccelerationStructureBinding(
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 
-  DescriptorSetLayoutBuilder&
-  addAccelerationStructureHeapBinding(uint32_t count, VkShaderStageFlags stageFlags);
+  DescriptorSetLayoutBuilder& addAccelerationStructureHeapBinding(
+      uint32_t count,
+      VkShaderStageFlags stageFlags);
 
   /**
    * @brief Add an image binding to the descriptor set layout for access in a
@@ -40,8 +41,8 @@ public:
    *
    * @return This builder.
    */
-  DescriptorSetLayoutBuilder& addStorageImageBinding(
-      VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
+  DescriptorSetLayoutBuilder&
+  addStorageImageBinding(VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
   DescriptorSetLayoutBuilder& addStorageImageHeapBinding(
       uint32_t count,
       VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL);
@@ -257,6 +258,9 @@ public:
     return *this;
   }
 
+  DescriptorAssignment&
+  bindUniformBufferDescriptor(VkBuffer buffer, size_t offset, size_t size);
+
   template <typename TPrimitiveConstants>
   DescriptorAssignment&
   bindInlineConstantDescriptors(const TPrimitiveConstants& constants) {
@@ -333,7 +337,7 @@ public:
   DescriptorSet allocate() {
     return DescriptorSet(this->_device, allocateVkDescriptorSet(), *this);
   }
-  
+
   VkDescriptorSet allocateVkDescriptorSet();
   void free(VkDescriptorSet descriptorSet);
 

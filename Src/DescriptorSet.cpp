@@ -385,6 +385,41 @@ DescriptorAssignment& DescriptorAssignment::bindStorageBuffer(
   return *this;
 }
 
+DescriptorAssignment&
+DescriptorAssignment::bindUniformBufferDescriptor(VkBuffer buffer, size_t offset, size_t size) {
+  if ((size_t)this->_currentIndex >= this->_bindings.size()) {
+    throw std::runtime_error(
+      "Exceeded expected number of bindings in descriptor set.");
+  }
+
+  if (this->_bindings[this->_currentIndex].descriptorType !=
+    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+    throw std::runtime_error("Unexpected binding in descriptor set.");
+  }
+
+  this->_descriptorBufferInfos.push_back(new VkDescriptorBufferInfo());
+  VkDescriptorBufferInfo& uniformBufferInfo =
+    *this->_descriptorBufferInfos.back();
+  uniformBufferInfo.buffer = buffer;
+  uniformBufferInfo.offset = offset;
+  uniformBufferInfo.range = size;
+
+  VkWriteDescriptorSet& descriptorWrite =
+    this->_descriptorWrites[this->_currentIndex];
+  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrite.dstSet = this->_descriptorSet;
+  descriptorWrite.dstBinding = this->_currentIndex;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &uniformBufferInfo;
+  descriptorWrite.pImageInfo = nullptr;
+  descriptorWrite.pTexelBufferView = nullptr;
+
+  ++this->_currentIndex;
+  return *this;
+}
+
 DescriptorSetAllocator::DescriptorSetAllocator(
     const Application& app,
     const DescriptorSetLayoutBuilder& layoutBuilder,
