@@ -24,6 +24,7 @@ public:
 
   void setMinSpeed(float speed);
   void setMaxSpeed(float speed);
+  void setTargetSpeed(float speed);
 
   void setMouseDisabled() { _forceMouseDisabled = true; }
   void setMouseEnabled() { _forceMouseDisabled = false; }
