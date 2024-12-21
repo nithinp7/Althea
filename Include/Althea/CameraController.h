@@ -1,19 +1,16 @@
 #pragma once
 
-#include "Library.h"
-
 #include "Camera.h"
 #include "InputManager.h"
+#include "Library.h"
 
 #include <glm/glm.hpp>
 
 namespace AltheaEngine {
 class ALTHEA_API CameraController {
 public:
-  CameraController(
-      InputManager& inputManager,
-      float fovDegrees,
-      float aspectRatio);
+  CameraController() = default;
+  CameraController(float fovDegrees, float aspectRatio);
   ~CameraController();
 
   void tick(float deltaTime);
@@ -29,6 +26,7 @@ public:
   void setMouseEnabled() { _forceMouseDisabled = false; }
   void setPosition(const glm::vec3& position);
   void setRotationDegrees(float yawDegrees, float pitchDegrees);
+
 private:
   // Mouse updates, using normalized screen coordinates.
   void _updateMouse(double x, double y, bool cursorHidden);
@@ -71,6 +69,9 @@ private:
 
   bool _forceMouseDisabled = false; // make this less hacky
   bool _mouseDisabled = true;
+
+  double _prevMouseX = 0.0;
+  double _prevMouseY = 0.0;
 
   Camera _camera;
 };

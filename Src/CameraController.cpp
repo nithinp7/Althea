@@ -1,82 +1,47 @@
 #include "CameraController.h"
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include "InputMask.h"
+
 #include <glm/gtc/constants.hpp>
 
 #include <functional>
 
 namespace AltheaEngine {
-CameraController::CameraController(
-    InputManager& inputManager,
-    float fovDegrees,
-    float aspectRatio)
-    : _camera(fovDegrees, aspectRatio, 0.01f, 1000.0f) {
-  // TODO: allow bindings from config file
 
-  // Bind inputs.
-  inputManager.addKeyBinding(
-      {GLFW_KEY_W, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 2, -1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_W, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 2, 0));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_A, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 0, -1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_A, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 0, 0));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_S, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 2, 1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_S, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 2, 0));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_D, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 0, 1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_D, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 0, 0));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_Q, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 1, -1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_Q, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 1, 0));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_E, GLFW_PRESS, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 1, 1));
-  inputManager.addKeyBinding(
-      {GLFW_KEY_E, GLFW_RELEASE, 0},
-      std::bind(&CameraController::_updateTargetDirection, this, 1, 0));
+extern InputManager* GInputManager;
 
-  inputManager.addKeyBinding(
-      {GLFW_KEY_X, GLFW_PRESS, 0},
-      [&acceleration = this->_acceleration]() { acceleration = 4.0f; });
-  inputManager.addKeyBinding(
-      {GLFW_KEY_X, GLFW_RELEASE, 0},
-      [&acceleration = this->_acceleration]() { acceleration = 0.0f; });
-
-  inputManager.addKeyBinding(
-      {GLFW_KEY_Z, GLFW_PRESS, 0},
-      [&acceleration = this->_acceleration]() { acceleration = -6.0f; });
-  inputManager.addKeyBinding(
-      {GLFW_KEY_Z, GLFW_RELEASE, 0},
-      [&acceleration = this->_acceleration]() { acceleration = 0.0f; });
-
-  inputManager.addMousePositionCallback(
-      [this](double x, double y, bool cursorHidden) {
-        this->_updateMouse(x, y, cursorHidden);
-      });
-}
+CameraController::CameraController(float fovDegrees, float aspectRatio)
+    : _camera(fovDegrees, aspectRatio, 0.01f, 1000.0f) {}
 
 CameraController::~CameraController() {
   // TODO: unbind?
 }
 
 void CameraController::tick(float deltaTime) {
+  uint32_t inputMask = GInputManager->getCurrentInputMask();
+  this->_targetDirection = glm::vec3(0.0f);
+  if ((inputMask & INPUT_BIT_W) != 0)
+    this->_targetDirection.z = -1.0f;
+  if ((inputMask & INPUT_BIT_S) != 0)
+    this->_targetDirection.z = 1.0f;
+  if ((inputMask & INPUT_BIT_A) != 0)
+    this->_targetDirection.x = -1.0f;
+  if ((inputMask & INPUT_BIT_D) != 0)
+    this->_targetDirection.x = 1.0f;
+  if ((inputMask & INPUT_BIT_Q) != 0)
+    this->_targetDirection.y = -1.0f;
+  if ((inputMask & INPUT_BIT_E) != 0)
+    this->_targetDirection.y = 1.0f;
+
+  this->_acceleration = 0.0f;
+  if ((inputMask & INPUT_BIT_X) != 0)
+    this->_acceleration = 4.0f;
+  if ((inputMask & INPUT_BIT_Z) != 0)
+    this->_acceleration = -6.0f;
+
+  InputManager::MousePos mpos = GInputManager->getCurrentMousePos();
+  this->_updateMouse(mpos.x, mpos.y, GInputManager->getMouseCursorHidden());
+
   // Cap max _perceived_ deltaTime, to avoid strange behavior doing
   // lag spikes (e.g., renderstate recreation on window resize)
   deltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 30.0f);
@@ -160,6 +125,11 @@ static void moveLocal(Camera& camera, const glm::vec3& localDisplacement) {
 
 void CameraController::_updateMouse(double x, double y, bool cursorHidden) {
   if (cursorHidden && !_forceMouseDisabled) {
+    if (x == _prevMouseX && y == _prevMouseY)
+      return;
+    _prevMouseX = x;
+    _prevMouseY = y;
+
     float unclampedTargetYaw =
         this->_yawMultiplier * static_cast<float>(-180.0 * x);
     float unclampedTargetPitch =
@@ -187,8 +157,8 @@ void CameraController::_updateMouse(double x, double y, bool cursorHidden) {
     // Clamp the pitch to avoid disorientation and gimbal lock.
     this->_targetPitch = glm::clamp(
         unclampedTargetPitch - this->_targetPitchOffset,
-        -89.0f,
-        89.0f);
+        -80.0f,
+        80.0f);
   } else {
     this->_mouseDisabled = true;
   }

@@ -262,7 +262,9 @@ InputManager::MousePos InputManager::getCurrentMousePos() const {
   // Update the mouse position to notify clients of cursor change.
   MousePos mPos;
   glfwGetCursorPos(_pWindow, &mPos.x, &mPos.y);
-
-  return mPos;
+  int width, height;
+  glfwGetWindowSize(_pWindow, &width, &height);
+  NdcCoord coord = screenToNdc({ (uint32_t)width, (uint32_t)height }, mPos.x, mPos.y);
+  return { coord.x, coord.y };
 }
 } // namespace AltheaEngine
