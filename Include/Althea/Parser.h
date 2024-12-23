@@ -1,12 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <type_traits>
 #include <xstring>
 
 namespace AltheaEngine {
+
 struct Parser {
+  template <typename T>
+  using RefResolver = std::function<std::optional<T>(std::string_view)>;
+
   char* c;
 
   std::optional<char> parseChar(char ref);
@@ -19,6 +24,18 @@ struct Parser {
   std::optional<int32_t> parseInt();
   std::optional<float> parseFloat();
 
+  template <typename T> std::optional<T> parseRef(RefResolver<T> resolver) {
+    char* c0 = c;
+    if (auto n = parseName()) {
+      if (auto t = resolver(*n)) {
+        return t;
+      }
+    }
+
+    c = c0;
+    return std::nullopt;
+  }
+
   template <typename T> std::optional<T> parseLiteral() = delete;
 
   template <> std::optional<bool> parseLiteral() { return parseBool(); }
@@ -26,7 +43,16 @@ struct Parser {
   template <> std::optional<int32_t> parseLiteral() { return parseInt(); }
   template <> std::optional<float> parseLiteral() { return parseFloat(); }
 
-  std::optional<uint32_t> parseUintOrVar(); // TODO
+  template <typename T>
+  std::optional<T> parseLiteralOrRef(RefResolver<T> resolver) {
+    if (auto t = parseLiteral<T>()) {
+      return t;
+    } else if (auto n = parseName()) {
+      return resolver(*n);
+    }
+
+    return std::nullopt;
+  }
 
   static uint32_t getOperPrecedence(char op) {
     if (op == '+' || op == '-')
@@ -37,29 +63,53 @@ struct Parser {
     return ~0;
   }
 
+  bool peakIsValidExprTerminator() const { return *c == 0 || *c == ')'; }
+
+  std::optional<char> parseOp() {
+    std::optional<char> op = parseChar('+');
+    if (!op)
+      op = parseChar('-');
+    if (!op)
+      op = parseChar('*');
+    if (!op)
+      op = parseChar('/');
+    return op;
+  }
+
+  std::optional<char> peakOp() const {
+    if (*c == '+' || *c == '-' || *c == '*' || *c == '/')
+      return *c;
+    return std::nullopt;
+  }
+
   template <typename T>
-  std::optional<T> parseExpression(std::optional<T> resolver(std::string_view));
+  std::optional<T> parseExpression(RefResolver<T> resolver);
 
   template <typename T>
   std::optional<T> parseExpressionHelper(
       T lhs,
-      uint32_t maxPrecedence,
-      std::optional<T> resolver(std::string_view));
+      uint32_t minPrecedence,
+      RefResolver<T> resolver);
 
   template <typename T>
   std::optional<T>
-  parseExpressionToken(std::optional<T> resolver(std::string_view));
+  parseExpressionToken(RefResolver<T> resolver);
 };
 
 template <typename T>
 std::optional<T>
-Parser::parseExpressionToken(std::optional<T> resolver(std::string_view)) {
+Parser::parseExpressionToken(RefResolver<T> resolver) {
+  char* c0 = c;
+
   parseWhitespace();
 
   if (parseChar('(')) {
-    return parseExpression<T>(resolver);
-  } else if (parseChar(')')) {
-    return std::nullopt;
+    if (auto lhs = parseExpressionToken(resolver)) {
+      auto res = parseExpressionHelper(*lhs, 0, resolver);
+      if (parseChar(')')) {
+        return res ? res : lhs;
+      }
+    }
   } else if (auto t = parseLiteral<T>()) {
     return t;
   } else if (resolver) {
@@ -67,17 +117,19 @@ Parser::parseExpressionToken(std::optional<T> resolver(std::string_view)) {
       return resolver(*n);
   }
 
+  c = c0;
   return std::nullopt;
 }
 
 template <typename T>
 std::optional<T>
-Parser::parseExpression(std::optional<T> resolver(std::string_view)) {
+Parser::parseExpression(RefResolver<T> resolver) {
   char* c0 = c;
-  auto lhs = parseExpressionToken(resolver);
-  if (lhs) {
-    if (auto res = parseExpressionHelper(*lhs, 0, resolver))
-      return res;
+  if (auto lhs = parseExpressionToken(resolver)) {
+    auto res = parseExpressionHelper(*lhs, 0, resolver);
+    if (*c == 0) {
+      return res ? res : lhs;
+    }
   }
   c = c0;
   return std::nullopt;
@@ -86,33 +138,32 @@ Parser::parseExpression(std::optional<T> resolver(std::string_view)) {
 template <typename T>
 std::optional<T> Parser::parseExpressionHelper(
     T lhs,
-    uint32_t maxPrecedence,
-    std::optional<T> resolver(std::string_view)) {
-  uint32_t curPrecedence = maxPrecedence;
-  while (curPrecedence >= maxPrecedence) {
-    parseWhitespace();
-
-    if (*c == 0)
-      return lhs;
-
-    char op = *c;
-    c++;
+    uint32_t minPrecedence,
+    RefResolver<T> resolver) {
+  char* c0 = c;
+  parseWhitespace();
+  auto lookahead = peakOp();
+  while (lookahead && getOperPrecedence(*lookahead) >= minPrecedence) {
+    auto op = parseOp();
+    uint32_t opPrec = getOperPrecedence(*op);
 
     parseWhitespace();
 
     auto rhs = parseExpressionToken(resolver);
-    if (!rhs)
-      return lhs;
-
-    parseWhitespace();
-    char lookahead = *c;
-
-    while (getOperPrecedence(lookahead) > getOperPrecedence(op)) {
-      rhs = parseExpressionHelper(*rhs, getOperPrecedence(op) + 1, resolver);
-      lookahead = *c;
+    if (!rhs) {
+      c = c0;
+      return std::nullopt; // cannot end expr on op
     }
 
-    switch (op) {
+    parseWhitespace();
+
+    lookahead = peakOp();
+    while (lookahead && getOperPrecedence(*lookahead) > opPrec && opPrec < 1) {
+      rhs = parseExpressionHelper(*rhs, opPrec + 1, resolver);
+      lookahead = peakOp();
+    }
+
+    switch (*op) {
     case '+':
       lhs = lhs + *rhs;
       break;
