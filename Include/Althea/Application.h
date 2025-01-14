@@ -66,6 +66,10 @@ public:
     this->gameInstance = std::make_unique<TGameInstance>();
   }
 
+  template <typename TGameInstance> TGameInstance* getGameInstance() {
+    return static_cast<TGameInstance*>(this->gameInstance.get());
+  }
+
   void run();
   void notifyWindowResized();
 
