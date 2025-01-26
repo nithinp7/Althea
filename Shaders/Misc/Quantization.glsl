@@ -10,7 +10,7 @@ uint quantizeFloatToU8(float f, float offs, float scale) {
 }
 
 float dequantizeU8ToFloat(uint u, float offs, float scale) {
-  float f = float(u) / 256.0;
+  float f = float(u & 0xFF) / 256.0;
   f *= scale;
   f += offs;
   return f;
