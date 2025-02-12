@@ -115,6 +115,23 @@ CesiumGltf::ImageCesium Utilities::loadPng(const std::string& path) {
 }
 
 /*static*/
+void Utilities::loadImage(const std::string& path, Utilities::ImageFile& result) {
+  std::vector<char> data = Utilities::readFile(path);
+
+  result.channels = 4;
+  result.bytesPerChannel = 1;
+
+  int originalChannels;
+  stbi_uc* pImg = stbi_load(path.c_str(), &result.width, &result.height, &originalChannels, result.channels);
+
+  result.data.resize(
+    result.width * result.height * result.channels * result.bytesPerChannel);
+  std::memcpy(result.data.data(), pImg, result.data.size());
+  stbi_image_free(pImg);
+}
+
+
+/*static*/
 void Utilities::savePng(
     const std::string& path,
     int width,

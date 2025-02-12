@@ -39,6 +39,8 @@ public:
       int height,
       gsl::span<const std::byte> data);
 
+  static void loadImage(const std::string& path, ImageFile& result);
+
   static CesiumGltf::ImageCesium loadHdri(const std::string& path);
   static void saveHdri(
       const std::string& path,
