@@ -23,6 +23,7 @@ struct Parser {
   std::optional<uint32_t> parseUint();
   std::optional<int32_t> parseInt();
   std::optional<float> parseFloat();
+  std::optional<std::string_view> parseStringLiteral();
 
   template <typename T> std::optional<T> parseRef(RefResolver<T> resolver) {
     char* c0 = c;

@@ -91,4 +91,19 @@ std::optional<float> Parser::parseFloat() {
   parseChar('F');
   return static_cast<float>(std::atof(c0));
 }
+
+std::optional<std::string_view> Parser::parseStringLiteral() {
+  char* c0 = c;
+  if (!parseChar('"'))
+    return std::nullopt;
+  while (*c) {
+    if (parseChar('"'))
+      return std::make_optional<std::string_view>(c0 + 1, c - c0 - 2);
+    ++c;
+  }
+
+  c = c0;
+  return std::nullopt;
+}
+
 } // namespace AltheaEngine
