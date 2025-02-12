@@ -65,6 +65,35 @@ Image::Image(
   }
 }
 
+Image::Image(
+  Application& app,
+  VkCommandBuffer commandBuffer,
+  gsl::span<const std::byte> mip0,
+  const ImageOptions& options)
+  : _options(options),
+  _accessMask(0),
+  _layout(VK_IMAGE_LAYOUT_UNDEFINED),
+  _stage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) {
+  // TODO: Should the client be responsible for managing these usage
+  // bits instead, even though provided API (e.g., uploadImage) won't
+  // work if the wrong usage is given?
+  // Maybe usage should be abstracted in an Althea enum, so the actual
+  // Vk usage can be derived in the Image constructor.
+
+  // Add extra usage flag bits for internal usages of the image.
+  this->_options.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  if (this->_options.mipCount > 1) {
+    this->_options.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  }
+
+  this->_image = createImage(app, options);
+  this->uploadMip(app, commandBuffer, mip0, 0);
+
+  if (this->_options.mipCount > 1) {
+    this->generateMipMaps(commandBuffer);
+  }
+}
+
 Image::Image(const Application& app, const ImageOptions& options)
     : _options(options),
       _accessMask(0),
@@ -82,7 +111,24 @@ void Image::uploadMip(
   this->copyMipFromBuffer(commandBuffer, stagingBuffer, 0, mipIndex);
 }
 
-void Image::generateMipMaps(SingleTimeCommandBuffer& commandBuffer) {
+void Image::uploadMip(
+  Application& app,
+  VkCommandBuffer commandBuffer,
+  gsl::span<const std::byte> src,
+  uint32_t mipIndex) {
+
+  BufferAllocation* pStagingAllocation = new BufferAllocation(
+    BufferUtilities::createStagingBuffer(app, src));
+
+  this->copyMipFromBuffer(commandBuffer, pStagingAllocation->getBuffer(), 0, mipIndex);
+
+  // Delete staging buffer allocation once the transfer is complete
+  app.addDeletiontask(
+    { [pStagingAllocation]() { delete pStagingAllocation; },
+     app.getCurrentFrameRingBufferIndex() });
+}
+
+void Image::generateMipMaps(VkCommandBuffer commandBuffer) {
   // TODO: Technically, image blitting may not be supported for certain formats
   // on certain hardware, should check support on the physical device
 
@@ -231,7 +277,7 @@ void Image::transitionLayout(
 }
 
 void Image::copyMipFromBuffer(
-    SingleTimeCommandBuffer& commandBuffer,
+    VkCommandBuffer commandBuffer,
     VkBuffer srcBuffer,
     size_t srcOffset,
     uint32_t mipLevel) {

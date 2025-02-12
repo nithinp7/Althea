@@ -80,7 +80,7 @@ void Cubemap::_initCubemap(
                   VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   options.createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-  this->_image = Image(app, commandBuffer, buffer, options);
+  this->_image = Image(app, (VkCommandBuffer)commandBuffer, buffer, options);
 
   // Assume cubemap will be used in a fragment shader
   this->_image.transitionLayout(

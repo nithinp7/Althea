@@ -68,6 +68,28 @@ uint32_t Utilities::computeMipCount(uint32_t width, uint32_t height) {
 }
 
 /*static*/
+void Utilities::loadPng(const std::string& path, Utilities::ImageFile& result) {
+  std::vector<char> data = Utilities::readFile(path);
+
+  result.channels = 4;
+  result.bytesPerChannel = 1;
+
+  int originalChannels;
+  stbi_uc* pPngImage = stbi_load_from_memory(
+    reinterpret_cast<const stbi_uc*>(data.data()),
+    static_cast<int>(data.size()),
+    &result.width,
+    &result.height,
+    &originalChannels,
+    4);
+
+  result.data.resize(
+    result.width * result.height * result.channels * result.bytesPerChannel);
+  std::memcpy(result.data.data(), pPngImage, result.data.size());
+  stbi_image_free(pPngImage);
+}
+
+/*static*/
 CesiumGltf::ImageCesium Utilities::loadPng(const std::string& path) {
   std::vector<char> data = Utilities::readFile(path);
 

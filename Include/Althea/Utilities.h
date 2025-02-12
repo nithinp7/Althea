@@ -24,6 +24,14 @@ public:
   
   static uint32_t computeMipCount(uint32_t width, uint32_t height);
 
+  struct ImageFile {
+    int width;
+    int height;
+    int channels;
+    int bytesPerChannel;
+    std::vector<std::byte> data;
+  };
+  static void loadPng(const std::string& path, ImageFile& result);
   static CesiumGltf::ImageCesium loadPng(const std::string& path);
   static void savePng(
       const std::string& path,

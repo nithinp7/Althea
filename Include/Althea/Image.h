@@ -50,6 +50,11 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       gsl::span<const std::byte> mip0,
       const ImageOptions& options);
+  Image(
+    Application& app,
+    VkCommandBuffer commandBuffer,
+    gsl::span<const std::byte> mip0,
+    const ImageOptions& options);
 
   /**
    * @brief Create an image.
@@ -76,6 +81,11 @@ public:
       SingleTimeCommandBuffer& commandBuffer,
       gsl::span<const std::byte> src,
       uint32_t mipIndex);
+  void uploadMip(
+      Application& app,
+      VkCommandBuffer commandBuffer,
+      gsl::span<const std::byte> src,
+      uint32_t mipIndex);
 
   /**
    * @brief Generate mipmaps for this image. The first mip should have already
@@ -83,7 +93,7 @@ public:
    *
    * @param commandBuffer The command buffer to use when blitting the mipchain.
    */
-  void generateMipMaps(SingleTimeCommandBuffer& commandBuffer);
+  void generateMipMaps(VkCommandBuffer commandBuffer);
 
   // For now, only possible to transition all mips and layers together
   // TODO: is this reasonable?
@@ -106,7 +116,7 @@ public:
    * @param mipLevel The mip level that should be populated.
    */
   void copyMipFromBuffer(
-      SingleTimeCommandBuffer& commandBuffer,
+      VkCommandBuffer commandBuffer,
       VkBuffer srcBuffer,
       size_t srcOffset,
       uint32_t mipLevel);
