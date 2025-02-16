@@ -78,4 +78,9 @@ float squareToHemisphereCosinePDF(vec3 sampleDir) {
     return sampleDir.z * INV_PI;
 }
 
+vec3 sampleHemisphereCosine(inout uvec2 seed, out float pdf) {
+  vec3 dir = squareToHemisphereCosine(randVec2(seed));
+  pdf = squareToHemisphereCosinePDF(dir);
+  return dir;
+}
 #endif // _SAMPLING_
