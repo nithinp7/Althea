@@ -21,4 +21,12 @@ vec3 reconstructPosition(vec2 uv, float dRaw, mat4 inverseProjection, mat4 inver
   return inverseView[3].xyz + d * dir / f;
 }
 
+float reconstructLinearDepth(float dRaw) {
+// TODO: Stop hardcoding this
+  float near = 0.01;
+  float far = 1000.0;
+  float d = far * near / (dRaw * (far - near) - far);
+  return d;
+}
+
 #endif // _RECONSTRUCTPOSITION_
