@@ -3,8 +3,11 @@
 
 #include <Misc/Constants.glsl>
 
+#define RND_IMPL 0
 // Random number generator and sample warping
 // from ShaderToy https://www.shadertoy.com/view/4tXyWN
+
+#if RND_IMPL == 0
 float rng(inout uvec2 seed) {
   seed += uvec2(1);
   uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
@@ -17,6 +20,28 @@ uint rngu(inout uvec2 seed) {
   uvec2 q = 1103515245U * ( (seed >> 1U) ^ (seed.yx) );
   return 1103515245U * ( (q.x) ^ (q.y >> 3U) );
 }
+#endif
+
+#if RND_IMPL == 1
+uint rngu( inout uvec2 p )
+{
+    p *= uvec2(73333,7777);
+    p ^= (uvec2(3333777777)>>(p>>28));
+    uint n = p.x*p.y;
+    return n^(n>>15);
+}
+
+float rng( inout uvec2 p )
+{
+    // we only need the top 24 bits to be good really
+    uint h = rngu( p );
+
+    // straight to float, see https://iquilezles.org/articles/sfrand/
+    // return uintBitsToFloat((h>>9)|0x3f800000u)-1.0;
+    
+    return float(h)*(1.0/float(0xffffffffU));
+}
+#endif
 
 vec2 randVec2(inout uvec2 seed) {
   return vec2(rng(seed), rng(seed));
