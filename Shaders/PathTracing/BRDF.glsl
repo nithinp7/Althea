@@ -13,8 +13,8 @@ float ndfGgx(float NdotH, float a2) {
 // The ratio of light that will get reflected vs refracted.
 // F0 - The base reflectivity when viewing straight down along the
 // surface normal.
-vec3 fresnelSchlick(float NdotV, vec3 F0, float roughness) {
-  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
+vec3 fresnelSchlick(float NdotH, vec3 F0, float roughness) {
+  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - NdotH, 5.0);
 }
 
 float geometrySchlickGgx(float NdotV, float k) {
