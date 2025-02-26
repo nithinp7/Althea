@@ -106,6 +106,8 @@ public:
       VkAccessFlags dstAccessMask,
       VkPipelineStageFlags dstStage);
 
+  void clearLayout();
+
   /**
    * @brief Populate all the layers at the specified mip level in the image from
    * the given source buffer.
