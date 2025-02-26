@@ -26,6 +26,7 @@ public:
       VkBufferUsageFlags usage,
       const VmaAllocationCreateInfo& allocInfo);
   static BufferAllocation createStagingBuffer(size_t bufferSize);
+  static BufferAllocation createStagingBufferForDownload(size_t bufferSize);
   static BufferAllocation
   createStagingBuffer(gsl::span<const std::byte> srcBuffer);
 

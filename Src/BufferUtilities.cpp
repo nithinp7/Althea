@@ -48,6 +48,18 @@ BufferAllocation BufferUtilities::createStagingBuffer(size_t bufferSize) {
 }
 
 /*static*/
+BufferAllocation BufferUtilities::createStagingBufferForDownload(size_t bufferSize) {
+  VmaAllocationCreateInfo stagingInfo{};
+  stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+  return createBuffer(
+    bufferSize,
+    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    stagingInfo);
+}
+
+/*static*/
 BufferAllocation
 BufferUtilities::createStagingBuffer(gsl::span<const std::byte> srcBuffer) {
   BufferAllocation stagingBuffer = createStagingBuffer(srcBuffer.size());
