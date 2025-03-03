@@ -141,6 +141,29 @@ void Utilities::savePng(
 }
 
 /*static*/
+void Utilities::loadHdri(const std::string& path, Utilities::ImageFile& result) {
+  std::vector<char> data = Utilities::readFile(path);
+
+  result.channels = 4;
+  result.bytesPerChannel = 4;
+
+  int32_t originalChannels;
+  float* pHdriImage = stbi_loadf_from_memory(
+    reinterpret_cast<stbi_uc*>(data.data()),
+    static_cast<int>(data.size()),
+    &result.width,
+    &result.height,
+    &originalChannels,
+    4);
+
+  result.data.resize(
+    result.width * result.height * result.channels * result.bytesPerChannel);
+  std::memcpy(result.data.data(), pHdriImage, result.data.size());
+
+  stbi_image_free(pHdriImage);
+}
+
+/*static*/
 CesiumGltf::ImageCesium Utilities::loadHdri(const std::string& path) {
   std::vector<char> data = Utilities::readFile(path);
 
