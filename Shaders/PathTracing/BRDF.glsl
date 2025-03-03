@@ -105,7 +105,7 @@ vec3 sampleMicrofacetBrdf(
   vec3 F = vec3(1.0);
   float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
 
-  return baseColor * D / (4.0 * wi.z * wo.z);
+  return G * baseColor * D / (4.0 * wi.z * wo.z);
 }
 
 // TODO: look into this
