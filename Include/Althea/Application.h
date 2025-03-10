@@ -55,12 +55,17 @@ public:
       vkGetRayTracingShaderGroupHandlesKHR;
   static PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
 
+  struct CreateOptions {
+    uint32_t width = 1440;
+    uint32_t height = 1080;
+    uint32_t frameRateLimit = 0;
+  };
+
   Application(
       const std::string& appTitle,
       const std::string& projectDirectory,
       const std::string& engineDirectory,
-      uint32_t width = 1440,
-      uint32_t height = 1080);
+      const CreateOptions* pCreateOptions = nullptr);
 
   template <typename TGameInstance> void createGame() {
     this->gameInstance = std::make_unique<TGameInstance>();
@@ -75,8 +80,15 @@ public:
 
 private:
   bool syncFramerate = true;
+  struct FramePacer {
+    static const uint32_t FRAME_HISTORY_COUNT = 256;
+    uint32_t frameRateLimit = 0;
+    double frameTimingHistory[FRAME_HISTORY_COUNT];
+    double cpuFrameStartTime;
+  };
+  FramePacer framePacer{};
 
-  double lastFrameTime = 0.0f;
+  double lastFrameTime = 0.0;
 
   const std::vector<const char*> validationLayers = {
       "VK_LAYER_KHRONOS_validation"};
@@ -139,6 +151,7 @@ private:
   void initWindow();
   void initVulkan();
   void mainLoop();
+  void updateFramePacer();
   void drawFrame();
   void cleanup();
 

@@ -44,14 +44,22 @@ Application::Application(
     const std::string& appTitle,
     const std::string& projectDir,
     const std::string& engineDir,
-    uint32_t width,
-    uint32_t height)
+    const CreateOptions* pCreateOptions)
     : configParser(engineDir + "/Config/ConfigFile.txt") {
   GApplicationTitle = appTitle;
   GProjectDirectory = projectDir;
   GEngineDirectory = engineDir;
-  swapChainExtent.width = width;
-  swapChainExtent.height = height;
+
+  CreateOptions defaultOptions{};
+  if (!pCreateOptions)
+    pCreateOptions = &defaultOptions;
+    
+   swapChainExtent.width = pCreateOptions->width;
+   swapChainExtent.height = pCreateOptions->height;
+   framePacer.frameRateLimit = pCreateOptions->frameRateLimit;
+   for (int i = 0; i < FramePacer::FRAME_HISTORY_COUNT; ++i) {
+     framePacer.frameTimingHistory[i] = 0.0;
+   }
 }
 
 void Application::run() {
@@ -119,12 +127,46 @@ void Application::initVulkan() {
 
 void Application::mainLoop() {
   this->lastFrameTime = glfwGetTime();
+
   while (!glfwWindowShouldClose(window) && !shouldClose) {
+    updateFramePacer();
     glfwPollEvents();
     drawFrame();
   }
 
   vkDeviceWaitIdle(device);
+}
+
+void Application::updateFramePacer() {
+  if (framePacer.frameRateLimit == 0)
+    return;
+
+  double targetFrameTime = 1.0 / static_cast<double>(framePacer.frameRateLimit);
+
+  double frameTimeAvg = 0.0;
+  uint32_t validHistoryCount = 0;
+  for (int i = 0; i < FramePacer::FRAME_HISTORY_COUNT; ++i) {
+    if (framePacer.frameTimingHistory[i] != 0.0) {
+      frameTimeAvg += framePacer.frameTimingHistory[i];
+      validHistoryCount++;
+    }
+  }
+  frameTimeAvg /= static_cast<double>(validHistoryCount);
+  //std::cout << "FPS: " << std::to_string(frameTimeAvg) << "\n";
+
+  double remainingWaitTime = targetFrameTime - frameTimeAvg;
+  double currentTime = glfwGetTime();
+  framePacer.frameTimingHistory[currentFrame % FramePacer::FRAME_HISTORY_COUNT] = currentTime - framePacer.cpuFrameStartTime;
+
+  // the amount that the gpu is expected to be ahead of the cpu
+  while (remainingWaitTime > 0.0) {
+    glfwWaitEventsTimeout(remainingWaitTime);
+    double t = glfwGetTime();
+    remainingWaitTime -= (t - currentTime);
+    currentTime = t;
+  }
+
+  framePacer.cpuFrameStartTime = currentTime;
 }
 
 void Application::drawFrame() {
