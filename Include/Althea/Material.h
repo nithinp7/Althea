@@ -14,7 +14,7 @@ namespace AltheaEngine {
 
 class Application;
 class GlobalHeap;
-class SIngleTimeCommandBuffer;
+class SingleTimeCommandBuffer;
 
 class ALTHEA_API Material {
 public:

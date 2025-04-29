@@ -17,11 +17,13 @@
 
 namespace AltheaEngine {
 /*static*/
-std::vector<char> Utilities::readFile(const std::string& filename) {
-  std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary);
+std::vector<char> Utilities::readFile(const char* filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
   if (!file.is_open()) {
-    throw std::runtime_error("Failed to open file: " + filename);
+    char buf[2048];
+    sprintf(buf, "Failed to open file: %s", filename);
+    throw std::runtime_error(buf);
     return std::vector<char>();
   }
 
@@ -34,6 +36,11 @@ std::vector<char> Utilities::readFile(const std::string& filename) {
   file.close();
 
   return buffer;
+}
+
+/*static*/
+std::vector<char> Utilities::readFile(const std::string& filename) {
+  return readFile(filename.c_str());
 }
 
 /*static*/
@@ -56,9 +63,14 @@ bool Utilities::writeFile(
 }
 
 /*static*/
-bool Utilities::checkFileExists(const std::string& filename) {
-  std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary);
+bool Utilities::checkFileExists(const char* filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
   return file.good();
+}
+
+/*static*/
+bool Utilities::checkFileExists(const std::string& filename) {
+  return checkFileExists(filename.c_str());
 }
 
 /*static*/
@@ -115,19 +127,22 @@ CesiumGltf::ImageCesium Utilities::loadPng(const std::string& path) {
 }
 
 /*static*/
-void Utilities::loadImage(const std::string& path, Utilities::ImageFile& result) {
-  std::vector<char> data = Utilities::readFile(path);
-
+void Utilities::loadImage(const char* path, Utilities::ImageFile& result) {
   result.channels = 4;
   result.bytesPerChannel = 1;
 
   int originalChannels;
-  stbi_uc* pImg = stbi_load(path.c_str(), &result.width, &result.height, &originalChannels, result.channels);
+  stbi_uc* pImg = stbi_load(path, &result.width, &result.height, &originalChannels, result.channels);
 
   result.data.resize(
     result.width * result.height * result.channels * result.bytesPerChannel);
   std::memcpy(result.data.data(), pImg, result.data.size());
   stbi_image_free(pImg);
+}
+
+/*static*/
+void Utilities::loadImage(const std::string& path, Utilities::ImageFile& result) {
+  loadImage(path.c_str(), result);
 }
 
 

@@ -18,8 +18,10 @@ class Application;
  * reasonable default values.
  */
 struct ALTHEA_API ImageOptions {
+  VkImageType imageType = VK_IMAGE_TYPE_2D;
   uint32_t width = 1;
   uint32_t height = 1;
+  uint32_t depth = 1;
   uint32_t mipCount = 1;
   uint32_t layerCount = 1;
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;

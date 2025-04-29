@@ -18,8 +18,10 @@ struct ImageCesium;
 namespace AltheaEngine {
 class ALTHEA_API Utilities {
 public:
+  static std::vector<char> readFile(const char* filename);
   static std::vector<char> readFile(const std::string& filename);
   static bool writeFile(const std::string& fileName, gsl::span<const char> data);
+  static bool checkFileExists(const char* filename);
   static bool checkFileExists(const std::string& filename);
   
   static uint32_t computeMipCount(uint32_t width, uint32_t height);
@@ -39,6 +41,7 @@ public:
       int height,
       gsl::span<const std::byte> data);
 
+  static void loadImage(const char* path, ImageFile& result);
   static void loadImage(const std::string& path, ImageFile& result);
 
   static void loadHdri(const std::string& path, ImageFile& result);

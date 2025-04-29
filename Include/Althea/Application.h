@@ -5,8 +5,8 @@
 #include "ConfigParser.h"
 #include "DeletionTasks.h"
 #include "FrameContext.h"
-#include "ImageResource.h"
 #include "Image.h"
+#include "ImageResource.h"
 #include "ImageView.h"
 #include "InputManager.h"
 #include "Library.h"
@@ -67,8 +67,11 @@ public:
       const std::string& engineDirectory,
       const CreateOptions* pCreateOptions = nullptr);
 
-  template <typename TGameInstance> void createGame() {
-    this->gameInstance = std::make_unique<TGameInstance>();
+  template <typename TGameInstance, class... TArgs>
+  TGameInstance* createGame(TArgs&&... args) {
+    this->gameInstance =
+        std::make_unique<TGameInstance>(std::forward<TArgs>(args)...);
+    return (TGameInstance*)this->gameInstance.get();
   }
 
   template <typename TGameInstance> TGameInstance* getGameInstance() {

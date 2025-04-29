@@ -97,7 +97,7 @@ Sampler::Sampler(const Application& app, const SamplerOptions& options)
 
   samplerInfo.addressModeU = options.addressModeU;
   samplerInfo.addressModeV = options.addressModeV;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeW = options.addressModeW;
 
   samplerInfo.magFilter = options.magFilter;
   samplerInfo.minFilter = options.minFilter;

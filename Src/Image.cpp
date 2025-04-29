@@ -12,10 +12,10 @@ static ImageAllocation
 createImage(const Application& app, const ImageOptions& options) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.imageType = options.imageType;
   imageInfo.extent.width = options.width;
   imageInfo.extent.height = options.height;
-  imageInfo.extent.depth = 1;
+  imageInfo.extent.depth = options.depth;
 
   imageInfo.mipLevels = options.mipCount;
   imageInfo.arrayLayers = options.layerCount;
@@ -312,13 +312,18 @@ void Image::copyMipFromBuffer(
   region.imageExtent = {
       this->_options.width >> mipLevel,
       this->_options.height >> mipLevel,
-      1};
+      this->_options.depth >> mipLevel};
+
   if (region.imageExtent.width == 0) {
     region.imageExtent.width = 1;
   }
 
   if (region.imageExtent.height == 0) {
     region.imageExtent.height = 1;
+  }
+
+  if (region.imageExtent.depth == 0) {
+    region.imageExtent.depth = 1;
   }
 
   vkCmdCopyBufferToImage(
@@ -353,13 +358,17 @@ void Image::copyMipToBuffer(
   region.imageExtent = {
       this->_options.width >> mipLevel,
       this->_options.height >> mipLevel,
-      1};
+      this->_options.depth >> mipLevel};
   if (region.imageExtent.width == 0) {
     region.imageExtent.width = 1;
   }
 
   if (region.imageExtent.height == 0) {
     region.imageExtent.height = 1;
+  }
+
+  if (region.imageExtent.depth == 0) {
+    region.imageExtent.depth = 1;
   }
 
   region.bufferOffset = dstOffset;
