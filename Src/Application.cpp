@@ -1016,14 +1016,48 @@ void Application::recordCommandBuffer(
   beginInfo.flags = 0;
   beginInfo.pInheritanceInfo = nullptr;
 
+  isRecordingCommandBuffer = true;
   if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
     throw std::runtime_error("Failed to begin recording command buffer!");
   }
 
   this->gameInstance->draw(*this, commandBuffer, frame);
 
+  isRecordingCommandBuffer = false;
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("Failed to record command buffer!");
+  }
+}
+
+void Application::partialSubmitWaitGpu(VkCommandBuffer commandBuffer, const FrameContext& frame) {
+  if (!isRecordingCommandBuffer)
+  {
+    throw std::runtime_error("Attempting to partial submit when command buffer is not being recorded");
+  }
+
+  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to record command buffer!");
+  }
+
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    std::cout << "Failed to submit SingleTimeCommandBuffer";
+  }
+
+  vkQueueWaitIdle(graphicsQueue);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = nullptr;
+
+  vkResetCommandBuffer(commandBuffer, 0);
+  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to begin recording command buffer!");
   }
 }
 } // namespace AltheaEngine

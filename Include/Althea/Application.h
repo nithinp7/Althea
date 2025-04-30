@@ -150,6 +150,7 @@ private:
   ConfigParser configParser;
 
   bool shouldClose = false;
+  bool isRecordingCommandBuffer = false;
 
   void initWindow();
   void initVulkan();
@@ -196,6 +197,7 @@ private:
 
   void
   recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame);
+  void partialSubmitWaitGpu(VkCommandBuffer commandBuffer, const FrameContext& frame);
 
 public:
   // Getters
