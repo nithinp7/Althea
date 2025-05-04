@@ -57,6 +57,8 @@ public:
       int height,
       gsl::span<const std::byte> data);
 
+  static void loadTiff(const char* path, ImageFile& result);
+
   static void pushRandSeed(uint32_t seed);
   static uint32_t getRandSeed();
   static float randf(uint32_t s);

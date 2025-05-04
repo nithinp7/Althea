@@ -197,9 +197,11 @@ private:
 
   void
   recordCommandBuffer(VkCommandBuffer commandBuffer, const FrameContext& frame);
-  void partialSubmitWaitGpu(VkCommandBuffer commandBuffer, const FrameContext& frame);
 
 public:
+
+  void partialSubmitWaitGpu(VkCommandBuffer commandBuffer, const FrameContext& frame);
+
   // Getters
   VkInstance getInstance() const { return instance; }
 
