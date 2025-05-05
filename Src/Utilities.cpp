@@ -17,6 +17,25 @@
 #include <cstdint>
 
 namespace AltheaEngine {
+static std::vector<std::vector<char>> s_fileReadAllocCache;
+
+// TODO: obviously not thread-safe
+static std::vector<char> getFileReadAlloc(size_t count) {
+  for (int i = 0; i < s_fileReadAllocCache.size(); i++) {
+    if (s_fileReadAllocCache[i].size() >= count) {
+      auto alloc = std::move(s_fileReadAllocCache[i]);
+      s_fileReadAllocCache.erase(s_fileReadAllocCache.begin() + i);
+      alloc.resize(count);
+      return std::move(alloc);
+    }
+  }
+  return std::vector<char>(count);
+}
+
+static void freeFileReadAlloc(std::vector<char>&& alloc) {
+  s_fileReadAllocCache.emplace_back(std::move(alloc));
+}
+
 /*static*/
 std::vector<char> Utilities::readFile(const char* filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -29,7 +48,7 @@ std::vector<char> Utilities::readFile(const char* filename) {
   }
 
   size_t fileSize = (size_t)file.tellg();
-  std::vector<char> buffer(fileSize);
+  std::vector<char> buffer = getFileReadAlloc(fileSize);
 
   file.seekg(0);
   file.read(buffer.data(), fileSize);
@@ -100,6 +119,8 @@ void Utilities::loadPng(const std::string& path, Utilities::ImageFile& result) {
       result.width * result.height * result.channels * result.bytesPerChannel);
   std::memcpy(result.data.data(), pPngImage, result.data.size());
   stbi_image_free(pPngImage);
+
+  freeFileReadAlloc(std::move(data));
 }
 
 /*static*/
@@ -124,7 +145,9 @@ CesiumGltf::ImageCesium Utilities::loadPng(const std::string& path) {
   std::memcpy(image.pixelData.data(), pPngImage, image.pixelData.size());
   stbi_image_free(pPngImage);
 
-  return std::move(image);
+  freeFileReadAlloc(std::move(data));
+
+  return image;
 }
 
 /*static*/
@@ -185,6 +208,8 @@ void Utilities::loadHdri(
   std::memcpy(result.data.data(), pHdriImage, result.data.size());
 
   stbi_image_free(pHdriImage);
+
+  freeFileReadAlloc(std::move(data));
 }
 
 /*static*/
@@ -210,7 +235,9 @@ CesiumGltf::ImageCesium Utilities::loadHdri(const std::string& path) {
 
   stbi_image_free(pHdriImage);
 
-  return std::move(image);
+  freeFileReadAlloc(std::move(data));
+
+  return image;
 }
 
 /*static*/
@@ -247,6 +274,10 @@ namespace TiffLoaderImpl {
 struct TiffParser {
   TiffParser(const char* filepath)
       : m_buffer(Utilities::readFile(filepath)), m_offset(0) {}
+
+  ~TiffParser() {
+    freeFileReadAlloc(std::move(m_buffer));
+  }
 
   template <typename T> const T& parse() {
     const T& t = *reinterpret_cast<const T*>(&m_buffer[m_offset]);
