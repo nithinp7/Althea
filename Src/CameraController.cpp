@@ -111,6 +111,10 @@ void CameraController::setRotationDegrees(
   this->_targetYaw = yawDegrees;
 }
 
+void CameraController::setTargetSpeed(float speed) {
+  this->_targetSpeed = speed;
+}
+
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {
   this->_targetDirection[axis] = static_cast<float>(dir);
 }
