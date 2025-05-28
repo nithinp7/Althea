@@ -47,6 +47,8 @@ public:
             std::filesystem::path(GEngineDirectory + "/Shaders/")
                 .replace_filename(pIncludedShader->sourceName);
         if (!Utilities::checkFileExists(includedShaderPath.string())) {
+          // TODO: this local path needs to be relative to the requesting shader...
+          // not the original top-level shader.
           // Else, assume the shader is in the same directory
           includedShaderPath =
               std::filesystem::path(this->_shaderPath)

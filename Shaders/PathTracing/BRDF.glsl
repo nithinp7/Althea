@@ -47,7 +47,7 @@ vec3 sampleMicrofacetBrdf(
     vec3 baseColor,
     float metallic, 
     float roughness,
-    //float ambientOcclusion TODO Useful??
+    vec3 specular,
     out vec3 wiw,
     out float pdf) {
   mat3 localToWorld = LocalToWorld(N);
@@ -102,10 +102,40 @@ vec3 sampleMicrofacetBrdf(
   if (wh == vec3(0.0)) return vec3(0.0);
   
   // TODO: Use metallic
-  vec3 F = vec3(1.0);
+  // float F0 = 0.01;
+  // vec3 F = fresnelSchlick(abs(dot(N, wow)), F0.xxx, roughness);
+  // TODO wrap into function...
+  float LdotH = abs(woDotwh);
+  vec3 F0 = specular;
+  vec3 F = F0 + (1.0.xxx - F0) * pow(1.0 - LdotH, 5.0);
+
+  // vec3 F = vec3(1.0);
   float G = 1.0 / (1.0 + Lambda(wo, roughness) + Lambda(wi, roughness));
 
-  return G * baseColor * D / (4.0 * wi.z * wo.z);
+  vec3 ggx = D*G*F / (4.0 * wo.z /**wh.z*/);
+  return ggx + wi.z * baseColor / PI;
+  // return F * G * baseColor * D / (4.0 * wo.z);
+}
+
+vec3 sampleMicrofacetBrdf(
+    vec2 xi,
+    vec3 wow,
+    vec3 N, 
+    vec3 baseColor,
+    float metallic, 
+    float roughness,
+    out vec3 wiw,
+    out float pdf) {
+  return sampleMicrofacetBrdf(
+    xi,
+    wow,
+    N, 
+    baseColor,
+    metallic, 
+    roughness,
+    0.0.xxx,
+    wiw,
+    pdf);
 }
 
 // TODO: look into this

@@ -3,7 +3,9 @@
 
 #include <Misc/Constants.glsl>
 
+#ifndef RND_IMPL
 #define RND_IMPL 0
+#endif
 // Random number generator and sample warping
 // from ShaderToy https://www.shadertoy.com/view/4tXyWN
 
