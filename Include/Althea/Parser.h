@@ -55,6 +55,23 @@ struct Parser {
     return std::nullopt;
   }
 
+  template <class TEnum>
+  std::optional<TEnum> parseToken(const char* const* strs, size_t numTokens)
+  {
+    if (auto n = parseName()) {
+      for (size_t i = 0; i < numTokens; i++) {
+        const char* tn = strs[i];
+        size_t tnLen = strlen(tn);
+        if (n->size() == tnLen &&
+          !strncmp(n->data(), tn, n->size())) {
+          return static_cast<TEnum>(i);
+        }
+      }
+    }
+
+    return std::nullopt;
+  }
+  
   static uint32_t getOperPrecedence(char op) {
     if (op == '+' || op == '-')
       return 0;
