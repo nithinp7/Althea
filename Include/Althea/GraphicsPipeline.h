@@ -36,19 +36,24 @@ class ALTHEA_API GraphicsPipelineBuilder {
 public:
   GraphicsPipelineBuilder& addVertexShader(
       const std::string& shaderPath,
-      const ShaderDefines& defines = {});
+      const ShaderDefines& defines = {},
+      ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
   GraphicsPipelineBuilder& addTessellationControlShader(
       const std::string& shaderPath,
-      const ShaderDefines& defines = {});
+      const ShaderDefines& defines = {},
+      ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
   GraphicsPipelineBuilder& addTessellationEvaluationShader(
       const std::string& shaderPath,
-      const ShaderDefines& defines = {});
+      const ShaderDefines& defines = {},
+      ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
   GraphicsPipelineBuilder& addGeometryShader(
       const std::string& shaderPath,
-      const ShaderDefines& defines = {});
+      const ShaderDefines& defines = {},
+      ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
   GraphicsPipelineBuilder& addFragmentShader(
       const std::string& shaderPath,
-      const ShaderDefines& defines = {});
+      const ShaderDefines& defines = {},
+      ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
 
   /**
    * @brief Add a vertex input binding - can be a vertex buffer or instance

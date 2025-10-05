@@ -17,6 +17,13 @@ class Application;
 
 typedef std::unordered_map<std::string, std::string> ShaderDefines;
 
+enum ShaderLanguage {
+  SHADER_LANGUAGE_GLSL = 0,
+  SHADER_LANGUAGE_HLSL,
+  // TODO
+  // SHADER_LANGUAGE_SLANG
+};
+
 class ShaderBuilder;
 
 class ALTHEA_API Shader {
@@ -43,7 +50,8 @@ public:
   ShaderBuilder(
       const std::string& path,
       shaderc_shader_kind kind,
-      const std::unordered_map<std::string, std::string>& defines = {});
+      const ShaderDefines& defines,
+      ShaderLanguage lang);
 
   /**
    * @brief Reload and recompile this shader.
@@ -84,12 +92,13 @@ private:
   std::filesystem::path _path;
 
   shaderc_shader_kind _kind;
+  ShaderLanguage _language;
 
   ShaderDefines _defines;
 
   std::string _errors;
-  std::string _glslFileHash;
-  std::vector<char> _glslCode;
+  std::string _fileHash;
+  std::vector<char> _code;
   std::vector<uint32_t> _spirvBytecode;
 };
 } // namespace AltheaEngine

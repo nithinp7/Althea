@@ -123,17 +123,18 @@ void Shader::ShaderDeleter::operator()(
 ShaderBuilder::ShaderBuilder(
     const std::string& path,
     shaderc_shader_kind kind,
-    const std::unordered_map<std::string, std::string>& defines)
-    : _path(path), _kind(kind), _defines(defines) {
+    const std::unordered_map<std::string, std::string>& defines,
+    ShaderLanguage language)
+    : _path(path), _kind(kind), _language(language), _defines(defines) {
   this->_path = std::filesystem::path(this->_path);
 
   // Note we do not fail gracefully when an invalid path is given. We only
   // fail gracefully during compilation errors.
-  this->_glslCode = Utilities::readFile(this->_path.string());
+  this->_code = Utilities::readFile(this->_path.string());
 
   // Store file hash in order to check if the file gets changed later.
   SHA256 sha256;
-  this->_glslFileHash = sha256(this->_glslCode.data(), this->_glslCode.size());
+  this->_fileHash = sha256(this->_code.data(), this->_code.size());
 
   this->recompile();
 }
@@ -148,6 +149,11 @@ bool ShaderBuilder::recompile() {
   // TODO: Hot-reloading does not currently work for "included" shader files
   // dummy changes need to be made in the main shader file
   options.SetIncluder(std::make_unique<AltheaShaderIncluder>(_path));
+  if (_language == SHADER_LANGUAGE_HLSL)
+    options.SetSourceLanguage(shaderc_source_language_hlsl);
+  else
+    options.SetSourceLanguage(shaderc_source_language_glsl);
+  options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
 
   if (s_shouldGenerateDebugInfo)
     options.SetGenerateDebugInfo();
@@ -170,8 +176,8 @@ bool ShaderBuilder::recompile() {
 #endif
 
   shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
-      this->_glslCode.data(),
-      this->_glslCode.size(),
+      this->_code.data(),
+      this->_code.size(),
       this->_kind,
       // TODO: Should we use the short-path instead as the name
       this->_path.string().c_str(),
@@ -195,13 +201,13 @@ bool ShaderBuilder::reloadIfStale() {
 
   // TODO: Implement recursive stale-checking of included shader files
 #ifdef HOTRELOAD_CHECK_STALE
-  if (currentHash == this->_glslFileHash) {
+  if (currentHash == this->_fileHash) {
     return false;
   }
 #endif
 
-  this->_glslFileHash = std::move(currentHash);
-  this->_glslCode = std::move(currentGlslCode);
+  this->_fileHash = std::move(currentHash);
+  this->_code = std::move(currentGlslCode);
   return true;
 }
 } // namespace AltheaEngine

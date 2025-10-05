@@ -325,11 +325,13 @@ void GraphicsPipeline::recreatePipeline(Application& app) {
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
     const std::string& shaderPath,
-    const ShaderDefines& defines) {
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
   this->_shaderBuilders.emplace_back(
       shaderPath,
       shaderc_vertex_shader,
-      defines);
+      defines,
+      lang);
 
   VkPipelineShaderStageCreateInfo& vertShaderStageInfo =
       this->_shaderStages.emplace_back();
@@ -344,7 +346,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addVertexShader(
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
     const std::string& shaderPath,
-    const ShaderDefines& defines) {
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
@@ -353,7 +356,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addTessellationControlShader(
 GraphicsPipelineBuilder&
 GraphicsPipelineBuilder::addTessellationEvaluationShader(
     const std::string& shaderPath,
-    const ShaderDefines& defines) {
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
   throw std::runtime_error("Tessellation shaders not yet supported!");
 
   return *this;
@@ -361,7 +365,8 @@ GraphicsPipelineBuilder::addTessellationEvaluationShader(
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
     const std::string& shaderPath,
-    const ShaderDefines& defines) {
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
   throw std::runtime_error("Geometry shaders not yet supported!");
   // VkPipelineShaderStageCreateInfo& geomShaderStageInfo =
   //    this->_shaderStages.emplace_back();
@@ -376,11 +381,13 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::addGeometryShader(
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::addFragmentShader(
     const std::string& shaderPath,
-    const ShaderDefines& defines) {
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
   this->_shaderBuilders.emplace_back(
       shaderPath,
       shaderc_fragment_shader,
-      defines);
+      defines,
+      lang);
 
   VkPipelineShaderStageCreateInfo& fragShaderStageInfo =
       this->_shaderStages.emplace_back();

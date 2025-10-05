@@ -17,9 +17,9 @@ class Application;
 
 class ALTHEA_API RayTracingPipelineBuilder {
 public:
-  void setRayGenShader(const std::string& path, const ShaderDefines& defs = {});
-  void addMissShader(const std::string& path, const ShaderDefines& defs = {});
-  void addClosestHitShader(const std::string& path, const ShaderDefines& defs = {});
+  void setRayGenShader(const std::string& path, const ShaderDefines& defs = {}, ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
+  void addMissShader(const std::string& path, const ShaderDefines& defs = {}, ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
+  void addClosestHitShader(const std::string& path, const ShaderDefines& defs = {}, ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
 
   PipelineLayoutBuilder layoutBuilder;
 

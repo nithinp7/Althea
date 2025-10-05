@@ -286,15 +286,15 @@ void RayTracingPipeline::recreatePipeline(Application& app) {
   *this = std::move(newPipeline);
 }
 
-void RayTracingPipelineBuilder::setRayGenShader(const std::string& path, const ShaderDefines& defs) {
-  this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader, defs);
+void RayTracingPipelineBuilder::setRayGenShader(const std::string& path, const ShaderDefines& defs, ShaderLanguage lang) {
+  this->_rayGenShaderBuilder = ShaderBuilder(path, shaderc_raygen_shader, defs, lang);
 }
 
-void RayTracingPipelineBuilder::addMissShader(const std::string& path, const ShaderDefines& defs) {
-  this->_missShaderBuilders.emplace_back(path, shaderc_miss_shader, defs);
+void RayTracingPipelineBuilder::addMissShader(const std::string& path, const ShaderDefines& defs, ShaderLanguage lang) {
+  this->_missShaderBuilders.emplace_back(path, shaderc_miss_shader, defs, lang);
 }
 
-void RayTracingPipelineBuilder::addClosestHitShader(const std::string& path, const ShaderDefines& defs) {
-  this->_closestHitShaderBuilders.emplace_back(path, shaderc_closesthit_shader, defs);
+void RayTracingPipelineBuilder::addClosestHitShader(const std::string& path, const ShaderDefines& defs, ShaderLanguage lang) {
+  this->_closestHitShaderBuilders.emplace_back(path, shaderc_closesthit_shader, defs, lang);
 }
 } // namespace AltheaEngine

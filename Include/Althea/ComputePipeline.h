@@ -20,7 +20,7 @@ public:
    * @param defines Defines to inject before compilation
    */
   void
-  setComputeShader(const std::string& path, const ShaderDefines& defines = {});
+  setComputeShader(const std::string& path, const ShaderDefines& defines = {}, ShaderLanguage lang = SHADER_LANGUAGE_GLSL);
 
 
   std::string compileShadersGetErrors();

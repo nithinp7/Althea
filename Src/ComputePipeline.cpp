@@ -8,8 +8,9 @@
 namespace AltheaEngine {
 void ComputePipelineBuilder::setComputeShader(
     const std::string& path,
-    const ShaderDefines& defines) {
-  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader, defines);
+    const ShaderDefines& defines,
+    ShaderLanguage lang) {
+  this->_shaderBuilder = ShaderBuilder(path, shaderc_compute_shader, defines, lang);
 }
 
 std::string ComputePipelineBuilder::compileShadersGetErrors() {
