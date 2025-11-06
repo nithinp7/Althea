@@ -68,7 +68,7 @@ void Camera::setRotationRadians(float yawRadians, float pitchRadians) {
 // TODO: Double check these
 float Camera::computeYaw() const {
   const glm::vec4& zAxis = this->_transform[2];
-  return glm::atan(-zAxis.z, zAxis.x);
+  return glm::atan(zAxis.x, zAxis.z);
 }
 
 float Camera::computeYawDegrees() const {

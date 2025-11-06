@@ -142,6 +142,7 @@ public:
    */
   void setMouseCursorHidden(bool cursorHidden);
 
+  void setMousePos(double x, double y);
   uint32_t getCurrentInputMask() const { return this->_currentInputMask; }
 
   struct MousePos {

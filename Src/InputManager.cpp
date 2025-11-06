@@ -258,6 +258,18 @@ void InputManager::setMouseCursorHidden(bool cursorHidden) {
   this->_updateMousePos(ndc.x, ndc.y);
 }
 
+void InputManager::setMousePos(double x, double y) {
+  Application* app = (Application*)glfwGetWindowUserPointer(this->_pWindow);
+  const VkExtent2D& screenDims = app->getSwapChainExtent();
+
+  glfwSetCursorPos(
+    this->_pWindow,
+    screenDims.width * (0.5 * x + 0.5),
+    screenDims.height * (0.5 - 0.5 * y));
+
+  this->_updateMousePos(x, y);
+}
+
 InputManager::MousePos InputManager::getCurrentMousePos() const {
   // Update the mouse position to notify clients of cursor change.
   MousePos mPos;

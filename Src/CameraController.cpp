@@ -13,9 +13,7 @@ extern InputManager* GInputManager;
 CameraController::CameraController(float fovDegrees, float aspectRatio)
     : _camera(fovDegrees, aspectRatio, 0.01f, 1000.0f) {}
 
-CameraController::~CameraController() {
-  // TODO: unbind?
-}
+CameraController::~CameraController() {}
 
 void CameraController::tick(float deltaTime) {
   uint32_t inputMask = GInputManager->getCurrentInputMask();
@@ -109,6 +107,18 @@ void CameraController::setRotationDegrees(
   this->_camera.setRotationDegrees(yawDegrees, pitchDegrees);
   this->_yaw = yawDegrees;
   this->_targetYaw = yawDegrees;
+}
+
+void CameraController::resetRotation(float yawDegrees, float pitchDegrees) {
+  // todo actually remap range if needed
+  yawDegrees = glm::clamp(yawDegrees, -180.0f, 180.0f);
+  pitchDegrees = glm::clamp(pitchDegrees, -89.0f, 89.0f);
+  setRotationDegrees(yawDegrees, pitchDegrees);
+  _targetPitch = pitchDegrees;
+
+  double mx = yawDegrees / (_yawMultiplier * -180.0);
+  double my = pitchDegrees / (_pitchMultiplier * 89.0);
+  GInputManager->setMousePos(mx, my);
 }
 
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {

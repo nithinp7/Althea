@@ -26,6 +26,7 @@ public:
   void setMouseEnabled() { _forceMouseDisabled = false; }
   void setPosition(const glm::vec3& position);
   void setRotationDegrees(float yawDegrees, float pitchDegrees);
+  void resetRotation(float yawDegrees, float pitchDegrees);
 
 private:
   // Mouse updates, using normalized screen coordinates.
