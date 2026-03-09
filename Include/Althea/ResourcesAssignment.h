@@ -55,6 +55,14 @@ public:
     return *this;
   }
 
+  ResourcesAssignment& bindConstantUniforms(VkBuffer buffer, size_t offset, size_t size) {
+    for (uint32_t i = 0; i < this->_assignments.size(); ++i) {
+      this->_assignments[i].bindUniformBufferDescriptor(buffer, offset, size);
+    }
+
+    return *this;
+  }
+
   // TODO: abstract uniform buffers so client doesn't have to worry about
   // double buffering
   template <typename TUniforms>

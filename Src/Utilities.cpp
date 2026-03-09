@@ -271,6 +271,12 @@ void Utilities::saveExr(
 }
 
 namespace TiffLoaderImpl {
+void fatalAssert(bool cond) {
+  assert(cond);
+  if (!cond)
+    throw std::runtime_error("Internal TIFF parser error!");
+}
+
 struct TiffParser {
   TiffParser(const char* filepath)
       : m_buffer(Utilities::readFile(filepath)), m_offset(0) {}
@@ -289,15 +295,27 @@ struct TiffParser {
     return *reinterpret_cast<const T*>(&m_buffer[m_offset]);
   }
 
-  void seek(uint32_t offset) { m_offset = offset; }
+  uint32_t parseUint(uint32_t stride) {
+    if (stride == 1)
+      return parse<uint8_t>();
+    else if (stride == 2)
+      return parse<uint16_t>();
+    else
+      return parse<uint32_t>();
+  }
+
+  void seek(uint32_t offset) { 
+    fatalAssert(offset <= m_buffer.size());
+    m_offset = offset; 
+  }
 
   struct ScopedSeek {
     ScopedSeek(TiffParser* p, uint32_t offset)
         : m_parser(p), m_prevOffset(p->m_offset) {
-      m_parser->m_offset = offset;
+      m_parser->seek(offset);
     }
 
-    ~ScopedSeek() { m_parser->m_offset = m_prevOffset; }
+    ~ScopedSeek() { m_parser->seek(m_prevOffset); }
 
     TiffParser* m_parser;
     uint32_t m_prevOffset;
@@ -331,8 +349,8 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
     uint32_t ifdOffset;
   };
   const IFH& header = p.parse<IFH>();
-  assert(header.byteOrder == 0x4949); // little-endian
-  assert(header.magic == 42);
+  fatalAssert(header.byteOrder == 0x4949); // little-endian
+  fatalAssert(header.magic == 42);
 
   enum TagType : uint16_t {
     ImageWidth = 0x100,
@@ -385,6 +403,22 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
       const IFDEntry& entry = p.parse<IFDEntry>();
 
       //printf("IFD ENTRY - tag: %u, fieldType: %u, count: %u, valueOffset: %u\n", entry.tag, entry.fieldType, entry.count, entry.valueOffset);
+      uint32_t fieldTypeStride = 0;
+      switch (entry.fieldType)
+      {
+      case BYTE: {
+        fieldTypeStride = 1;
+        break;
+      }
+      case SHORT: {
+        fieldTypeStride = 2;
+        break;
+      }
+      case LONG: {
+        fieldTypeStride = 4;
+        break;
+      }
+      };
 
       switch (entry.tag)
       {
@@ -397,22 +431,22 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
         break;
       };
       case BitsPerSample: {
-        assert((entry.valueOffset & 7) == 0);
+        fatalAssert((entry.valueOffset & 7) == 0);
         res.bytesPerChannel = entry.valueOffset >> 3;
         break;
       };
       case Compression: {
         // TODO support other types of compression as needed
-        assert(entry.valueOffset == 32773); // PackBits
-        // ...
-        bPackBits = true;
+        bPackBits = entry.valueOffset == 32773; // PackBits
+        fatalAssert(bPackBits || entry.valueOffset == 1); // no compression
         break;
       };
       case StripOffsets: {
         pStripOffsets = entry.valueOffset;
-        assert(stripCount == 0 || stripCount == entry.count);
+        fatalAssert(stripCount == 0 || stripCount == entry.count);
         stripCount = entry.count;
-        stripOffsetStride = (entry.fieldType == SHORT) ? 2 : 4;
+        fatalAssert(fieldTypeStride != 0);
+        stripOffsetStride = fieldTypeStride;
         break;
       };
       case SamplesPerPixel: {
@@ -425,9 +459,10 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
       };
       case StripByteCounts: {
         pStripByteSizes = entry.valueOffset;
-        assert(stripCount == 0 || stripCount == entry.count);
+        fatalAssert(stripCount == 0 || stripCount == entry.count);
         stripCount = entry.count;
-        stripByteSizeStride = (entry.fieldType == SHORT) ? 2 : 4;
+        fatalAssert(fieldTypeStride != 0);
+        stripByteSizeStride = fieldTypeStride;
         break;
       };
       default:
@@ -441,18 +476,18 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
   uint32_t outputImgSize = res.width * res.height * res.channels * res.bytesPerChannel;
   res.data.resize(outputImgSize);
   uint32_t dstOffset = 0;
-  assert(stripCount != 0);
+  fatalAssert(stripCount != 0);
   for (uint32_t stripIdx = 0; stripIdx < stripCount; stripIdx++)
   {
     p.seek(pStripByteSizes + stripIdx * stripByteSizeStride);
-    uint32_t byteCount = (stripByteSizeStride == 2) ? p.parse<uint16_t>() : p.parse<uint32_t>();
+    uint32_t byteCount = p.parseUint(stripByteSizeStride);
     p.seek(pStripOffsets + stripIdx * stripOffsetStride);
-    uint32_t stripOffset = (stripOffsetStride == 2) ? p.parse<uint16_t>() : p.parse<uint32_t>();
+    uint32_t stripOffset = p.parseUint(stripOffsetStride);
 
     if (bPackBits)
     {
       for (uint32_t byteOffset = 0; byteOffset < byteCount;) {
-        assert(dstOffset < outputImgSize);
+        fatalAssert(dstOffset < outputImgSize);
         p.seek(stripOffset + byteOffset);
         char n = p.parse<char>();
         byteOffset++;
@@ -476,12 +511,13 @@ void Utilities::loadTiff(const char* filepath, ImageFile& res) {
       }
     }
     else {
+      p.seek(stripOffset);
       memcpy(&res.data[dstOffset], &p.peak<uint8_t>(), byteCount);
       dstOffset += byteCount;
     }
   }
 
-  assert(dstOffset == outputImgSize);
+  fatalAssert(dstOffset == outputImgSize);
 }
 
 std::vector<uint32_t> Utilities::randSeedStack;
