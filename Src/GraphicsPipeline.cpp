@@ -143,7 +143,7 @@ GraphicsPipeline::GraphicsPipeline(
     colorBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.blendEnable = !builder._disableAlphaBlending;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor =
         VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -521,6 +521,11 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDynamicStencil(
   _stencilFront = front;
   _stencilBack = back;
 
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::setAlphaBlending(bool bAlphaBlending) {
+  _disableAlphaBlending = !bAlphaBlending;
   return *this;
 }
 

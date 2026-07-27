@@ -59,6 +59,7 @@ public:
     uint32_t width = 1440;
     uint32_t height = 1080;
     uint32_t frameRateLimit = 0;
+    bool bFullScreen = false;
   };
 
   Application(
@@ -151,6 +152,8 @@ private:
 
   bool shouldClose = false;
   bool isRecordingCommandBuffer = false;
+
+  bool startInFullScreen = false;
 
   void initWindow();
   void initVulkan();

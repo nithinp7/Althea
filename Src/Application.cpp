@@ -60,6 +60,8 @@ Application::Application(
    for (int i = 0; i < FramePacer::FRAME_HISTORY_COUNT; ++i) {
      framePacer.frameTimingHistory[i] = 0.0;
    }
+
+   startInFullScreen = pCreateOptions->bFullScreen;
 }
 
 void Application::run() {
@@ -87,12 +89,19 @@ void Application::initWindow() {
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+  if (startInFullScreen) {
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    swapChainExtent.width = mode->width;
+    swapChainExtent.height = mode->height;
+  }
 
   window = glfwCreateWindow(
       swapChainExtent.width,
       swapChainExtent.height,
       GApplicationTitle.c_str(),
-      nullptr,
+      startInFullScreen ? glfwGetPrimaryMonitor() : nullptr,
       nullptr);
   glfwSetWindowUserPointer(window, this);
 

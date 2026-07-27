@@ -5,6 +5,7 @@
 #include "sha256.h"
 
 #include <stdexcept>
+#include <unordered_map>
 
 namespace AltheaEngine {
 namespace {
@@ -16,6 +17,7 @@ struct IncludedShader {
 class AltheaShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
 private:
   std::filesystem::path _shaderPath;
+  std::unordered_map<std::string, std::filesystem::path> _includedPaths;
 
 public:
   AltheaShaderIncluder(const std::filesystem::path& shaderPath)
@@ -34,6 +36,14 @@ public:
     if (type == shaderc_include_type_relative) {
       includedShaderPath = std::filesystem::path(this->_shaderPath)
                                .replace_filename(pIncludedShader->sourceName);
+      if (!Utilities::checkFileExists(includedShaderPath.string()))
+      {
+        auto parentPathIt = _includedPaths.find(std::string(requesting_source));
+        if (parentPathIt != _includedPaths.end())
+        {
+          includedShaderPath = parentPathIt->second.replace_filename(pIncludedShader->sourceName);
+        }
+      }
     } else { // type == shaderc_include_type_standard
       // TODO: formalize this as configurable shader "include paths"
 
@@ -41,18 +51,26 @@ public:
       includedShaderPath =
           std::filesystem::path(GProjectDirectory + "/Shaders/")
               .replace_filename(pIncludedShader->sourceName);
-      if (!Utilities::checkFileExists(includedShaderPath.string())) {
-        // Then search the engine shader directory
+      // Then search the engine shader directory
+      if (!Utilities::checkFileExists(includedShaderPath.string()))
         includedShaderPath =
             std::filesystem::path(GEngineDirectory + "/Shaders/")
                 .replace_filename(pIncludedShader->sourceName);
-        if (!Utilities::checkFileExists(includedShaderPath.string())) {
-          // TODO: this local path needs to be relative to the requesting shader...
-          // not the original top-level shader.
-          // Else, assume the shader is in the same directory
-          includedShaderPath =
-              std::filesystem::path(this->_shaderPath)
-                  .replace_filename(pIncludedShader->sourceName);
+
+      // TODO: this local path needs to be relative to the requesting shader...
+      // not the original top-level shader.
+      // Else, assume the shader is in the same directory
+      if (!Utilities::checkFileExists(includedShaderPath.string()))
+        includedShaderPath =
+          std::filesystem::path(this->_shaderPath)
+          .replace_filename(pIncludedShader->sourceName);
+
+      if (!Utilities::checkFileExists(includedShaderPath.string()))
+      {
+        auto parentPathIt = _includedPaths.find(requesting_source);
+        if (parentPathIt != _includedPaths.end())
+        {
+          includedShaderPath = parentPathIt->second.replace_filename(pIncludedShader->sourceName);
         }
       }
     }
@@ -60,6 +78,9 @@ public:
     if (!Utilities::checkFileExists(includedShaderPath.string())) {
       return new shaderc_include_result();
     }
+
+    // will technically clash if there are relative inclusions of files that share a name
+    _includedPaths[pIncludedShader->sourceName] = includedShaderPath;
 
     pIncludedShader->sourceContent =
         Utilities::readFile(includedShaderPath.string());

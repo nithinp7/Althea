@@ -145,6 +145,8 @@ public:
   GraphicsPipelineBuilder& setStencil(const VkStencilOpState& front, const VkStencilOpState& back);
   GraphicsPipelineBuilder& setDynamicStencil(const VkStencilOpState& front, const VkStencilOpState& back);
 
+  GraphicsPipelineBuilder& setAlphaBlending(bool bEnabled);
+
   std::string compileShadersGetErrors();
 
   /**
@@ -182,6 +184,7 @@ private:
   VkStencilOpState _stencilBack{};
 
   bool _dynamicStencil = false;
+  bool _disableAlphaBlending = false; // too coarse, need to pass per-attachment info
 
   std::vector<VkDynamicState> _dynamicStates;
 };
