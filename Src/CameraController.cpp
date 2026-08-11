@@ -121,6 +121,10 @@ void CameraController::resetRotation(float yawDegrees, float pitchDegrees) {
   GInputManager->setMousePos(mx, my);
 }
 
+void CameraController::setTargetSpeed(float speed) {
+  this->_targetSpeed = speed;
+}
+
 void CameraController::_updateTargetDirection(uint32_t axis, int dir) {
   this->_targetDirection[axis] = static_cast<float>(dir);
 }
